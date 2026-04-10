@@ -26,9 +26,9 @@ export async function registerUser(email, password, displayName) {
         // Güvenlik: Kullanıcıya e-posta doğrulama linki gönder
         await sendEmailVerification(user);
         
-        // 15 Gün Sonrasının Tarihini Hesapla
+        // 2 Gün Sonrasının Tarihini Hesapla
         const trialEndDate = new Date();
-        trialEndDate.setDate(trialEndDate.getDate() + 15);
+        trialEndDate.setDate(trialEndDate.getDate() + 2);
 
         // Veritabanına (Firestore) Profil Kaydı Aç
         await setDoc(doc(db, "users", user.uid), {

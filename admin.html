@@ -43,6 +43,9 @@
         
         .btn-add-1y { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid #3b82f6; }
         .btn-add-1y:hover { background: #3b82f6; color: #000; }
+        
+        .btn-add-hours { background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid #f59e0b; }
+        .btn-add-hours:hover { background: #f59e0b; color: #000; }
 
         #loading { text-align: center; color: var(--text-dim); font-size: 1.2rem; margin-top: 50px; }
         
@@ -149,6 +152,7 @@
                         <td id="date-${userId}" style="font-weight: 600;">${endDate.toLocaleDateString()}</td>
                         <td><span class="status ${statusClass}" id="status-${userId}">${statusText}</span></td>
                         <td>
+                            <button class="btn-action btn-add-hours" onclick="extendHours('${userId}', 2)">+ 2 Saat (Demo)</button>
                             <button class="btn-action btn-add-1m" onclick="extendSubscription('${userId}', 30)">+ 1 Ay (Premium)</button>
                             <button class="btn-action btn-add-1y" onclick="extendSubscription('${userId}', 365)">+ 1 Yıl (Premium)</button>
                         </td>
@@ -167,12 +171,10 @@
 
         // SÜRE UZATMA FONKSİYONU (GLOBAL ERİŞİM İÇİN WİNDOW'A BAĞLIYORUZ)
         window.extendSubscription = async function(userId, daysToAdd) {
-            const confirmMsg = daysToAdd === 30 ? "Bu müşterinin süresini 1 AY uzatıp PREMIUM yapmak istiyormusunuz?" : "Bu müşteriyi 1 YIL PREMIUM yapmak istiyormusunuz?";
+            const confirmMsg = daysToAdd === 30 ? "Bu müşterinin süresini 1 AY uzatıp PREMIUM yapmak istiyorsunuz. Emin misiniz?" : "Bu müşteriyi 1 YIL PREMIUM yapmak istiyorsunuz. Emin misiniz?";
             if(!confirm(confirmMsg)) return;
 
             try {
-                // Şu anki bitiş tarihini bul (Geçmişse bugünden say, geçmemişse bitiş tarihinin üstüne ekle)
-                // Daha basit olması adına tıklanan tarihe güncelleyelim.
                 const newEndDate = new Date();
                 newEndDate.setDate(newEndDate.getDate() + daysToAdd);
                 
@@ -182,22 +184,50 @@
                     isPremium: true
                 });
 
-                // UI Güncelleme
                 document.getElementById('date-'+userId).innerText = newEndDate.toLocaleDateString();
                 const statusSpan = document.getElementById('status-'+userId);
                 statusSpan.className = "status premium";
                 statusSpan.innerText = " ⭐ PREMIUM";
 
-                // Başarı Bildirimi
-                const t = document.getElementById('toast');
-                t.classList.add('show');
-                setTimeout(() => t.classList.remove('show'), 3000);
-
+                showSuccess("Lisans Süresi Uzatıldı!");
             } catch (err) {
                 console.error("Güncelleme başarısız:", err);
                 alert("Bir hata oluştu: " + err.message);
             }
         };
+
+        // SAAT BAZLI HEDİYE/DEMO FONKSİYONU
+        window.extendHours = async function(userId, hoursToAdd) {
+            if(!confirm("Kullanıcıya geçici olarak " + hoursToAdd + " SAAT kullanım hakkı (Demo) hediye edilecektir. Emin misiniz?")) return;
+
+            try {
+                const newEndDate = new Date();
+                newEndDate.setHours(newEndDate.getHours() + hoursToAdd);
+                
+                const userRef = doc(db, "users", userId);
+                await updateDoc(userRef, {
+                    trialEndsAt: newEndDate.toISOString(),
+                    isPremium: false // Demo/Hediye olduğu için premium klasmanına sokmuyoruz, geçici trial sayıyoruz
+                });
+
+                document.getElementById('date-'+userId).innerText = newEndDate.toLocaleString();
+                const statusSpan = document.getElementById('status-'+userId);
+                statusSpan.className = "status trial";
+                statusSpan.innerText = " ⏳ DEMO/HEDİYE VERİLDİ";
+
+                showSuccess(hoursToAdd + " Saat Hediye Süre Tanımlandı!");
+            } catch (err) {
+                console.error("Güncelleme başarısız:", err);
+                alert("Bir hata oluştu: " + err.message);
+            }
+        };
+
+        function showSuccess(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = "✅ " + msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3000);
+        }
     </script>
 </body>
 </html>
