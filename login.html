@@ -132,9 +132,16 @@
             btnLoginSubmit.innerText = "Giriş Yapılıyor...";
 
             try {
-                await signInWithEmailAndPassword(auth, email, pass);
-                // Başarılı giriş, dashboard'a yönlendir.
-                window.location.href = "dashboard.html";
+                const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+                
+                // GÜVENLİK YAMASI: E-posta Doğrulanmış Mı?
+                if (!userCredential.user.emailVerified) {
+                    await auth.signOut(); // Hemen geri çıkar
+                    showError(errLogin, "Güvenlik: E-postanızı henüz doğrulamadınız. Lütfen gelen kutunuzu (veya Spam'i) kontrol edip onay linkine tıklayın.");
+                } else {
+                    // Başarılı ve onaylı giriş
+                    window.location.href = "dashboard.html";
+                }
             } catch (error) {
                 console.error("Giriş Hatası:", error);
                 showError(errLogin, "Giriş başarısız. E-posta veya şifre yanlış.");
@@ -160,11 +167,21 @@
             btnRegSubmit.innerText = "Hesap Kuruluyor...";
 
             try {
-                // Bizim yazdığımız o özel fonksiyonu çağırıyoruz (Kaydol + Veritabanına Yaz)
+                // Bizim yazdığımız o özel fonksiyonu çağırıyoruz (Kaydol + Veritabanına Yaz + Mail Gönder)
                 await registerUser(email, pass, name);
                 
-                // Başarılı! Otomatik dashboard'a gider.
-                window.location.href = "dashboard.html";
+                // Başarılı! Doğrulanmadığı için hesabından çıkış yapıyor ve panel gösteriyoruz.
+                await auth.signOut();
+                
+                document.getElementById('form-register').innerHTML = `
+                    <div style="padding: 25px; background: rgba(16, 185, 129, 0.05); border: 1px solid #10b981; border-radius: 16px; text-align: left;">
+                        <h3 style="color: #10b981; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;"><span>✅</span> Kayıt Başarılı!</h3>
+                        <p style="color: #94a3b8; font-size: 0.95rem; line-height: 1.6; margin-bottom: 20px;">Sistemi kötüye kullanımlardan korumak için onay sistemi kullanıyoruz. Lütfen <b>${email}</b> adresine giderek gönderdiğimiz Onay Linkine tıklayın.</p>
+                        <p style="color: #ef4444; font-size: 0.85rem; margin-bottom: 20px;">* E-posta gelmediyse lütfen SPAM (Gereksiz İşler) klasörünüzü kontrol edin.</p>
+                        <button class="btn-submit" onclick="window.switchTab('login')" style="background: transparent; border: 1px solid var(--accent); color: var(--accent); margin-top: 0;">Giriş Sayfasına Dön</button>
+                    </div>
+                `;
+
             } catch (error) {
                 console.error("Kayıt Hatası:", error);
                 if (error.code === 'auth/email-already-in-use') {

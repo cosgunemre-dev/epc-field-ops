@@ -144,6 +144,12 @@
         // Güvenlik Bekçisi: Sayfa açıldığında kullanıcı var mı kontrol et
         onAuthStateChanged(auth, async (user) => {
             if (user) {
+                // GÜVENLİK YAMASI: E-POSTA ONAYLI MI?
+                if (!user.emailVerified) {
+                    window.location.href = "login.html";
+                    return;
+                }
+
                 // KULLANICI GİRİŞ YAPMIŞ, VERİLERİNİ ÇEKELİM
                 document.getElementById('user-email-text').innerText = user.email;
                 

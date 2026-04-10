@@ -241,6 +241,12 @@
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
+                // GÜVENLİK YAMASI: E-POSTA ONAYLI MI?
+                if (!user.emailVerified) {
+                    window.location.href = "login.html";
+                    return;
+                }
+
                 try {
                     const userDocRef = doc(db, "users", user.uid);
                     const userDoc = await getDoc(userDocRef);
