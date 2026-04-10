@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>SolarMech Plancı V6</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',system-ui,sans-serif; }
+        body { display:flex; width:100vw; height:100vh; overflow:hidden; background:#020617; color:#f8fafc; }
+
+        /* SIDEBAR */
+        #sidebar {
+            width:300px; height:100%; background:#1e293b;
+            border-right:1px solid rgba(255,255,255,0.1);
+            display:flex; flex-direction:column; z-index:100;
+            box-shadow:10px 0 30px rgba(0,0,0,0.5); flex-shrink:0;
+        }
+        .s-header { padding:18px 20px; font-size:17px; font-weight:800; color:#38bdf8; border-bottom:1px solid rgba(255,255,255,0.1); }
+        .s-body { padding:12px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:12px; }
+        .s-group { background:rgba(255,255,255,0.03); padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.08); }
+        .s-title { font-size:10px; text-transform:uppercase; letter-spacing:1px; color:#64748b; font-weight:700; margin-bottom:10px; }
+        .s-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; font-size:13px; }
+        .s-row label { color:#94a3b8; }
+        input[type=number], input[type=text] {
+            background:#0f172a; border:1px solid rgba(255,255,255,0.1); color:white;
+            padding:5px 8px; border-radius:5px; width:90px; outline:none;
+        }
+        input[type=range] { flex:1; }
+        input:focus { border-color:#38bdf8; }
+        .btn {
+            width:100%; padding:9px; border:none; border-radius:6px; cursor:pointer;
+            font-weight:700; font-size:13px; margin-top:4px; transition:0.15s;
+        }
+        .btn:hover { filter:brightness(1.15); transform:translateY(-1px); }
+        .btn:active { transform:translateY(0); }
+        .btn-site  { background:#38bdf8; color:#0f172a; }
+        .btn-depo  { background:#f59e0b; color:#0f172a; }
+        .btn-staff { background:#a855f7; color:white; }
+        .btn-panel { background:#0ea5e9; color:white; }
+        .btn-custom { background:rgba(255,255,255,0.1); color:white; }
+        .btn-danger { background:#ef4444; color:white; }
+        .hint { font-size:10px; color:#475569; margin-top:4px; text-align:center; }
+
+        /* CANVAS AREA */
+        #arena { flex:1; position:relative; overflow:hidden; cursor:crosshair; }
+        #bg-canvas, #main-canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
+        #bg-canvas { z-index:0; }
+        #main-canvas { z-index:1; pointer-events:none; }
+
+        /* UNIT DIVS */
+        .unit {
+            position:absolute; border-radius:5px; cursor:move; z-index:10;
+            display:flex; align-items:center; justify-content:center;
+            box-shadow:0 4px 15px rgba(0,0,0,0.6);
+            user-select:none; pointer-events:all;
+        }
+        .unit-staff  { background:rgba(168,85,247,0.2); border:2px solid #a855f7; }
+        .unit-panel  { background:rgba(14,165,233,0.2); border:2px solid #0ea5e9; }
+        .unit-custom { background:rgba(255,255,255,0.08); border:2px solid rgba(255,255,255,0.3); }
+        .unit-label {
+            position:absolute; top:-22px; left:50%; transform:translateX(-50%);
+            background:#0f172a; border:1px solid rgba(255,255,255,0.2);
+            padding:2px 8px; border-radius:10px; font-size:10px; font-weight:700;
+            white-space:nowrap; color:white; pointer-events:none; text-align:center;
+        }
+        .unit-del {
+            position:absolute; top:-8px; right:-8px; width:18px; height:18px;
+            background:#ef4444; border-radius:50%; border:2px solid white;
+            display:flex; align-items:center; justify-content:center;
+            font-size:11px; font-weight:900; cursor:pointer; color:white;
+            opacity:0; transition:0.2s; z-index:20; line-height:1;
+            pointer-events:all;
+        }
+        .unit:hover .unit-del { opacity:1; }
+        .unit-rot {
+            position:absolute; bottom:-8px; right:-8px; width:18px; height:18px;
+            background:#38bdf8; border-radius:50%; border:2px solid white;
+            display:flex; align-items:center; justify-content:center;
+            font-size:12px; cursor:pointer; color:#0f172a;
+            opacity:0; transition:0.2s; z-index:20; line-height:1;
+            pointer-events:all;
+        }
+        .unit:hover .unit-rot { opacity:1; }
+        .person-dot-grid {
+            position:absolute; inset:4px; display:grid; gap:2px; pointer-events:none;
+        }
+        .pdot {
+            width:5px; height:5px; border-radius:50%; background:#a855f7;
+            box-shadow:0 0 4px #a855f7; justify-self:center; align-self:center;
+        }
+
+        /* UNIT LAYER (transformed div) */
+        #unit-layer { position:absolute; top:0; left:0; pointer-events:none; z-index:5; }
+        /* LEGEND */
+        #legend {
+            position:absolute; bottom:16px; right:16px; z-index:50;
+            background:rgba(15,23,42,0.92); border:1px solid rgba(255,255,255,0.15);
+            border-radius:12px; padding:12px 16px; min-width:160px; max-width:220px;
+            backdrop-filter:blur(8px); box-shadow:0 8px 30px rgba(0,0,0,0.6);
+        }
+        #legend-title { font-size:11px; text-transform:uppercase; letter-spacing:1px;
+            color:#64748b; font-weight:700; margin-bottom:8px; }
+        .legend-item { display:flex; align-items:center; gap:8px; margin-bottom:6px;
+            font-size:12px; font-weight:600; color:#f1f5f9; }
+        .legend-swatch { width:14px; height:14px; border-radius:3px; flex-shrink:0; border:2px solid; }
+        .legend-item { cursor:pointer; }
+        .legend-item:hover { filter:brightness(1.3); }
+
+        /* INVENTORY MODAL */
+        #inv-modal {
+            position:fixed; inset:0; z-index:10000;
+            background:rgba(2,6,23,0.85); backdrop-filter:blur(10px);
+            display:none; align-items:center; justify-content:center;
+        }
+        #inv-box {
+            background:#1e293b; border:1px solid rgba(139,92,246,0.3);
+            border-radius:20px; width:500px; padding:32px;
+            box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);
+        }
+        #inv-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
+        #inv-title { font-size:18px; font-weight:700; color:#f1f5f9; }
+        #inv-close { cursor:pointer; font-size:24px; color:#64748b; }
+        #inv-table { width:100%; border-collapse:collapse; margin-bottom:16px; }
+        #inv-table th { text-align:left; font-size:12px; color:#94a3b8; padding-bottom:8px; }
+        #inv-table td { padding:6px 0; }
+        .inv-row input {
+            width:100%; background:#0f172a; border:1px solid rgba(255,255,255,0.1);
+            border-radius:6px; color:#f1f5f9; padding:8px 12px; font-size:13px;
+        }
+        .inv-del { cursor:pointer; color:#ef4444; font-weight:bold; padding-left:12px; font-size:18px; }
+        #inv-add-row {
+            width:100%; padding:10px; background:rgba(255,255,255,0.05);
+            border:1px dashed rgba(255,255,255,0.2); border-radius:8px;
+            color:#94a3b8; cursor:pointer; font-size:13px; margin-bottom:24px;
+        }
+        #inv-add-row:hover { background:rgba(255,255,255,0.1); }
+        .inv-save-btn {
+            width:100%; padding:12px; background:#8b5cf6; color:white;
+            border:none; border-radius:10px; font-weight:700; cursor:pointer;
+        }
+
+        /* PRINT / PDF */
+        @media print {
+            #sidebar, #hud, #view-reset, #cad-tip { display:none !important; }
+            body { overflow:visible; }
+            #arena { width:100vw; height:100vh; position:relative; }
+            #legend { position:fixed; bottom:20px; right:20px; }
+        }
+
+        /* HUD */
+        #hud {
+            position:absolute; top:12px; left:310px; right:12px;
+            display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+            pointer-events:none; z-index:50;
+        }
+        .hud-pill {
+            background:rgba(15,23,42,0.9); border:1px solid #38bdf8;
+            padding:7px 16px; border-radius:20px; font-size:12px;
+            font-weight:800; color:#38bdf8; backdrop-filter:blur(5px);
+            box-shadow:0 4px 20px rgba(0,0,0,0.5); pointer-events:all;
+        }
+        .hud-pill span { color:white; margin-left:6px; }
+        #hud-finish {
+            background:#22c55e; color:white; border:none; border-radius:20px;
+            padding:7px 18px; font-size:12px; font-weight:800; cursor:pointer;
+            display:none; pointer-events:all;
+        }
+        #hud-finish:hover { filter:brightness(1.2); }
+
+        /* CAD CURSOR TOOLTIP */
+        #cad-tip {
+            position:fixed; z-index:9999; background:#0f172a;
+            border:2px solid #00ff88; border-radius:8px;
+            padding:4px 12px; font-size:12px; font-weight:800;
+            color:#00ff88; pointer-events:none; display:none;
+            box-shadow:0 4px 20px rgba(0,255,136,0.3); white-space:nowrap;
+        }
+
+        /* RESET BTN */
+        #view-reset {
+            position:absolute; bottom:16px; right:16px; z-index:50;
+            background:#38bdf8; color:#0f172a; padding:9px 16px;
+            border-radius:20px; font-weight:800; cursor:pointer; font-size:12px;
+            box-shadow:0 8px 25px rgba(0,0,0,0.4);
+        }
+        #view-reset:hover { filter:brightness(1.1); }
+    </style>
+</head>
+<body>
+
+<aside id="sidebar">
+    <div class="s-header">⚡ SolarMech Plancı V6</div>
+    <div class="s-body">
+
+        <div class="s-group">
+            <p class="s-title">📊 Ölçek (px/m)</p>
+            <div class="s-row">
+                <input type="range" id="scale-slider" min="5" max="120" value="30" oninput="onScaleChange(this.value)">
+                <span id="scale-label" style="width:45px;text-align:right;color:#38bdf8;font-weight:800;">30px/m</span>
+            </div>
+        </div>
+
+        <div class="s-group">
+            <p class="s-title">1. Alan Çiz</p>
+            <button class="btn btn-site"  onclick="startDraw('SITE')">🟦 Saha Sınırı Çiz</button>
+            <button class="btn btn-depo"  onclick="startDraw('DEPO')">🟧 Açık Depo Çiz</button>
+            <button class="btn" style="background:#22c55e;color:white" onclick="startDraw('FENCE')">🔗 Çit / Tel Çek</button>
+            <p class="hint">Tıkla→Tıkla→ ↵ Enter veya çift tık ile bitir</p>
+        </div>
+
+        <div class="s-group">
+            <p class="s-title">2. Personel Ofisi (3×7 m)</p>
+            <div class="s-row"><label>Grup Adı</label><input type="text" id="staff-name" placeholder="Mekanik" style="width:100px"></div>
+            <div class="s-row"><label>Ofis Sayısı</label><input type="number" id="staff-count" value="1" min="1" style="width:55px"></div>
+            <div class="s-row"><label>Kişi/Ofis</label><input type="number" id="staff-per" value="4" min="0" style="width:55px"></div>
+            <div class="s-row"><label>Renk</label><input type="color" id="staff-color" value="#a855f7" style="width:55px;height:28px;padding:2px;border-radius:4px;cursor:pointer"></div>
+            <button class="btn btn-staff" onclick="addStaff()">🏗️ Ofis Ekle</button>
+        </div>
+
+        <div class="s-group">
+            <p class="s-title">3. Panel Matrisi</p>
+            <div class="s-row"><label>Etiket</label><input type="text" id="panel-name" value="PANEL" style="width:100px"></div>
+            <div class="s-row">
+                <label style="font-size:11px">En (m)</label><input type="number" id="panel-w" value="1.1" step="0.1" style="width:60px">
+                <label style="font-size:11px;margin-left:6px">Boy (m)</label><input type="number" id="panel-h" value="2.0" step="0.1" style="width:60px">
+            </div>
+            <div class="s-row">
+                <label style="font-size:11px">Sütun</label><input type="number" id="panel-cols" value="4" style="width:60px">
+                <label style="font-size:11px;margin-left:6px">Satır</label><input type="number" id="panel-rows" value="2" style="width:60px">
+            </div>
+            <div class="s-row"><label>Renk</label><input type="color" id="panel-color" value="#0ea5e9" style="width:55px;height:28px;padding:2px;border-radius:4px;cursor:pointer"></div>
+            <button class="btn btn-panel" onclick="addPanelMatrix()">⚡ Panel Matrisi Ekle</button>
+        </div>
+
+        <div class="s-group">
+            <p class="s-title">4. Özel Birim</p>
+            <div class="s-row"><label>Etiket</label><input type="text" id="cust-name" placeholder="Boru İstifi" style="width:100px"></div>
+            <div class="s-row">
+                <label style="font-size:11px">En (m)</label><input type="number" id="cust-w" value="3" style="width:60px">
+                <label style="font-size:11px;margin-left:6px">Boy (m)</label><input type="number" id="cust-h" value="7" style="width:60px">
+            </div>
+            <div class="s-row"><label>Renk</label><input type="color" id="cust-color" value="#f97316" style="width:55px;height:28px;padding:2px;border-radius:4px;cursor:pointer"></div>
+            <button class="btn btn-custom" onclick="addCustom()">➕ Birim Ekle</button>
+        </div>
+
+        <button class="btn btn-danger" onclick="clearAll()" style="margin-top:auto">🗑️ Planı Temizle</button>
+        <div style="display:flex; gap:6px; margin-top:6px">
+            <button class="btn" style="flex:1; background:#8b5cf6; color:white;" onclick="exportPDF()">📄 PDF İndir</button>
+            <button class="btn" style="flex:1; background:#10b981; color:white;" onclick="exportCSV()">📊 Excel'e Aktar</button>
+        </div>
+
+        <div style="margin-top:12px; padding:10px 0 4px; border-top:1px solid rgba(255,255,255,0.07); text-align:center;">
+            <div style="font-size:10px; color:#334155; font-weight:600; letter-spacing:0.5px;">⚡ SolarMech Plancı</div>
+            <div style="font-size:11px; color:#475569; font-weight:700; margin-top:3px;">Emre COŞGUN</div>
+            <div style="font-size:9px; color:#1e293b; margin-top:1px; font-style:italic;">tarafından yapılmıştır</div>
+        </div>
+    </div>
+</aside>
+
+<main id="arena">
+    <canvas id="bg-canvas"></canvas>
+    <canvas id="main-canvas"></canvas>
+    <div id="unit-layer"></div>
+
+    <div id="hud">
+        <div class="hud-pill">MOD: <span id="hud-mode">GEZİNTİ</span></div>
+        <div class="hud-pill">📍 <span id="hud-coord">0m, 0m</span></div>
+        <button id="hud-finish" onclick="finishPoly()">✓ Alanı Kapat (Enter)</button>
+    </div>
+
+    <div id="cad-tip">📐 0.00m</div>
+    <div id="view-reset" onclick="resetView()">Görünümü Sıfırla</div>
+
+    <!-- LEGEND BOX -->
+    <div id="legend">
+        <div id="legend-title">📌 Lejant</div>
+        <div id="legend-items"></div>
+    </div>
+</main>
+
+<!-- INVENTORY MODAL -->
+<div id="inv-modal">
+    <div id="inv-box">
+        <div id="inv-header">
+            <div id="inv-title">📦 Malzeme Listesi</div>
+            <div id="inv-close" onclick="closeInventory()">×</div>
+        </div>
+        <div id="inv-target-name" style="font-size:13px; color:#8b5cf6; font-weight:700; margin-bottom:16px;"></div>
+        <table id="inv-table">
+            <thead>
+                <tr>
+                    <th style="width:70%">Malzeme / Not</th>
+                    <th style="width:20%">Adet</th>
+                    <th style="width:10%"></th>
+                </tr>
+            </thead>
+            <tbody id="inv-tbody"></tbody>
+        </table>
+        <button id="inv-add-row" onclick="addInvRow()">+ Yeni Malzeme Ekle</button>
+        <button class="inv-save-btn" onclick="saveInventory()">✅ Değişiklikleri Kaydet</button>
+    </div>
+</div>
+
+<script>
+// ==============================
+//  STATE
+// ==============================
+let polygons = [];   // {id, type, pts:[{x,y}...], fill, stroke}
+let fences   = [];   // {id, pts:[{x,y}...]} fence polylines
+let units    = [];   // {id, type, name, x, y, w, h, personnel}
+let drawPts  = [];   // active drawing points (world coords)
+let drawMode = null; // null | 'SITE' | 'DEPO' | 'FENCE'
+let mouseWorld = {x:0, y:0};
+
+// View
+let vpX = 0, vpY = 0, vpZ = 1; // pan x, pan y, zoom
+let pxM = 30; // pixels per meter
+
+// Interaction
+let isPanning = false, panStart = {x:0,y:0};
+let isDragging = false, dragEl = null, dragOff = {x:0,y:0};
+
+// DOM
+const arena      = document.getElementById('arena');
+const bgCanvas   = document.getElementById('bg-canvas');
+const mainCanvas = document.getElementById('main-canvas');
+const unitLayer  = document.getElementById('unit-layer');
+const cadTip     = document.getElementById('cad-tip');
+const hudMode    = document.getElementById('hud-mode');
+const hudCoord   = document.getElementById('hud-coord');
+const hudFinish  = document.getElementById('hud-finish');
+const bgCtx      = bgCanvas.getContext('2d');
+const ctx        = mainCanvas.getContext('2d');
+
+// ==============================
+//  INIT
+// ==============================
+window.onload = () => {
+    resizeCanvases();
+    loadData();
+    resetView();
+    render();
+};
+window.onresize = () => { resizeCanvases(); render(); };
+
+function resizeCanvases() {
+    const w = arena.clientWidth, h = arena.clientHeight;
+    bgCanvas.width = mainCanvas.width = w;
+    bgCanvas.height = mainCanvas.height = h;
+    drawGrid();
+}
+
+// ==============================
+//  COORDINATE HELPERS
+// ==============================
+// Screen → World
+function s2w(sx, sy) {
+    return { x: (sx - vpX) / vpZ, y: (sy - vpY) / vpZ };
+}
+// World → Screen
+function w2s(wx, wy) {
+    return { x: wx * vpZ + vpX, y: wy * vpZ + vpY };
+}
+// Arena-relative event position
+function evPos(e) {
+    const r = arena.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+}
+// Snap to 0.1m grid
+function snap(val) {
+    const s = 0.1 * pxM;
+    return Math.round(val / s) * s;
+}
+
+// ==============================
+//  GRID (bg canvas)
+// ==============================
+function drawGrid() {
+    const w = bgCanvas.width, h = bgCanvas.height;
+    bgCtx.clearRect(0,0,w,h);
+    bgCtx.fillStyle = '#020617';
+    bgCtx.fillRect(0,0,w,h);
+
+    // Minor grid (1m)
+    const minor = pxM * vpZ;
+    const major = minor * 10;
+    const ox = vpX % minor, oy = vpY % minor;
+
+    bgCtx.strokeStyle = 'rgba(255,255,255,0.04)';
+    bgCtx.lineWidth = 1;
+    bgCtx.beginPath();
+    for(let x = ox; x < w; x += minor) { bgCtx.moveTo(x,0); bgCtx.lineTo(x,h); }
+    for(let y = oy; y < h; y += minor) { bgCtx.moveTo(0,y); bgCtx.lineTo(w,y); }
+    bgCtx.stroke();
+
+    // Major grid (10m)
+    const ox2 = vpX % major, oy2 = vpY % major;
+    bgCtx.strokeStyle = 'rgba(255,255,255,0.1)';
+    bgCtx.lineWidth = 1;
+    bgCtx.beginPath();
+    for(let x = ox2; x < w; x += major) { bgCtx.moveTo(x,0); bgCtx.lineTo(x,h); }
+    for(let y = oy2; y < h; y += major) { bgCtx.moveTo(0,y); bgCtx.lineTo(w,y); }
+    bgCtx.stroke();
+}
+
+// ==============================
+//  MAIN RENDER (Canvas2D)
+// ==============================
+function render() {
+    const w = mainCanvas.width, h = mainCanvas.height;
+    ctx.clearRect(0,0,w,h);
+    drawGrid();
+
+    // 1. Finalized Polygons
+    polygons.forEach(p => {
+        if (p.pts.length < 2) return;
+        const ss = p.pts.map(pt => w2s(pt.x, pt.y));
+
+        ctx.beginPath();
+        ctx.moveTo(ss[0].x, ss[0].y);
+        ss.slice(1).forEach(s => ctx.lineTo(s.x, s.y));
+        ctx.closePath();
+
+        ctx.fillStyle = p.fill;
+        ctx.fill();
+        ctx.strokeStyle = p.stroke;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([8,4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Edge distance labels
+        for (let i = 0; i < p.pts.length; i++) {
+            const a = p.pts[i], b = p.pts[(i+1) % p.pts.length];
+            const d = Math.sqrt((b.x-a.x)**2+(b.y-a.y)**2)/pxM;
+            const ms = w2s((a.x+b.x)/2, (a.y+b.y)/2);
+            drawBubble(ctx, `${d.toFixed(1)}m`, ms.x, ms.y, '#fff', '#1e293b');
+        }
+
+        // Delete button at BOTTOM-RIGHT corner of bounding box
+        const bx2 = Math.max(...p.pts.map(pt=>pt.x));
+        const by2 = Math.max(...p.pts.map(pt=>pt.y));
+        const ds = w2s(bx2, by2);
+        drawDelButton(ctx, p.id, ds.x, ds.y, p.type);
+    });
+
+    // 1b. Fences
+    fences.forEach(f => {
+        drawFence(ctx, f);
+    });
+
+    // 2. Active Drawing
+    if (drawMode && drawPts.length > 0) {
+        const color = drawMode === 'SITE' ? '#38bdf8' : '#f59e0b';
+        const all = [...drawPts, mouseWorld];
+        const ss = all.map(pt => w2s(pt.x, pt.y));
+
+        // Committed polyline
+        ctx.beginPath();
+        ctx.moveTo(ss[0].x, ss[0].y);
+        ss.slice(1).forEach(s => ctx.lineTo(s.x, s.y));
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6,4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Vertex dots
+        drawPts.forEach(pt => {
+            const s = w2s(pt.x, pt.y);
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, 5, 0, Math.PI*2);
+            ctx.fillStyle = color;
+            ctx.fill();
+        });
+
+        // Cursor dot
+        const cs2 = w2s(mouseWorld.x, mouseWorld.y);
+        ctx.beginPath();
+        ctx.arc(cs2.x, cs2.y, 5, 0, Math.PI*2);
+        ctx.fillStyle = '#00ff88';
+        ctx.fill();
+
+        // Closing line hint (only for area modes)
+        if (drawMode !== 'FENCE' && drawPts.length > 2) {
+            const fs = w2s(drawPts[0].x, drawPts[0].y);
+            ctx.beginPath();
+            ctx.arc(fs.x, fs.y, 9, 0, Math.PI*2);
+            ctx.strokeStyle = '#00ff88';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+    }
+
+    // 3. Unit layer transform
+    unitLayer.style.transform = `translate(${vpX}px,${vpY}px) scale(${vpZ})`;
+    unitLayer.style.transformOrigin = '0 0';
+    unitLayer.style.pointerEvents = 'none';
+
+    renderLegend();
+}
+
+function drawBubble(ctx, text, x, y, fg, bg) {
+    ctx.font = 'bold 11px Segoe UI';
+    const tw = ctx.measureText(text).width;
+    const pw=8, ph=3, r=6;
+    const bx=x-tw/2-pw, by=y-7-ph*2-3, bw=tw+pw*2, bh=14+ph*2;
+    ctx.fillStyle = bg;
+    ctx.beginPath();
+    ctx.roundRect(bx,by,bw,bh,r);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctx.lineWidth=1;
+    ctx.stroke();
+    ctx.fillStyle = fg;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, x, by+bh/2);
+}
+
+function drawFence(ctx, f) {
+    if (f.pts.length < 2) return;
+    const ss = f.pts.map(pt => w2s(pt.x, pt.y));
+    const TICK = 12, STEP = 18;
+    ctx.strokeStyle = '#22c55e';
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash([]);
+
+    // Main spine
+    ctx.beginPath();
+    ctx.moveTo(ss[0].x, ss[0].y);
+    ss.slice(1).forEach(s => ctx.lineTo(s.x, s.y));
+    ctx.stroke();
+
+    // Hatch ticks along each segment
+    for (let i = 0; i < ss.length - 1; i++) {
+        const a = ss[i], b = ss[i+1];
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const len = Math.sqrt(dx*dx + dy*dy);
+        if (len < 1) continue;
+        const ux = dx/len, uy = dy/len;
+        // perp
+        const px = -uy, py = ux;
+        let t = STEP;
+        while (t < len - STEP/2) {
+            const mx = a.x + ux*t, my = a.y + uy*t;
+            ctx.beginPath();
+            ctx.moveTo(mx + px*TICK/2, my + py*TICK/2);
+            ctx.lineTo(mx - px*TICK/2, my - py*TICK/2);
+            ctx.stroke();
+            t += STEP;
+        }
+    }
+
+    // Delete icon on last point
+    const last = ss[ss.length-1];
+    ctx.fillStyle = 'rgba(239,68,68,0.85)';
+    ctx.beginPath();
+    ctx.arc(last.x, last.y, 9, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 11px Segoe UI';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('×', last.x, last.y);
+}
+
+function drawDelButton(ctx, id, x, y, label) {
+    ctx.fillStyle = 'rgba(239,68,68,0.9)';
+    ctx.beginPath();
+    const txt = `${label} SİL ×`;
+    ctx.font = 'bold 11px Segoe UI';
+    const tw = ctx.measureText(txt).width;
+    ctx.roundRect(x - tw/2 - 10, y + 4, tw + 20, 20, 10);
+    ctx.fill();
+    ctx.fillStyle = 'white';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(txt, x, y + 14);
+}
+
+// ==============================
+//  POINTER EVENTS (arena)
+// ==============================
+arena.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    const pos = evPos(e);
+    _pdX = pos.x; _pdY = pos.y;
+
+    // Right-click or middle → pan
+    if (e.button === 1 || e.button === 2) {
+        isPanning = true;
+        panStart = { x: e.clientX - vpX, y: e.clientY - vpY };
+        arena.setPointerCapture(e.pointerId);
+        return;
+    }
+
+    // If in draw mode → add point
+    if (drawMode) {
+        const wp = s2w(pos.x, pos.y);
+        wp.x = snap(wp.x); wp.y = snap(wp.y);
+        drawPts.push(wp);
+        render();
+        return;
+    }
+
+    // Check if clicking a unit div (handled by unit events)
+});
+
+arena.addEventListener('pointermove', (e) => {
+    const pos = evPos(e);
+    const wp = s2w(pos.x, pos.y);
+    wp.x = snap(wp.x); wp.y = snap(wp.y);
+    mouseWorld = wp;
+
+    hudCoord.textContent = `${(wp.x/pxM).toFixed(1)}m, ${(wp.y/pxM).toFixed(1)}m`;
+
+    if (isPanning) {
+        vpX = e.clientX - panStart.x;
+        vpY = e.clientY - panStart.y;
+        render();
+        return;
+    }
+
+    if (drawMode && drawPts.length > 0) {
+        const last = drawPts[drawPts.length-1];
+        const dx = wp.x - last.x, dy = wp.y - last.y;
+        const d = Math.sqrt(dx*dx+dy*dy)/pxM;
+        cadTip.style.display = 'block';
+        cadTip.style.left = (e.clientX+16)+'px';
+        cadTip.style.top  = (e.clientY-8)+'px';
+        cadTip.textContent = `📐 ${d.toFixed(2)}m`;
+    } else {
+        cadTip.style.display = 'none';
+    }
+
+    if (drawMode) { render(); return; }
+});
+
+let _pdX = 0, _pdY = 0;
+
+arena.addEventListener('pointerup', (e) => {
+    const pos = evPos(e);
+    const moved = Math.abs(pos.x - _pdX) > 8 || Math.abs(pos.y - _pdY) > 8;
+
+    if (isPanning) { isPanning = false; }
+    arena.releasePointerCapture(e.pointerId);
+
+    // Delete check: only on genuine tap (not after a drag/pan)
+    if (!drawMode && !isDragging && !moved) {
+        let deleted = false;
+
+        polygons.forEach(p => {
+            if (deleted) return;
+            const bx2 = Math.max(...p.pts.map(pt=>pt.x));
+            const by2 = Math.max(...p.pts.map(pt=>pt.y));
+            const ds = w2s(bx2, by2);
+            if (Math.abs(pos.x - ds.x) < 60 && pos.y >= ds.y && pos.y <= ds.y + 28) {
+                polygons = polygons.filter(x => x.id !== p.id);
+                deleted = true; saveData(); render();
+            }
+        });
+
+        if (!deleted) {
+            fences.forEach(f => {
+                if (deleted || f.pts.length < 1) return;
+                const last = w2s(f.pts[f.pts.length-1].x, f.pts[f.pts.length-1].y);
+                if (Math.abs(pos.x - last.x) < 16 && Math.abs(pos.y - last.y) < 16) {
+                    fences = fences.filter(x => x.id !== f.id);
+                    deleted = true; saveData(); render();
+                }
+            });
+        }
+    }
+});
+
+arena.addEventListener('dblclick', (e) => {
+    if (drawMode) { finishPoly(); }
+});
+
+arena.addEventListener('contextmenu', e => e.preventDefault());
+
+arena.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const pos = evPos(e);
+    const factor = e.deltaY > 0 ? 0.9 : 1.1;
+    const newZ = Math.min(Math.max(vpZ * factor, 0.05), 10);
+    vpX = pos.x - (pos.x - vpX) * (newZ/vpZ);
+    vpY = pos.y - (pos.y - vpY) * (newZ/vpZ);
+    vpZ = newZ;
+    render();
+    saveData();
+}, { passive: false });
+
+// Enter key to finish
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && drawMode) finishPoly();
+    if (e.key === 'Escape' && drawMode) cancelDraw();
+});
+
+// ==============================
+//  DRAW CONTROLS
+// ==============================
+function startDraw(type) {
+    drawMode = type;
+    drawPts = [];
+    const labels = { SITE:'SAHA ÇİZİM', DEPO:'DEPO ÇİZİM', FENCE:'ÇİT / TEL' };
+    hudMode.textContent = labels[type] || type;
+    hudFinish.style.display = 'block';
+    arena.style.cursor = 'crosshair';
+    render();
+}
+
+function finishPoly() {
+    if (!drawMode || drawPts.length < 2) return;
+    if (drawMode === 'FENCE') {
+        if (drawPts.length >= 2) {
+            fences.push({ id: Date.now(), pts: [...drawPts] });
+        }
+    } else {
+        if (drawPts.length >= 3) {
+            const isSite = drawMode === 'SITE';
+            polygons.push({
+                id: Date.now(), type: drawMode, pts: [...drawPts],
+                fill:   isSite ? 'rgba(56,189,248,0.18)' : 'rgba(245,158,11,0.18)',
+                stroke: isSite ? '#38bdf8' : '#f59e0b'
+            });
+        }
+    }
+    cancelDraw();
+    saveData();
+    render();
+}
+
+function cancelDraw() {
+    drawMode = null; drawPts = [];
+    hudMode.textContent = 'GEZİNTİ';
+    hudFinish.style.display = 'none';
+    cadTip.style.display = 'none';
+    arena.style.cursor = 'default';
+    render();
+}
+
+// ==============================
+//  SCALE
+// ==============================
+function onScaleChange(val) {
+    const old = pxM;
+    pxM = parseInt(val);
+    document.getElementById('scale-label').textContent = pxM + 'px/m';
+    const r = pxM/old;
+    units.forEach(u => { u.x*=r; u.y*=r; u.w*=r; u.h*=r; });
+    polygons.forEach(p => p.pts.forEach(pt => { pt.x*=r; pt.y*=r; }));
+    saveData(); rebuildUnits(); render();
+}
+
+// ==============================
+//  UNITS
+// ==============================
+function screenCenter() {
+    const w = arena.clientWidth, h = arena.clientHeight;
+    return s2w(w/2, h/2);
+}
+
+function addUnit(u) {
+    units.push(u);
+    createUnitEl(u);
+    saveData();
+    render();
+}
+
+function createUnitEl(u) {
+    const el = document.createElement('div');
+    el.className = `unit`;
+    el.dataset.id = u.id;
+    const color = u.color || (u.type === 'staff' ? '#a855f7' : u.type === 'panel' ? '#0ea5e9' : '#f97316');
+    el.style.border = `2px solid ${color}`;
+    el.style.background = hexToRgba(color, 0.15);
+    el.style.width  = u.w + 'px';
+    el.style.height = u.h + 'px';
+    el.style.left   = u.x + 'px';
+    el.style.top    = u.y + 'px';
+
+    // Label: only show for ungrouped units or the first panel in a group
+    if (!u.groupId || u.groupIdx === 0) {
+        const lbl = document.createElement('div');
+        lbl.className = 'unit-label';
+        const labelColor = u.color || '#ffffff';
+        lbl.style.borderColor = labelColor + '40';
+        lbl.innerHTML = `${u.name}<br><span style="font-size:9px;opacity:0.7">${(u.w/pxM).toFixed(1)}×${(u.h/pxM).toFixed(1)}m</span>`;
+        el.appendChild(lbl);
+    }
+
+    // Personnel dots
+    if (u.personnel > 0) {
+        const grid = document.createElement('div');
+        grid.className = 'person-dot-grid';
+        const cols = Math.max(1, Math.round(Math.sqrt(u.personnel * u.w/u.h)));
+        grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+        for(let i=0;i<u.personnel;i++){
+            const d=document.createElement('div');d.className='pdot';grid.appendChild(d);
+        }
+        el.appendChild(grid);
+    }
+
+    // Delete button
+    const del = document.createElement('div');
+    del.className = 'unit-del';
+    del.innerHTML = '×';
+    del.onclick = (e) => { e.stopPropagation(); deleteUnit(u.id); };
+    el.appendChild(del);
+
+    // Rotate button
+    const rot = document.createElement('div');
+    rot.className = 'unit-rot';
+    rot.innerHTML = '↺';
+    rot.style.background = (u.color || '#38bdf8');
+    rot.onclick = (e) => { e.stopPropagation(); rotateUnit(u.id); };
+    el.appendChild(rot);
+
+    // Drag events
+    el.addEventListener('pointerdown', startUnitDrag);
+
+    unitLayer.appendChild(el);
+}
+
+function rebuildUnits() {
+    unitLayer.innerHTML = '';
+    units.forEach(u => createUnitEl(u));
+}
+
+function startUnitDrag(e) {
+    // Only block if clicking del or rot buttons — let their onclick fire
+    if (e.target.classList.contains('unit-del') || e.target.classList.contains('unit-rot')) return;
+    if (drawMode) return;
+    e.stopPropagation();
+    e.preventDefault();
+    isDragging = true;
+    dragEl = e.currentTarget;
+    dragEl.style.boxShadow = '0 0 20px rgba(56,189,248,0.8)';
+
+    const draggedId = dragEl.dataset.id;
+    const draggedUnit = units.find(x => x.id == draggedId);
+    const groupId = draggedUnit && draggedUnit.groupId;
+
+    // Collect all group members' starting positions
+    const groupEls = [];
+    if (groupId) {
+        unitLayer.querySelectorAll('.unit').forEach(el => {
+            const u = units.find(x => x.id == el.dataset.id);
+            if (u && u.groupId === groupId) {
+                groupEls.push({ el, startX: parseFloat(el.style.left), startY: parseFloat(el.style.top) });
+                el.style.boxShadow = '0 0 15px rgba(56,189,248,0.5)';
+            }
+        });
+    }
+
+    const startX  = parseFloat(dragEl.style.left);
+    const startY  = parseFloat(dragEl.style.top);
+    const startSX = e.clientX;
+    const startSY = e.clientY;
+
+    function onMove(me) {
+        const dx = (me.clientX - startSX) / vpZ;
+        const dy = (me.clientY - startSY) / vpZ;
+        if (groupId && groupEls.length > 0) {
+            // Move entire group
+            groupEls.forEach(g => {
+                g.el.style.left = (g.startX + dx) + 'px';
+                g.el.style.top  = (g.startY + dy) + 'px';
+            });
+        } else {
+            dragEl.style.left = (startX + dx) + 'px';
+            dragEl.style.top  = (startY + dy) + 'px';
+        }
+    }
+    function onUp() {
+        isDragging = false;
+        // Persist positions
+        if (groupId && groupEls.length > 0) {
+            groupEls.forEach(g => {
+                const u = units.find(x => x.id == g.el.dataset.id);
+                if (u) { u.x = parseFloat(g.el.style.left); u.y = parseFloat(g.el.style.top); }
+                g.el.style.boxShadow = '';
+            });
+        } else {
+            const u = units.find(x => x.id == dragEl.dataset.id);
+            if (u) { u.x = parseFloat(dragEl.style.left); u.y = parseFloat(dragEl.style.top); }
+        }
+        dragEl.style.boxShadow = '';
+        dragEl = null;
+        document.removeEventListener('pointermove', onMove);
+        document.removeEventListener('pointerup',   onUp);
+        saveData(); render();
+    }
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup',   onUp);
+}
+
+function deleteUnit(id) {
+    const u = units.find(x => x.id === id);
+    if (u && u.groupId) {
+        // Delete the whole group
+        if (confirm(`Bu grubu ve içindeki ${units.filter(x=>x.groupId===u.groupId).length} paneı silmek istiyor musunuz?`)) {
+            units = units.filter(x => x.groupId !== u.groupId);
+        }
+    } else {
+        units = units.filter(x => x.id !== id);
+    }
+    rebuildUnits(); saveData(); render();
+}
+
+function rotateUnit(id) {
+    const u = units.find(x => x.id === id);
+    if (!u) return;
+    if (u.groupId) {
+        // Rotate all units in the group together
+        const groupUnits = units.filter(x => x.groupId === u.groupId);
+        if (groupUnits.length === 0) return;
+
+        // Find bounding box of the group
+        const minX = Math.min(...groupUnits.map(g => g.x));
+        const minY = Math.min(...groupUnits.map(g => g.y));
+        const maxX = Math.max(...groupUnits.map(g => g.x + g.w));
+        const maxY = Math.max(...groupUnits.map(g => g.y + g.h));
+        const cx = (minX + maxX) / 2;
+        const cy = (minY + maxY) / 2;
+
+        groupUnits.forEach(g => {
+            // Rotate each unit 90° CW around group center
+            const relX = g.x - cx;
+            const relY = g.y - cy;
+            // 90° CW: (x,y) -> (y, -x)
+            const newRelX =  relY;
+            const newRelY = -relX;
+            // Swap w/h
+            const newW = g.h, newH = g.w;
+            g.x = cx + newRelX;
+            g.y = cy + newRelY - newH; // adjust for origin top-left
+            g.w = newW; g.h = newH;
+        });
+    } else {
+        const tmp = u.w; u.w = u.h; u.h = tmp;
+    }
+    rebuildUnits(); saveData(); render();
+}
+
+// ==============================
+//  ADD ACTIONS
+// ==============================
+function addStaff() {
+    const name  = document.getElementById('staff-name').value  || 'EKİP';
+    const count = parseInt(document.getElementById('staff-count').value) || 1;
+    const per   = parseInt(document.getElementById('staff-per').value)   || 0;
+    const color = document.getElementById('staff-color').value || '#a855f7';
+    const c = screenCenter();
+    for(let i=0;i<count;i++) {
+        addUnit({id:Date.now()+i, type:'staff', name, color, x:c.x+i*20, y:c.y+i*20,
+                 w:3*pxM, h:7*pxM, personnel:per});
+    }
+}
+
+function addPanelMatrix() {
+    const name  = document.getElementById('panel-name').value  || 'PANEL';
+    const wM    = parseFloat(document.getElementById('panel-w').value)    || 1.1;
+    const hM    = parseFloat(document.getElementById('panel-h').value)    || 2.0;
+    const cols  = parseInt(document.getElementById('panel-cols').value)   || 1;
+    const rows  = parseInt(document.getElementById('panel-rows').value)   || 1;
+    const c     = screenCenter();
+    const color  = document.getElementById('panel-color').value || '#0ea5e9';
+    const groupId = 'grp_' + Date.now();
+    let idx = 0;
+    for(let r=0;r<rows;r++) for(let cl=0;cl<cols;cl++) {
+        addUnit({id:Date.now()+idx, type:'panel', name, color, groupId,
+                 groupIdx: idx,
+                 x: c.x + cl*(wM+0.1)*pxM,
+                 y: c.y + r *(hM+0.1)*pxM,
+                 w:wM*pxM, h:hM*pxM, personnel:0});
+        idx++;
+    }
+}
+
+function addCustom() {
+    const name  = document.getElementById('cust-name').value || 'BİRİM';
+    const w     = parseFloat(document.getElementById('cust-w').value) || 3;
+    const h     = parseFloat(document.getElementById('cust-h').value) || 7;
+    const color = document.getElementById('cust-color').value || '#f97316';
+    const c = screenCenter();
+    addUnit({id:Date.now(), type:'custom', name, color, x:c.x, y:c.y, w:w*pxM, h:h*pxM, personnel:0});
+}
+
+function clearAll() {
+    if (confirm('Tüm planı silmek istiyor musunuz?')) {
+        polygons=[]; units=[];
+        rebuildUnits(); saveData(); render();
+    }
+}
+
+// ==============================
+//  VIEW
+// ==============================
+function resetView() {
+    const w = arena.clientWidth, h = arena.clientHeight;
+    vpX = w/2; vpY = h/2; vpZ = 1;
+    render();
+    saveData();
+}
+
+// ==============================
+//  LEGEND
+// ==============================
+function renderLegend() {
+    const container = document.getElementById('legend-items');
+    if (!container) return;
+    container.innerHTML = '';
+
+    // Collect unique name+color pairs from units
+    const seen = new Map();
+    units.forEach(u => {
+        if (!u.groupId || u.groupIdx === 0) {
+            const key = u.name + '|' + (u.color || '#ffffff');
+            if (!seen.has(key)) seen.set(key, u.color || '#ffffff');
+        }
+    });
+
+    // Polygon types
+    const hasSite = polygons.some(p => p.type === 'SITE');
+    const hasDepo = polygons.some(p => p.type === 'DEPO');
+    const hasFence = fences.length > 0;
+
+    if (hasSite) {
+        const poly = polygons.find(p => p.type === 'SITE');
+        container.innerHTML += `<div class="legend-item" onclick="handleLegendClick('SITE')"><div class="legend-swatch" style="background:rgba(56,189,248,0.3);border-color:#38bdf8"></div><span>Saha Sınırı</span></div>`;
+    }
+    if (hasDepo) {
+        container.innerHTML += `<div class="legend-item" onclick="handleLegendClick('DEPO')"><div class="legend-swatch" style="background:rgba(245,158,11,0.3);border-color:#f59e0b"></div><span>Açık Depo</span></div>`;
+    }
+    if (hasFence) {
+        container.innerHTML += `<div class="legend-item"><div class="legend-swatch" style="background:#22c55e;border-color:#16a34a"></div><span>Çit / Tel</span></div>`;
+    }
+
+    seen.forEach((color, key) => {
+        const name = key.split('|')[0];
+        container.innerHTML += `<div class="legend-item" onclick="handleLegendClick('UNIT', '${name}')"><div class="legend-swatch" style="background:${hexToRgba(color,0.3)};border-color:${color}"></div><span>${name}</span></div>`;
+    });
+
+    // Hide legend if nothing to show
+    document.getElementById('legend').style.display =
+        (seen.size > 0 || hasSite || hasDepo || hasFence) ? 'block' : 'none';
+}
+
+// ==============================
+//  INVENTORY LOGIC
+// ==============================
+let invTarget = null; // {type: 'poly'|'unit'|'group', id: ...}
+
+function handleLegendClick(category, unitName) {
+    let targets = [];
+    if (category === 'SITE') {
+        targets = polygons.filter(p => p.type === 'SITE').map((p, i) => ({ id: p.id, name: `Saha Sınırı ${i+1}`, obj: p }));
+    } else if (category === 'DEPO') {
+        targets = polygons.filter(p => p.type === 'DEPO').map((p, i) => ({ id: p.id, name: `Açık Depo ${i+1}`, obj: p }));
+    } else if (category === 'UNIT') {
+        const grouped = new Set();
+        units.filter(u => u.name === unitName).forEach(u => {
+            const targetId = u.groupId || u.id;
+            if (!grouped.has(targetId)) {
+                grouped.add(targetId);
+                const label = u.groupId ? `${u.name} Grubu` : u.name;
+                targets.push({ id: targetId, name: label, obj: u, isGroup: !!u.groupId });
+            }
+        });
+    }
+
+    if (targets.length === 0) return;
+    if (targets.length === 1) {
+        openInventory(targets[0].id, targets[0].name, targets[0].isGroup ? 'group' : (category==='UNIT'?'unit':'poly'));
+    } else {
+        const choice = prompt("Hangi birim için malzeme girmek istiyorsunuz?\n" + targets.map((t, i) => `${i+1}: ${t.name}`).join('\n'));
+        if (!choice) return;
+        const idx = parseInt(choice) - 1;
+        if (targets[idx]) {
+            openInventory(targets[idx].id, targets[idx].name, targets[idx].isGroup ? 'group' : (category==='UNIT'?'unit':'poly'));
+        }
+    }
+}
+
+function openInventory(id, name, type) {
+    invTarget = { id, type };
+    const modal = document.getElementById('inv-modal');
+    document.getElementById('inv-target-name').textContent = `📍 Hedef: ${name}`;
+    const tbody = document.getElementById('inv-tbody');
+    tbody.innerHTML = '';
+
+    let source = null;
+    if (type === 'poly') source = polygons.find(p => p.id === id);
+    else if (type === 'unit') source = units.find(u => u.id === id);
+    else if (type === 'group') source = units.find(u => u.groupId === id);
+
+    const materials = (source && source.materials) ? source.materials : [];
+    materials.forEach(m => addInvRow(m.name, m.qty));
+    if (materials.length === 0) addInvRow('', 1);
+
+    modal.style.display = 'flex';
+}
+
+function closeInventory() {
+    document.getElementById('inv-modal').style.display = 'none';
+    invTarget = null;
+}
+
+function addInvRow(name = '', qty = 1) {
+    const tbody = document.getElementById('inv-tbody');
+    const tr = document.createElement('tr');
+    tr.className = 'inv-row';
+    tr.innerHTML = `
+        <td><input type="text" class="inv-name" placeholder="Örn: Masa, Raf..." value="${name}"></td>
+        <td><input type="number" class="inv-qty" value="${qty}" min="1" style="width:60px; text-align:center;"></td>
+        <td><div class="inv-del" onclick="this.parentElement.parentElement.remove()">×</div></td>
+    `;
+    tbody.appendChild(tr);
+}
+
+function saveInventory() {
+    if (!invTarget) return;
+    const rows = document.querySelectorAll('.inv-row');
+    const materials = [];
+    rows.forEach(row => {
+        const name = row.querySelector('.inv-name').value.trim();
+        const qty = parseInt(row.querySelector('.inv-qty').value) || 1;
+        if (name) materials.push({ name, qty });
+    });
+
+    if (invTarget.type === 'poly') {
+        const p = polygons.find(x => x.id === invTarget.id);
+        if (p) p.materials = materials;
+    } else if (invTarget.type === 'unit') {
+        const u = units.find(x => x.id === invTarget.id);
+        if (u) u.materials = materials;
+    } else if (invTarget.type === 'group') {
+        const u = units.find(x => x.groupId === invTarget.id);
+        if (u) u.materials = materials;
+    }
+
+    saveData();
+    closeInventory();
+}
+
+function exportCSV() {
+    // Use HTML table format (.xls) for guaranteed Turkish character support
+    let rows = [];
+    
+    polygons.forEach((p, i) => {
+        const loc = p.type === 'SITE' ? `Saha Sınırı ${i+1}` : `Açık Depo ${i+1}`;
+        if (p.materials && p.materials.length > 0) {
+            p.materials.forEach(m => { rows.push({ loc, name: m.name, qty: m.qty }); });
+        }
+    });
+
+    const procUnits = new Set();
+    units.forEach(u => {
+        const tid = u.groupId || u.id;
+        if (procUnits.has(tid)) return;
+        procUnits.add(tid);
+        const loc = u.groupId ? `${u.name} Grubu` : u.name;
+        if (u.materials && u.materials.length > 0) {
+            u.materials.forEach(m => { rows.push({ loc, name: m.name, qty: m.qty }); });
+        }
+    });
+
+    if (rows.length === 0) { alert('Henüz malzeme girilmemiş. Lejanta tıklayarak malzeme ekleyin.'); return; }
+
+    // Build HTML table that Excel reads natively with correct encoding
+    let html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
+<head><meta charset="utf-8">
+<style>
+    table { border-collapse: collapse; }
+    th { background-color: #4472C4; color: white; font-weight: bold; padding: 8px 12px; border: 1px solid #2F5496; }
+    td { padding: 6px 12px; border: 1px solid #D6DCE4; }
+    tr:nth-child(even) td { background-color: #D9E2F3; }
+</style>
+</head><body>
+<table>
+<tr><th>Konum</th><th>Malzeme</th><th>Adet</th></tr>`;
+    
+    rows.forEach(r => {
+        html += `<tr><td>${r.loc}</td><td>${r.name}</td><td>${r.qty}</td></tr>`;
+    });
+    html += `</table></body></html>`;
+
+    const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "SolarMech_Malzeme_Listesi.xls");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// ==============================
+//  PDF EXPORT
+// ==============================
+function exportPDF() {
+    const w = bgCanvas.width, h = bgCanvas.height;
+    const merged = document.createElement('canvas');
+    merged.width = w; merged.height = h;
+    const mCtx = merged.getContext('2d');
+
+    // 1. Background grid
+    mCtx.drawImage(bgCanvas, 0, 0);
+
+    // 2. Polygons, fences, distance labels
+    mCtx.drawImage(mainCanvas, 0, 0);
+
+    // 3. Draw all units onto the canvas (they are HTML divs - must draw manually)
+    units.forEach(u => {
+        const color = u.color || '#38bdf8';
+        // Convert world coords to screen coords (same transform as w2s)
+        const sx = u.x * vpZ + vpX;
+        const sy = u.y * vpZ + vpY;
+        const sw = u.w * vpZ;
+        const sh = u.h * vpZ;
+
+        // Fill
+        mCtx.fillStyle = hexToRgba(color, 0.2);
+        mCtx.beginPath();
+        mCtx.roundRect(sx, sy, sw, sh, 4);
+        mCtx.fill();
+
+        // Border
+        mCtx.strokeStyle = color;
+        mCtx.lineWidth = 2;
+        mCtx.stroke();
+
+        // Label (only first of group or ungrouped)
+        if (!u.groupId || u.groupIdx === 0) {
+            const fontSize = Math.max(9, Math.min(13, sw / 5));
+            mCtx.font = `bold ${fontSize}px Segoe UI`;
+            mCtx.fillStyle = 'white';
+            mCtx.textAlign = 'center';
+            mCtx.textBaseline = 'middle';
+            const label = `${u.name}\n${(u.w/pxM).toFixed(1)}x${(u.h/pxM).toFixed(1)}m`;
+            const lines = label.split('\n');
+            const lineH = fontSize + 2;
+            lines.forEach((line, i) => {
+                mCtx.fillText(line, sx + sw/2, sy - 14 + i * lineH);
+            });
+        }
+    });
+
+    const img = merged.toDataURL('image/png');
+    let legendHTML = '';
+    const legendEl = document.getElementById('legend');
+    if (legendEl) legendHTML = legendEl.outerHTML;
+
+    const printWin = window.open('', '_blank');
+    if (!printWin) { alert('Lütfen pop-up engeli kaldırın ve tekrar deneyin.'); return; }
+    printWin.document.write(`
+        <!DOCTYPE html><html><head>
+        <title>SolarMech Saha Planı</title>
+        <style>
+            * { margin:0; padding:0; box-sizing:border-box; }
+            body { background:#ffffff; color:#000000; font-family:'Segoe UI',sans-serif; padding:20px; }
+            .print-container { display:flex; flex-direction:column; gap:20px; align-items:center; width:100%; }
+            img { width:100%; max-height:70vh; object-fit:contain; border:1px solid #ddd; border-radius:8px; }
+            
+            #legend {
+                width:100%;
+                background:#f8fafc; border:1px solid #e2e8f0;
+                border-radius:12px; padding:20px;
+                box-shadow:none;
+            }
+            #legend-title { font-size:14px; text-transform:uppercase; letter-spacing:1px;
+                color:#475569; font-weight:700; margin-bottom:15px; font-family:sans-serif;
+                border-bottom:2px solid #e2e8f0; padding-bottom:8px; }
+            
+            #legend-items {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 12px;
+            }
+            
+            .legend-item { display:flex; align-items:center; gap:10px;
+                font-size:13px; font-weight:600; color:#1e293b; font-family:sans-serif; }
+            .legend-swatch { width:18px; height:18px; border-radius:4px; flex-shrink:0; border:2px solid; }
+            
+            @media print {
+                body { background:white; color:black; padding:0; }
+                .print-container { gap:10px; }
+                #legend { border:1px solid #ccc; break-inside: avoid; }
+                #legend-title { color:black; border-bottom:1px solid #ccc; }
+                .legend-item { color:black; }
+                -webkit-print-color-adjust:exact; print-color-adjust:exact;
+            }
+        </style></head><body>
+        <div class="print-container">
+            <h1 style="font-size:18px; margin-bottom:10px; width:100%; text-align:left; color:#1e293b;">SolarMech Saha Mobilizasyon Planı</h1>
+            <img src="${img}" />
+            ${legendHTML}
+            <div style="width:100%; text-align:right; font-size:10px; color:#64748b; margin-top:20px;">
+                Emre COŞGUN tarafından hazırlanmıştır.
+            </div>
+        </div>
+        <script>window.onload = () => setTimeout(() => window.print(), 500);<\/script>
+        </body></html>
+    `);
+    printWin.document.close();
+}
+
+// ==============================
+//  UTILS
+// ==============================
+function hexToRgba(hex, alpha) {
+    const r = parseInt(hex.slice(1,3),16);
+    const g = parseInt(hex.slice(3,5),16);
+    const b = parseInt(hex.slice(5,7),16);
+    return `rgba(${r},${g},${b},${alpha})`;
+}
+
+// ==============================
+//  PERSISTENCE
+// ==============================
+function saveData() {
+    localStorage.setItem('sm_v6', JSON.stringify({polygons, fences, units, pxM, vpX, vpY, vpZ}));
+}
+function loadData() {
+    const raw = localStorage.getItem('sm_v6');
+    if (!raw) return;
+    try {
+        const d = JSON.parse(raw);
+        polygons = d.polygons || [];
+        fences   = d.fences   || [];
+        units    = d.units    || [];
+        pxM      = d.pxM     || 30;
+        vpX      = d.vpX     || 0;
+        vpY      = d.vpY     || 0;
+        vpZ      = d.vpZ     || 1;
+        document.getElementById('scale-slider').value = pxM;
+        document.getElementById('scale-label').textContent = pxM + 'px/m';
+        rebuildUnits();
+    } catch(e) { console.warn('Load failed', e); }
+}
+</script>
+
+<!-- Firebase Kalkanı -->
+<script type="module">
+    import { auth, onAuthStateChanged, db, doc, getDoc } from './firebase-app.js';
+
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            // E-posta Doğrulama Kontrolü
+            if (!user.emailVerified) {
+                window.location.href = "login.html";
+                return;
+            }
+
+            try {
+                const userDoc = await getDoc(doc(db, "users", user.uid));
+                if (userDoc.exists()) {
+                    const data = userDoc.data();
+                    const now = new Date();
+                    const trialEnds = new Date(data.trialEndsAt);
+
+                    // Premium değilse ve deneme süresi bitmişse Dashboard'a geri şutla
+                    if (!data.isPremium && now > trialEnds) {
+                        window.location.href = "dashboard.html";
+                    }
+                } else {
+                    window.location.href = "login.html";
+                }
+            } catch (error) {
+                console.error("Yetki doğrulaması başarısız:", error);
+                window.location.href = "login.html";
+            }
+        } else {
+            // Hiç giriş yapmamışsa
+            window.location.href = "login.html";
+        }
+    });
+</script>
+</body>
+</html>

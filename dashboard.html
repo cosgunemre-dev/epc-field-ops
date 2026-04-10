@@ -115,12 +115,13 @@
                         <span style="display: inline-block; padding: 8px 16px; background: rgba(245, 158, 11, 0.1); color: var(--accent); border-radius: 8px; font-weight: 600; font-size: 0.9rem;" id="kablo-action-text">Uygulamayı Aç →</span>
                     </a>
 
-                    <!-- Placeholder Cards -->
-                    <div class="app-card locked">
+                    <!-- Yeni Mobilizasyon Modülü -->
+                    <a href="app-mobilizasyon.html" class="app-card" id="mobilizasyon-card">
                         <div class="app-icon">🏗️</div>
-                        <h3>Solar Lojistik <span class="status-badge" style="background: #64748b;">YAKINDA</span></h3>
-                        <p>Panel kutu yerleşim düzenini sahadaki kurulum sırasına göre optimize edin.</p>
-                    </div>
+                        <h3>Saha Mobilizasyon Yerleşimi <span class="status-badge" id="mobilizasyon-badge">AKTİF</span></h3>
+                        <p>Şantiye ofislerini, panel matrislerini ve depo alanlarını çizerek sahanızı sıfırdan ve interaktif olarak planlayın.</p>
+                        <span style="display: inline-block; padding: 8px 16px; background: rgba(56, 189, 248, 0.1); color: #38bdf8; border-radius: 8px; font-weight: 600; font-size: 0.9rem;" id="mobilizasyon-action-text">Uygulamayı Aç →</span>
+                    </a>
                 </div>
             </div>
 
@@ -190,6 +191,13 @@
                                 document.getElementById('kablo-badge').innerText = "KİLİTLİ";
                                 document.getElementById('kablo-badge').classList.add('locked');
                                 document.getElementById('kablo-action-text').innerText = "Abonelik Gereklidir";
+
+                                const mobCard = document.getElementById('mobilizasyon-card');
+                                mobCard.classList.add('locked');
+                                mobCard.href = "#";
+                                document.getElementById('mobilizasyon-badge').innerText = "KİLİTLİ";
+                                document.getElementById('mobilizasyon-badge').classList.add('locked');
+                                document.getElementById('mobilizasyon-action-text').innerText = "Abonelik Gereklidir";
                             } else {
                                 // SÜRE DEVAM EDİYOR
                                 document.getElementById('days-left').innerText = diffDays;
