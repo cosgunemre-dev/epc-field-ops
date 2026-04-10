@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EPC Field Ops - Dijital Saha Operasyonları</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0c;
+            --surface: #121216;
+            --accent: #f59e0b;
+            --accent-glow: rgba(245, 158, 11, 0.4);
+            --text: #f8fafc;
+            --text-dim: #94a3b8;
+            --glass: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Outfit', sans-serif; }
+        body { background: var(--bg); color: var(--text); overflow-x: hidden; }
+
+        /* Background Effects */
+        .glow {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at 50% -20%, #1e1b4b 0%, transparent 50%),
+                        radial-gradient(circle at 80% 80%, #1e1b4b 0%, transparent 40%);
+            z-index: -1;
+        }
+
+        nav {
+            height: 80px; display: flex; align-items: center; justify-content: space-between;
+            padding: 0 5%; background: rgba(10, 10, 12, 0.8); backdrop-filter: blur(10px);
+            position: fixed; top: 0; width: 100%; z-index: 100; border-bottom: 1px solid var(--glass-border);
+        }
+        .logo { font-size: 1.5rem; font-weight: 800; letter-spacing: -1px; display: flex; align-items: center; gap: 8px; }
+        .logo span { color: var(--accent); }
+
+        .hero {
+            height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; padding: 0 5%; position: relative;
+        }
+        .hero h1 {
+            font-size: clamp(2.5rem, 8vw, 5rem); font-weight: 800; line-height: 1.1; margin-bottom: 1.5rem;
+            background: linear-gradient(to bottom, #fff 0%, #94a3b8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .hero p { color: var(--text-dim); font-size: 1.2rem; max-width: 600px; margin-bottom: 2.5rem; line-height: 1.6; }
+
+        .btn {
+            padding: 16px 32px; border-radius: 12px; font-weight: 600; text-decoration: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; display: inline-flex; align-items: center; gap: 10px;
+        }
+        .btn-primary { background: var(--accent); color: #000; box-shadow: 0 10px 30px var(--accent-glow); }
+        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 15px 40px var(--accent-glow); filter: brightness(1.1); }
+        
+        .btn-secondary { background: var(--glass); color: #fff; border: 1px solid var(--glass-border); margin-left: 15px; }
+        .btn-secondary:hover { background: var(--glass-border); transform: translateY(-3px); }
+
+        .features { padding: 100px 5%; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; }
+        .card {
+            background: var(--surface); border: 1px solid var(--glass-border); padding: 40px; border-radius: 24px;
+            transition: all 0.3s ease; position: relative; overflow: hidden;
+        }
+        .card:hover { border-color: var(--accent); transform: translateY(-10px); }
+        .card h3 { font-size: 1.5rem; margin-bottom: 15px; color: var(--accent); }
+        .card p { color: var(--text-dim); line-height: 1.6; font-size: 1rem; }
+        .badge {
+            position: absolute; top: 20px; right: 20px; background: rgba(245, 158, 11, 0.1);
+            color: var(--accent); padding: 4px 12px; border-radius: 99px; font-size: 0.75rem; font-weight: 700;
+        }
+
+        footer { padding: 50px 5%; border-top: 1px solid var(--glass-border); text-align: center; color: var(--text-dim); font-size: 0.9rem; }
+
+        /* Animations */
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+        .floating-orb {
+            position: absolute; width: 400px; height: 400px; background: var(--accent-glow);
+            filter: blur(100px); border-radius: 50%; z-index: -1; animation: float 10s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="glow"></div>
+    <div class="floating-orb" style="top: 10%; right: -5%;"></div>
+    <div class="floating-orb" style="bottom: -10%; left: -5%; width: 300px; height: 300px; opacity: 0.5;"></div>
+
+    <nav>
+        <div class="logo">EPC <span>FIELD OPS</span></div>
+        <div>
+            <a href="login.html" class="btn btn-secondary" style="padding: 10px 20px; font-size: 0.9rem; margin:0;">Giriş Yap</a>
+        </div>
+    </nav>
+
+    <main class="hero">
+        <h1>EPC Sahasında<br>Dijital Devrim</h1>
+        <p>Mühendislikten lojistiğe, kurulumdan metraja kadar şantiyedeki tüm süreçlerinizi hatasız yönetin. Zamandan ve malzemeden %15'e varan tasarruf sağlayın.</p>
+        <div class="cta">
+            <a href="login.html" class="btn btn-primary">Hemen Başla <span>→</span></a>
+            <a href="#features" class="btn btn-secondary">Çözümleri İncele</a>
+        </div>
+    </main>
+
+    <section class="features" id="features">
+        <div class="card">
+            <span class="badge">AKTİF</span>
+            <h3>Kablo Optimizasyonu</h3>
+            <p>Sahadaki kablo boylarını makaralara en verimli şekilde dağıtır. Fireyi minimuma indirir, depo stoğunu öncelikli kullanır.</p>
+        </div>
+        <div class="card">
+            <span class="badge" style="background: rgba(148, 163, 184, 0.1); color: #94a3b8;">YAKINDA</span>
+            <h3>Solar Lojistik & Yerleşim</h3>
+            <p>Panel kutu yerleşim düzenini sahadaki kurulum sırasına göre optimize ederek vinç ve personel trafiğini yönetir.</p>
+        </div>
+        <div class="card">
+            <span class="badge" style="background: rgba(148, 163, 184, 0.1); color: #94a3b8;">YAKINDA</span>
+            <h3>Dinamik ERP & BOQ</h3>
+            <p>Saha verilerini anlık olarak ERP sistemine işleyerek gerçek zamanlı hak ediş ve ilerleme takibi sağlar.</p>
+        </div>
+    </section>
+
+    <footer>
+        &copy; 2026 EPC Field Ops. Tüm hakları saklıdır. <br>
+        <span style="font-size: 0.8rem; margin-top: 10px; display: block;">Mühendisler tarafından mühendisler için geliştirilmiştir.</span>
+    </footer>
+</body>
+</html>

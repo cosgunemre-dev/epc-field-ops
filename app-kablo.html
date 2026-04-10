@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kablo Makara Optimizatörü (Pro)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="background-elements">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <main class="container">
+        <header>
+            <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <a href="dashboard.html" style="text-decoration: none; color: var(--accent); font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 5px;">
+                    <span>←</span> Dashboard'a Dön
+                </a>
+                <span style="font-size: 0.8rem; color: var(--dim);">EPC Field Ops</span>
+            </div>
+            <h1><span class="gradient-text">Kablo Makara</span> Optimizatörü</h1>
+            <p>Sahadaki kablo boylarını hacim, ağırlık ve taşıma kapasitesi sınırlarınıza göre en verimli makaralara sığdırın.</p>
+        </header>
+
+        <section class="glass-panel input-section">
+            <div class="config-toggle"
+                style="margin-top: 0; margin-bottom: 1.5rem; display: flex; justify-content: space-between; gap: 1rem;">
+                <button id="toggle-stock" class="btn-ghost"
+                    style="flex: 1; border-color: #10b981; font-weight: 800; color: #10b981; font-size: 1.1rem; padding: 1rem;">📦
+                    Depo (Stok) Yönetimi</button>
+                <button id="toggle-config" class="btn-ghost" style="flex: 1; font-size: 1.1rem; padding: 1rem;">⚙️
+                    Sistem Ayarları</button>
+            </div>
+
+            <div class="config-panel" id="stock-panel"
+                style="margin-bottom: 1.5rem; background: rgba(16, 185, 129, 0.05); border-color: rgba(16, 185, 129, 0.2);">
+                <h3 style="margin-bottom: 1rem; color: #10b981;">📦 Depo (Stok) Yönetimi</h3>
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label for="stock-type-select">Kablo Tipi</label>
+                        <select id="stock-type-select" class="custom-select">
+                            <!-- Populated by JS -->
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Stok Adı/No ve Boyu (m):</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="stock-name-input" placeholder="Stok Adı (Örn: Rulo A)"
+                                style="flex: 0.5;">
+                            <input type="number" id="stock-length-input" placeholder="Uzunluk (Örn: 120)" min="1"
+                                style="flex: 1;">
+                            <button id="add-stock-btn" class="btn-primary"
+                                style="background: linear-gradient(135deg, #10b981, #059669);">Depoya Ekle</button>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top: 1.5rem;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                        <details style="flex: 1;">
+                            <summary
+                                style="cursor: pointer; color: #10b981; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; outline: none; padding: 0.5rem 0;"
+                                id="stock-summary-text">
+                                <span>📋</span> Stoktaki Parçaları Göster (0 Adet)
+                                <span style="font-size: 0.8em; opacity: 0.7; margin-left: 0.5rem;">(▾ tıkla ve
+                                    aç)</span>
+                            </summary>
+                            <div class="active-pieces" id="active-stocks"
+                                style="min-height: 60px; padding: 1rem; border: 1px dashed rgba(16, 185, 129, 0.3); background: rgba(0,0,0,0.2); border-radius: 8px; margin-top: 0.5rem;">
+                                <!-- Stock pieces will appear here -->
+                            </div>
+                        </details>
+                        <button id="print-stock-btn" class="btn-ghost"
+                            style="width: auto; color: #10b981; border-color: rgba(16,185,129,0.3); padding: 0.6rem 1rem; margin-left: 1rem;">🖨️
+                            Stok Yazdır</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="config-panel hidden" id="config-panel">
+                <div class="config-grid">
+                    <div>
+                        <label>Katalog Kablo Verileri (Ad, kg/km):</label>
+                        <textarea id="cable-db" rows="8">3x1.5, 90
+3x2.5, 135
+4x4, 280
+4x6, 380
+4x10, 580
+4x16, 920
+3x25+16, 1150
+3x35+16, 1450
+3x50+25, 1950
+3x70+35, 2600
+3x95+50, 3500
+3x120+70, 4400
+3x150+70, 5400
+3x185+95, 6800
+3x240+120, 8900</textarea>
+                        <small>Her satıra bir kablo tipi: Ad, km başına ağırlık (kg)</small>
+                    </div>
+                    <div>
+                        <label>Makara Kapasiteleri (Tip Adı, Max Kg Kapasite):</label>
+                        <textarea id="spool-db" rows="8">80-Tip, 600
+100-Tip, 800
+120-Tip, 1250
+140-Tip, 1800
+160-Tip, 2500
+200-Tip, 3000
+240-Tip, 4500</textarea>
+                        <small>Makara Adı, Maksimum Taşıma (kg)</small>
+                    </div>
+                </div>
+                <button id="save-settings-btn" class="btn-primary" style="margin-top: 1rem;">Ayarları Kaydet</button>
+            </div>
+
+            <div class="input-grid">
+                <div class="input-group">
+                    <label for="cable-type-select">Kablo Tipi Seçimi</label>
+                    <select id="cable-type-select" class="custom-select">
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="max-spool-select">Kullanılabilecek En Büyük Makara</label>
+                    <select id="max-spool-select" class="custom-select">
+                        <!-- Populated by JS -->
+                    </select>
+                    <small>İnsan gücü veya taşıma sınırından dolayı seçilebilecek en büyük makarayı belirleyin.</small>
+                </div>
+            </div>
+
+            <div class="input-group" style="margin-top: 1.5rem;">
+                <label>Kablo Parça Boyları ve İsimlendirme</label>
+                <div class="input-wrapper">
+                    <input type="text" id="cable-name-input" placeholder="Hat/İsim (Örn: L1, Pano A)" autocomplete="off"
+                        style="flex: 0.5;">
+                    <input type="number" id="cable-lengths" placeholder="Uzunluk (Örn: 250m)" autocomplete="off" min="1"
+                        style="flex: 1;">
+                    <button id="add-btn" class="btn-primary">Listeye Ekle</button>
+                </div>
+                <small>Hangi kablo tipinden ne kadar kesileceğini ve (opsiyonel) parça adını girin.</small>
+            </div>
+
+            <div class="active-pieces" id="active-pieces">
+                <!-- Pieces will appear here -->
+            </div>
+
+            <div
+                style="margin-bottom: 1.5rem; display: flex; justify-content: flex-end; align-items: center; gap: 1rem;">
+                <label style="color: #10b981; font-weight: 600;">📦 Stok Kullanım Modu:</label>
+                <select id="stock-usage-mode" class="custom-select"
+                    style="width: auto; padding: 0.6rem 2.5rem 0.6rem 1rem; font-size: 0.95rem; background-color: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); color: #10b981;">
+                    <option value="priority">Depoyu Öncelikli Kullan (%5 Fire Sınırı)</option>
+                    <option value="force">Bütün Stokları Kullan (Fire Sınırı Yok)</option>
+                    <option value="none">Depoyu Kullanma (Sadece Yeni Üretim)</option>
+                </select>
+            </div>
+
+            <div class="actions">
+                <button id="calculate-btn" class="btn-glow">Hesapla ve Optimize Et</button>
+                <button id="print-btn" class="btn-primary" style="background: var(--accent);">🖨️ Yazdır</button>
+                <button id="clear-btn" class="btn-ghost">Tümünü Temizle</button>
+            </div>
+        </section>
+
+        <section class="results-section hidden" id="results-section">
+
+            <div id="stock-results-container" class="hidden"
+                style="margin-bottom: 2rem; padding: 1.5rem; background: rgba(16, 185, 129, 0.05); border-radius: 16px; border: 1px solid rgba(16, 185, 129, 0.2);">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+                    <h2
+                        style="display: flex; align-items: center; gap: 0.5rem; color: #10b981; font-size: 1.2rem; margin:0;">
+                        <span>📦</span> Stoktan Karşılananlar (Tasarruf)
+                    </h2>
+                    <button id="commit-stock-btn" class="btn-primary"
+                        style="background: #10b981; padding: 0.6rem 1.2rem; font-size: 0.9rem;">Onayla ve Stoktan
+                        Düş</button>
+                </div>
+                <div id="stock-pieces-container" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <!-- Stock match results will be inserted here -->
+                </div>
+            </div>
+
+            <div id="new-production-container">
+                <h2 id="optimization-header"
+                    style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                    <span style="font-size: 1.2rem;">🏭</span> Sipariş Geçilecek Kablo (Yeni Üretim)
+                </h2>
+                <div class="summary-stats">
+                    <div class="stat-box">
+                        <span class="stat-label">Toplam Parça</span>
+                        <span class="stat-value" id="stat-total-pieces">0</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">Toplam İhtiyaç (m)</span>
+                        <span class="stat-value" id="stat-total-length">0</span>
+                    </div>
+                    <div class="stat-box highlight-stat">
+                        <span class="stat-label">Toplam Ağırlık (kg)</span>
+                        <span class="stat-value" id="stat-total-weight">0</span>
+                    </div>
+                </div>
+
+                <div class="spools-container" id="spools-container">
+                    <!-- Spool items will be injected here -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="app-footer">
+        Emre COŞGUN tarafından yapılmıştır.
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
