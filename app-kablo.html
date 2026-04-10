@@ -213,13 +213,64 @@
                 </div>
             </div>
         </section>
+
+        <!-- Reklam ve Sponsor Banner Alanı -->
+        <div style="margin-top: 30px; background: rgba(255, 255, 255, 0.03); border: 1px dashed rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 20px; text-align: center; color: var(--dim);">
+            <div style="font-size: 1.5rem; margin-bottom: 5px;">📣 Sponsor Alanı</div>
+            <p style="font-size: 0.9rem;">Buraya endüstriyel kablo üreticilerinin veya şantiye lojistik firmalarının reklamlarını alabilirsiniz.</p>
+        </div>
     </main>
 
     <footer class="app-footer">
         Emre COŞGUN tarafından yapılmıştır.
     </footer>
 
+    <!-- Tam Sayfa Yükleme & Güvenlik Kalkanı -->
+    <div id="auth-guard-loader" style="position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: #0a0a0c; z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+        <div style="width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #f59e0b; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        <p style="margin-top: 20px; color: #94a3b8; font-family: 'Outfit';">Erişim kontrol ediliyor...</p>
+    </div>
+    <style>@keyframes spin {to {transform: rotate(360deg);}}</style>
+
+    <!-- Asıl hesaplama motoru -->
     <script src="script.js"></script>
+    
+    <!-- Firebase Güvenlik Motoru -->
+    <script type="module">
+        import { auth, onAuthStateChanged, db, doc, getDoc } from './firebase-app.js';
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                try {
+                    const userDocRef = doc(db, "users", user.uid);
+                    const userDoc = await getDoc(userDocRef);
+                    
+                    if (userDoc.exists()) {
+                        const data = userDoc.data();
+                        
+                        // Deneme Süresi Kontrolü
+                        if (!data.isPremium) {
+                            const trialEnd = data.trialEndsAt.toDate();
+                            if (new Date() > trialEnd) {
+                                // SÜRE BİTMİŞ! KULLANICIYI ZORLA DASHBOARD'A GERİ GÖNDER
+                                alert("Ücretsiz deneme süreniz sona ermiştir. Lütfen aboneliğinizi yenileyin.");
+                                window.location.href = "dashboard.html";
+                                return;
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error("Yetki çekme hatası:", error);
+                }
+                
+                // Kapıları Aç
+                document.getElementById('auth-guard-loader').style.display = 'none';
+            } else {
+                // KULLANICI YOK! GİRİŞ SAYFASINA KOV
+                window.location.href = "login.html";
+            }
+        });
+    </script>
 </body>
 
 </html>

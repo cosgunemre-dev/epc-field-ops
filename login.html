@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Giriş Yap - EPC Field Ops</title>
+    <title>Giriş / Kayıt - EPC Field Ops</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -13,6 +13,7 @@
             --text: #f8fafc;
             --text-dim: #94a3b8;
             --border: rgba(255, 255, 255, 0.08);
+            --error: #ef4444;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Outfit', sans-serif; }
@@ -20,12 +21,21 @@
 
         .login-card {
             background: var(--surface); border: 1px solid var(--border); border-radius: 24px;
-            padding: 50px; width: 100%; max-width: 450px; text-align: center;
+            padding: 40px; width: 100%; max-width: 450px; text-align: center;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            position: relative; z-index: 10;
         }
 
-        .logo { font-size: 1.8rem; font-weight: 800; margin-bottom: 40px; }
+        .logo { font-size: 1.8rem; font-weight: 800; margin-bottom: 30px; }
         .logo span { color: var(--accent); }
+
+        .tabs { display: flex; margin-bottom: 25px; border-bottom: 1px solid var(--border); }
+        .tab { flex: 1; padding: 15px; cursor: pointer; color: var(--text-dim); transition: 0.3s; font-weight: 600; border-bottom: 2px solid transparent; }
+        .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+        .form-section { display: none; }
+        .form-section.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from {opacity: 0; transform: translateY(10px);} to {opacity: 1; transform: translateY(0);} }
 
         .input-group { margin-bottom: 20px; text-align: left; }
         .input-group label { display: block; margin-bottom: 8px; font-size: 0.9rem; color: var(--text-dim); }
@@ -36,20 +46,17 @@
         }
         .input-group input:focus { border-color: var(--accent); background: rgba(255, 255, 255, 0.05); }
 
-        .btn-login {
+        .btn-submit {
             width: 100%; padding: 16px; background: var(--accent); color: #000;
             border: none; border-radius: 12px; font-size: 1rem; font-weight: 800;
             cursor: pointer; transition: all 0.3s; margin-top: 10px;
         }
-        .btn-login:hover { transform: translateY(-2px); filter: brightness(1.1); box-shadow: 0 10px 20px rgba(245, 158, 11, 0.2); }
+        .btn-submit:hover { transform: translateY(-2px); filter: brightness(1.1); box-shadow: 0 10px 20px rgba(245, 158, 11, 0.2); }
+        .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
-        .footer-links { margin-top: 25px; font-size: 0.9rem; color: var(--text-dim); }
-        .footer-links a { color: var(--accent); text-decoration: none; font-weight: 600; }
+        .error-message { color: var(--error); font-size: 0.85rem; margin-top: 15px; display: none; text-align: left; background: rgba(239, 68, 68, 0.1); padding: 10px; border-radius: 8px; }
 
-        .glow {
-            position: absolute; width: 300px; height: 300px; background: var(--accent);
-            filter: blur(150px); opacity: 0.1; z-index: -1;
-        }
+        .glow { position: absolute; width: 300px; height: 300px; background: var(--accent); filter: blur(150px); opacity: 0.1; z-index: 1; }
     </style>
 </head>
 <body>
@@ -58,23 +65,123 @@
 
     <div class="login-card">
         <div class="logo">EPC <span>FIELD OPS</span></div>
-        <h2 style="margin-bottom: 30px; font-size: 1.5rem;">Hoşgeldiniz</h2>
         
-        <div class="input-group">
-            <label>E-posta Adresi</label>
-            <input type="email" placeholder="ornek@sirket.com" value="cosgunemre@gmail.com">
-        </div>
-        
-        <div class="input-group">
-            <label>Şifre</label>
-            <input type="password" placeholder="••••••••" value="123456">
+        <div class="tabs">
+            <div class="tab active" id="tab-login" onclick="switchTab('login')">Giriş Yap</div>
+            <div class="tab" id="tab-register" onclick="switchTab('register')">Kayıt Ol</div>
         </div>
 
-        <button class="btn-login" onclick="window.location.href='dashboard.html'">Giriş Yap</button>
+        <!-- GİRİŞ FORMU -->
+        <div id="form-login" class="form-section active">
+            <div class="input-group">
+                <label>E-posta</label>
+                <input type="email" id="login-email" placeholder="ornek@firma.com" autocomplete="email">
+            </div>
+            <div class="input-group">
+                <label>Şifre</label>
+                <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
+            </div>
+            <button class="btn-submit" id="btn-login-submit">Giriş Yap</button>
+            <div id="login-error" class="error-message"></div>
+        </div>
 
-        <div class="footer-links">
-            Hesabınız yok mu? <a href="#">Hemen Başvurun</a>
+        <!-- KAYIT FORMU -->
+        <div id="form-register" class="form-section">
+            <div class="input-group">
+                <label>Ad Soyad</label>
+                <input type="text" id="register-name" placeholder="Müh. Emre Coşgun" autocomplete="name">
+            </div>
+            <div class="input-group">
+                <label>E-posta</label>
+                <input type="email" id="register-email" placeholder="ornek@firma.com" autocomplete="email">
+            </div>
+            <div class="input-group">
+                <label>Şifre (En az 6 karakter)</label>
+                <input type="password" id="register-password" placeholder="••••••••" autocomplete="new-password">
+            </div>
+            <button class="btn-submit" id="btn-register-submit">Hesap Oluştur ve 15 Gün Dene</button>
+            <div id="register-error" class="error-message"></div>
         </div>
     </div>
+
+    <!-- Firebase Script Entegrasyonu -->
+    <script type="module">
+        import { auth, signInWithEmailAndPassword, registerUser } from './firebase-app.js';
+
+        // UI Tab Geçişleri (Bunu da global window içine koyalım ki HTML onclick çağırabilsin)
+        window.switchTab = function(type) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.form-section').forEach(f => f.classList.remove('active'));
+            document.getElementById(`tab-${type}`).classList.add('active');
+            document.getElementById(`form-${type}`).classList.add('active');
+            document.getElementById('login-error').style.display = 'none';
+            document.getElementById('register-error').style.display = 'none';
+        }
+
+        // --- GİRİŞ MANTIĞI ---
+        const btnLoginSubmit = document.getElementById('btn-login-submit');
+        const errLogin = document.getElementById('login-error');
+
+        btnLoginSubmit.addEventListener('click', async () => {
+            const email = document.getElementById('login-email').value;
+            const pass = document.getElementById('login-password').value;
+            
+            if(!email || !pass) { showError(errLogin, "Lütfen tüm alanları doldurun."); return; }
+            
+            btnLoginSubmit.disabled = true;
+            btnLoginSubmit.innerText = "Giriş Yapılıyor...";
+
+            try {
+                await signInWithEmailAndPassword(auth, email, pass);
+                // Başarılı giriş, dashboard'a yönlendir.
+                window.location.href = "dashboard.html";
+            } catch (error) {
+                console.error("Giriş Hatası:", error);
+                showError(errLogin, "Giriş başarısız. E-posta veya şifre yanlış.");
+            } finally {
+                btnLoginSubmit.disabled = false;
+                btnLoginSubmit.innerText = "Giriş Yap";
+            }
+        });
+
+        // --- KAYIT MANTIĞI ---
+        const btnRegSubmit = document.getElementById('btn-register-submit');
+        const errReg = document.getElementById('register-error');
+
+        btnRegSubmit.addEventListener('click', async () => {
+            const name = document.getElementById('register-name').value;
+            const email = document.getElementById('register-email').value;
+            const pass = document.getElementById('register-password').value;
+
+            if(!name || !email || !pass) { showError(errReg, "Lütfen tüm alanları doldurun."); return; }
+            if(pass.length < 6) { showError(errReg, "Şifre en az 6 karakter olmalıdır."); return; }
+
+            btnRegSubmit.disabled = true;
+            btnRegSubmit.innerText = "Hesap Kuruluyor...";
+
+            try {
+                // Bizim yazdığımız o özel fonksiyonu çağırıyoruz (Kaydol + Veritabanına Yaz)
+                await registerUser(email, pass, name);
+                
+                // Başarılı! Otomatik dashboard'a gider.
+                window.location.href = "dashboard.html";
+            } catch (error) {
+                console.error("Kayıt Hatası:", error);
+                if (error.code === 'auth/email-already-in-use') {
+                    showError(errReg, "Bu e-posta adresi zaten kullanılıyor.");
+                } else {
+                    showError(errReg, "Kayıt sırasında bir hata oluştu: " + error.message);
+                }
+            } finally {
+                btnRegSubmit.disabled = false;
+                btnRegSubmit.innerText = "Hesap Oluştur ve 15 Gün Dene";
+            }
+        });
+
+        function showError(element, message) {
+            element.innerText = message;
+            element.style.display = 'block';
+        }
+    </script>
 </body>
 </html>

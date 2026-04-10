@@ -19,91 +19,196 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Outfit', sans-serif; }
         body { background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
 
+        /* YÜKLENİYOR EKRANI */
+        #loader { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; flex-direction: column; }
+        .spinner { width: 40px; height: 40px; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
         /* Sidebar */
-        aside {
-            width: 260px; background: var(--surface); border-right: 1px solid var(--border);
-            padding: 30px; display: flex; flex-direction: column;
-        }
+        aside { width: 260px; background: var(--surface); border-right: 1px solid var(--border); padding: 30px; display: flex; flex-direction: column; }
         .logo { font-size: 1.2rem; font-weight: 800; margin-bottom: 50px; }
         .logo span { color: var(--accent); }
 
-        .nav-item {
-            padding: 12px 15px; border-radius: 10px; color: var(--text-dim);
-            text-decoration: none; margin-bottom: 8px; transition: all 0.2s;
-            display: flex; align-items: center; gap: 12px;
-        }
+        .nav-item { padding: 12px 15px; border-radius: 10px; color: var(--text-dim); text-decoration: none; margin-bottom: 8px; transition: all 0.2s; display: flex; align-items: center; gap: 12px; cursor: pointer; border: none; background: none; width: 100%; text-align: left; font-size: 1rem; font-family: inherit;}
         .nav-item:hover, .nav-item.active { background: var(--glass); color: var(--text); }
         .nav-item.active { border-left: 3px solid var(--accent); border-radius: 0 10px 10px 0; }
 
         /* Main Content */
         main { flex: 1; padding: 40px; }
-        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
         .user-info { display: flex; align-items: center; gap: 15px; }
-        .avatar { width: 40px; height: 40px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #000; font-weight: 800; }
+        .avatar { width: 40px; height: 40px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #000; font-weight: 800; text-transform: uppercase; }
 
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 25px; }
-        .app-card {
-            background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
-            padding: 30px; transition: all 0.3s; cursor: pointer; text-decoration: none; color: inherit;
-        }
+        /* Bildirim Barı (Deneme Sürümü) */
+        .trial-banner { background: rgba(245, 158, 11, 0.1); border: 1px solid var(--accent); color: var(--text); padding: 15px 20px; border-radius: 12px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }
+        .trial-banner .highlight { color: var(--accent); font-weight: 800; font-size: 1.2rem; }
+        .btn-upgrade { background: var(--accent); border: none; padding: 8px 16px; border-radius: 6px; color: #000; font-weight: 800; cursor: pointer; transition: 0.2s; }
+        .btn-upgrade:hover { filter: brightness(1.1); transform: scale(1.05); }
+
+        .content-wrapper { display: flex; gap: 30px; }
+        .apps-section { flex: 3; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
+        
+        .app-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 30px; transition: all 0.3s; cursor: pointer; text-decoration: none; color: inherit; display: block;}
         .app-card:hover { border-color: var(--accent); transform: translateY(-5px); background: rgba(245, 158, 11, 0.02); }
+        .app-card.locked { opacity: 0.5; filter: grayscale(1); pointer-events: none; }
         .app-icon { font-size: 2rem; margin-bottom: 20px; }
         .app-card h3 { margin-bottom: 10px; color: #fff; }
         .app-card p { font-size: 0.9rem; color: var(--text-dim); line-height: 1.5; margin-bottom: 20px; }
         
-        .btn-launch {
-            display: inline-block; padding: 10px 20px; background: var(--accent);
-            color: #000; border-radius: 8px; font-weight: 600; text-decoration: none; font-size: 0.9rem;
-        }
+        .status-badge { font-size: 0.7rem; font-weight: 800; padding: 4px 8px; border-radius: 5px; background: #10b981; color: #fff; margin-left: 10px; vertical-align: middle;}
+        .status-badge.locked { background: #ef4444; }
 
-        .status-badge { font-size: 0.7rem; font-weight: 800; padding: 4px 8px; border-radius: 5px; background: #10b981; color: #fff; margin-left: 10px; }
+        /* Reklam / Sponsor Alanı */
+        .ad-section { flex: 1; min-width: 250px; }
+        .ad-banner { background: var(--surface); border: 1px dashed var(--text-dim); border-radius: 12px; height: 300px; display: flex; align-items: center; justify-content: center; color: var(--text-dim); text-align: center; padding: 20px; margin-bottom: 20px; transition: 0.3s; }
+        .ad-banner:hover { border-color: var(--accent); color: var(--text); background: rgba(255,255,255,0.02); }
     </style>
 </head>
 <body>
+
+    <!-- Yükleniyor Bekleyişi (Güvenlik Kontrolü Sırasında Görünür) -->
+    <div id="loader">
+        <div class="spinner"></div>
+        <p style="margin-top: 15px; color: var(--text-dim);">Kimlik doğrulanıyor...</p>
+    </div>
+
     <aside>
         <div class="logo">EPC <span>FIELD OPS</span></div>
         <a href="#" class="nav-item active"><span>🏠</span> Dashboard</a>
         <a href="#" class="nav-item"><span>📊</span> Raporlar</a>
-        <a href="#" class="nav-item"><span>⚙️</span> Ayarlar</a>
+        <a href="#" class="nav-item"><span>⚙️</span> Abonelik</a>
         <div style="margin-top: auto;">
-            <a href="index.html" class="nav-item"><span>🚪</span> Çıkış Yap</a>
+            <button id="btn-logout" class="nav-item"><span>🚪</span> Çıkış Yap</button>
         </div>
     </aside>
 
     <main>
         <header>
             <div>
-                <h1 style="font-size: 1.8rem;">Hoş Geldin, <span style="color: var(--accent);">Emre</span></h1>
+                <h1 style="font-size: 1.8rem;">Hoş Geldin, <span id="user-display-name" style="color: var(--accent);">Kullanıcı</span></h1>
                 <p style="color: var(--text-dim); font-size: 0.9rem;">Saha operasyonların kontrolün altında.</p>
             </div>
             <div class="user-info">
-                <span>Emre Coşgun</span>
-                <div class="avatar">EC</div>
+                <span id="user-email-text">bekleniyor...</span>
+                <div class="avatar" id="user-avatar">?</div>
             </div>
         </header>
 
-        <div class="grid">
-            <!-- Kablo Optimizasyon Card -->
-            <a href="app-kablo.html" class="app-card">
-                <div class="app-icon">📦</div>
-                <h3>Kablo Optimizasyonu <span class="status-badge">AKTİF</span></h3>
-                <p>Saha kablo boylarını makaralara dağıtın, fireyi minimuma indirin ve stoklarınızı yönetin.</p>
-                <span class="btn-launch">Uygulamayı Aç →</span>
-            </a>
+        <!-- DENEME SÜRÜMÜ BİLDİRİMİ -->
+        <div class="trial-banner" id="trial-banner" style="display: none;">
+            <div>
+                <strong style="display:block; margin-bottom: 5px;">Ücretsiz Deneme Sürümü</strong>
+                <span>Platformu tüm özellikleriyle denemenize <span id="days-left" class="highlight">X</span> gün kaldı.</span>
+            </div>
+            <button class="btn-upgrade">Sınırsız Erişime Geç</button>
+        </div>
 
-            <!-- Placeholder Cards for Future Apps -->
-            <div class="app-card" style="opacity: 0.6; cursor: default;">
-                <div class="app-icon">🏗️</div>
-                <h3>Solar Lojistik <span class="status-badge" style="background: #64748b;">YAKINDA</span></h3>
-                <p>Panel kutu yerleşim düzenini sahadaki kurulum sırasına göre optimize edin.</p>
+        <div class="content-wrapper">
+            <!-- Uygulamalarımız -->
+            <div class="apps-section">
+                <div class="grid">
+                    <a href="app-kablo.html" class="app-card" id="kablo-card">
+                        <div class="app-icon">📦</div>
+                        <h3>Kablo Optimizasyonu <span class="status-badge" id="kablo-badge">AKTİF</span></h3>
+                        <p>Saha kablo boylarını makaralara dağıtın, fireyi minimuma indirin ve stoklarınızı yönetin.</p>
+                        <span style="display: inline-block; padding: 8px 16px; background: rgba(245, 158, 11, 0.1); color: var(--accent); border-radius: 8px; font-weight: 600; font-size: 0.9rem;" id="kablo-action-text">Uygulamayı Aç →</span>
+                    </a>
+
+                    <!-- Placeholder Cards -->
+                    <div class="app-card locked">
+                        <div class="app-icon">🏗️</div>
+                        <h3>Solar Lojistik <span class="status-badge" style="background: #64748b;">YAKINDA</span></h3>
+                        <p>Panel kutu yerleşim düzenini sahadaki kurulum sırasına göre optimize edin.</p>
+                    </div>
+                </div>
             </div>
 
-            <div class="app-card" style="opacity: 0.6; cursor: default;">
-                <div class="app-icon">📋</div>
-                <h3>Dinamik ERP <span class="status-badge" style="background: #64748b;">YAKINDA</span></h3>
-                <p>Gelişmiş metraj ve hak ediş yönetim sistemi.</p>
+            <!-- Sağ Taraf Reklam Alanları -->
+            <div class="ad-section">
+                <div class="ad-banner">
+                    <div>
+                        <span style="font-size: 2rem; display:block; margin-bottom:10px;">📣</span>
+                        <strong>Sponsor Alanı</strong><br>
+                        <small>Buraya firmanızın reklamını verebilirsiniz.</small>
+                    </div>
+                </div>
             </div>
         </div>
     </main>
+
+    <!-- Firebase Güvenlik Mimarisi -->
+    <script type="module">
+        import { auth, onAuthStateChanged, signOut, db, doc, getDoc } from './firebase-app.js';
+
+        // Güvenlik Bekçisi: Sayfa açıldığında kullanıcı var mı kontrol et
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // KULLANICI GİRİŞ YAPMIŞ, VERİLERİNİ ÇEKELİM
+                document.getElementById('user-email-text').innerText = user.email;
+                
+                try {
+                    // Veritabanından Kullanıcının Evrağını (Doc) alalım
+                    const userDocRef = doc(db, "users", user.uid);
+                    const userDoc = await getDoc(userDocRef);
+                    
+                    if (userDoc.exists()) {
+                        const data = userDoc.data();
+                        
+                        // İsim Ataması
+                        const name = data.displayName || user.email.split('@')[0];
+                        document.getElementById('user-display-name').innerText = name;
+                        document.getElementById('user-avatar').innerText = name.charAt(0);
+
+                        // Deneme Süresi Kontrolü
+                        if (!data.isPremium) {
+                            const trialEnd = data.trialEndsAt.toDate(); // Veritabanı tarihini JS tarihine çevir
+                            const now = new Date();
+                            
+                            // Geriye Kalan Gün Sayısını Hesapla
+                            const diffTime = trialEnd - now;
+                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+
+                            document.getElementById('trial-banner').style.display = 'flex';
+
+                            if (diffDays <= 0) {
+                                // SÜRE BİTMİŞ! UYGULAMAYI KİLİTLE
+                                document.getElementById('days-left').innerText = "0";
+                                document.getElementById('trial-banner').style.background = "rgba(239, 68, 68, 0.2)";
+                                document.getElementById('trial-banner').style.borderColor = "var(--error)";
+                                
+                                const card = document.getElementById('kablo-card');
+                                card.classList.add('locked');
+                                card.href = "#"; // Tıklamayı engelle
+                                document.getElementById('kablo-badge').innerText = "KİLİTLİ";
+                                document.getElementById('kablo-badge').classList.add('locked');
+                                document.getElementById('kablo-action-text').innerText = "Abonelik Gereklidir";
+                            } else {
+                                // SÜRE DEVAM EDİYOR
+                                document.getElementById('days-left').innerText = diffDays;
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error("Veri çekme hatası:", error);
+                }
+
+                // Ekranı Göster (Yükleyiciyi kaldır)
+                document.getElementById('loader').style.display = 'none';
+            } else {
+                // KULLANICI YOK! KAPI DIŞARI ET (Login Sayfasına)
+                window.location.href = "login.html";
+            }
+        });
+
+        // Çıkış Yapma Butonu Fonksiyonu
+        document.getElementById('btn-logout').addEventListener('click', () => {
+            signOut(auth).then(() => {
+                // Zaten onAuthStateChanged tetiklenip Login sayfasına atacaktır
+            }).catch((error) => {
+                alert("Çıkış yapılırken bir hata oluştu.");
+            });
+        });
+    </script>
 </body>
 </html>
