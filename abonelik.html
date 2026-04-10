@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Abonelik - EPC Field Ops</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --accent: #f59e0b;
+            --text: #f1f5f9;
+            --text-dim: #94a3b8;
+            --glass: rgba(255, 255, 255, 0.05);
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Outfit', sans-serif; }
+        body { background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
+
+        #loader { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; flex-direction: column; }
+        .spinner { width: 40px; height: 40px; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        aside { width: 260px; background: var(--surface); border-right: 1px solid var(--border); padding: 30px; display: flex; flex-direction: column; position: fixed; height: 100vh; }
+        .logo { font-size: 1.2rem; font-weight: 800; margin-bottom: 50px; }
+        .logo span { color: var(--accent); }
+
+        .nav-item { padding: 12px 15px; border-radius: 10px; color: var(--text-dim); text-decoration: none; margin-bottom: 8px; transition: all 0.2s; display: flex; align-items: center; gap: 12px; cursor: pointer; border: none; background: none; width: 100%; text-align: left; font-size: 1rem; font-family: inherit;}
+        .nav-item:hover, .nav-item.active { background: var(--glass); color: var(--text); }
+        .nav-item.active { border-left: 3px solid var(--accent); border-radius: 0 10px 10px 0; }
+
+        main { flex: 1; padding: 40px; margin-left: 260px; }
+
+        .billing-card { max-width: 600px; margin: 40px auto; background: var(--surface); border: 1px solid var(--accent); border-radius: 20px; padding: 40px; text-align: center; position: relative; overflow: hidden; box-shadow: 0 20px 40px rgba(245, 158, 11, 0.1); }
+        .billing-card::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 6px; background: linear-gradient(90deg, #f59e0b, #ef4444); }
+        .billing-card h2 { font-size: 2rem; color: #fff; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        
+        .price { font-size: 3rem; font-weight: 800; color: var(--accent); margin: 20px 0; display: inline-block; }
+        .price span { font-size: 1rem; color: var(--text-dim); font-weight: 400; }
+
+        .features { text-align: left; margin: 30px 0; padding: 0 20px;}
+        .features li { list-style: none; margin-bottom: 15px; color: var(--text-dim); display: flex; align-items: center; gap: 10px; font-size: 1.1rem; }
+        
+        .iban-box { background: rgba(0,0,0,0.5); padding: 25px; border-radius: 12px; border: 1px dashed var(--border); margin-bottom: 30px; text-align: left;}
+
+        .btn-upgrade { background: linear-gradient(135deg, #f59e0b, #d97706); border: none; padding: 15px 30px; border-radius: 12px; color: #000; font-weight: 800; cursor: pointer; transition: 0.3s; font-size: 1.1rem; display: inline-block; text-decoration: none; width: 100%; }
+        .btn-upgrade:hover { filter: brightness(1.1); transform: translateY(-3px); box-shadow: 0 10px 20px rgba(245, 158, 11, 0.3); }
+
+    </style>
+</head>
+<body>
+
+    <div id="loader">
+        <div class="spinner"></div>
+        <p style="margin-top: 15px; color: var(--text-dim);">Kimlik doğrulanıyor...</p>
+    </div>
+
+    <aside>
+        <div class="logo">EPC <span>FIELD OPS</span></div>
+        <a href="dashboard.html" class="nav-item"><span>🏠</span> Dashboard</a>
+        <a href="#" class="nav-item"><span>📊</span> Raporlar</a>
+        <a href="abonelik.html" class="nav-item active"><span>⚙️</span> Abonelik</a>
+    </aside>
+
+    <main>
+        <h1 style="font-size: 2rem; margin-bottom: 10px;">Abonelik & Lisans İşlemleri</h1>
+        <p style="color: var(--text-dim);">EPC Field Ops'un sınırlarını kaldırarak şantiyede tüm araçlara limitsiz erişim sağlayın.</p>
+
+        <div class="billing-card">
+            <h2>⭐ Kurumsal Premium Lisans</h2>
+            <p style="color: var(--text-dim);">Tüm modüllere mühendisleriniz 1 Yıl boyunca limitsiz erişir.</p>
+
+            <div class="price">₺12.000 <span>/ Yıllık</span></div>
+
+            <ul class="features">
+                <li>✅ Kablo Makara Optimizasyonu (Sınırsız İşlem)</li>
+                <li>✅ Solar Lojistik Modülü Erişimi</li>
+                <li>✅ Dinamik BOQ & Hakediş Desteği</li>
+                <li>✅ Öncelikli Teknik Destek (E-posta/Telefon)</li>
+            </ul>
+
+            <div class="iban-box">
+                <p style="color: #fff; font-weight: bold; margin-bottom: 10px;">Havale/EFT ile Ödeme Adımları:</p>
+                <p style="font-size: 0.9rem; color: var(--text-dim); margin-bottom: 5px;">Alıcı Adı Soyadı:</p>
+                <div style="background: var(--surface); padding: 10px; border-radius: 6px; color: #fff; margin-bottom: 15px; user-select: all;">Emre Coşgun</div>
+
+                <p style="font-size: 0.9rem; color: var(--text-dim); margin-bottom: 5px;">Ziraat Bankası IBAN No:</p>
+                <div style="background: var(--surface); padding: 10px; border-radius: 6px; color: var(--accent); font-family: monospace; font-size: 1.1rem; user-select: all;">TR12 0001 0000 0000 0000 0000 00</div>
+                <small style="color: #64748b; margin-top: 5px; display: block;">* Açıklama kısmına kayıt olduğunuz E-Posta adresinizi yazmayı unutmayınız.</small>
+            </div>
+
+            <a href="mailto:cosgunemre@gmail.com?subject=Premium Ödeme Bildirimi" class="btn-upgrade">Ödemeyi Gönderdim (Bildiri Yap)</a>
+        </div>
+    </main>
+
+    <!-- Firebase Güvenlik Mimarisi -->
+    <script type="module">
+        import { auth, onAuthStateChanged, db, doc, getDoc } from './firebase-app.js';
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                if (!user.emailVerified) {
+                    window.location.href = "login.html";
+                    return;
+                }
+                // Ekranı Oku
+                document.getElementById('loader').style.display = 'none';
+            } else {
+                window.location.href = "login.html";
+            }
+        });
+    </script>
+</body>
+</html>
