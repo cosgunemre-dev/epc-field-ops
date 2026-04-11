@@ -122,6 +122,14 @@
                         <p>Şantiye ofislerini, panel matrislerini ve depo alanlarını çizerek sahanızı sıfırdan ve interaktif olarak planlayın.</p>
                         <span style="display: inline-block; padding: 8px 16px; background: rgba(56, 189, 248, 0.1); color: #38bdf8; border-radius: 8px; font-weight: 600; font-size: 0.9rem;" id="mobilizasyon-action-text">Uygulamayı Aç →</span>
                     </a>
+
+                    <!-- Panel Kutu Yerleşimi -->
+                    <a href="app-tracker.html" class="app-card" id="tracker-card">
+                        <div class="app-icon">📐</div>
+                        <h3>Panel Kutu Yerleşimi <span class="status-badge" id="tracker-badge">AKTİF</span></h3>
+                        <p>Tracker ve sabit masa tiplerine göre panel kutularını sahaya hatasız sırayla dağıtın ve lojistiği kusursuz planlayın.</p>
+                        <span style="display: inline-block; padding: 8px 16px; background: rgba(74, 222, 128, 0.1); color: #4ade80; border-radius: 8px; font-weight: 600; font-size: 0.9rem;" id="tracker-action-text">Uygulamayı Aç →</span>
+                    </a>
                 </div>
             </div>
 
@@ -198,6 +206,13 @@
                                 document.getElementById('mobilizasyon-badge').innerText = "KİLİTLİ";
                                 document.getElementById('mobilizasyon-badge').classList.add('locked');
                                 document.getElementById('mobilizasyon-action-text').innerText = "Abonelik Gereklidir";
+
+                                const trackerCard = document.getElementById('tracker-card');
+                                trackerCard.classList.add('locked');
+                                trackerCard.href = "#";
+                                document.getElementById('tracker-badge').innerText = "KİLİTLİ";
+                                document.getElementById('tracker-badge').classList.add('locked');
+                                document.getElementById('tracker-action-text').innerText = "Abonelik Gereklidir";
                             } else {
                                 // SÜRE DEVAM EDİYOR
                                 document.getElementById('days-left').innerText = diffDays;

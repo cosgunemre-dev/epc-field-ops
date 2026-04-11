@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tracker Panel Kutu Yerleşimi V11.0 — Pro Final</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,sans-serif}
+body{display:flex;flex-direction:column;width:100vw;height:100vh;overflow:hidden;background:#020617;color:#f8fafc}
+#header{height:40px;background:linear-gradient(90deg,#0f172a,#1e1b4b);border-bottom:1px solid rgba(139,92,246,0.3);display:flex;align-items:center;padding:0 12px;gap:10px;flex-shrink:0;z-index:20}
+#header-title{font-size:14px;font-weight:800;color:#f1f5f9}
+#main-container{display:flex;flex:1;overflow:hidden}
+#sidebar{width:260px;height:100%;background:#111827;border-left:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;flex-shrink:0;box-shadow:-10px 0 30px rgba(0,0,0,0.5);overflow-y:auto;z-index:15}
+.s-header{padding:10px 12px;font-size:10px;font-weight:800;color:#4ade80;border-bottom:1px solid rgba(255,255,255,0.08);text-transform:uppercase}
+.s-body{padding:8px;display:flex;flex-direction:column;gap:8px}
+.s-group{background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.06)}
+.s-title{font-size:8px;text-transform:uppercase;color:#64748b;font-weight:700;margin-bottom:4px}
+.tool-btn{width:100%;padding:6px;border:none;border-radius:5px;cursor:pointer;font-weight:700;font-size:9px;background:rgba(255,255,255,0.05);color:white;display:flex;align-items:center;justify-content:center;gap:4px}
+.tool-btn.active{background:#4ade80 !important;color:#064e3b !important}
+#arena{flex:1;position:relative;overflow:hidden;cursor:crosshair;background:#0f172a}
+#grid-canvas{display:block;width:100%;height:100%}
+#hud{position:absolute;top:10px;left:10px;display:flex;flex-direction:column;gap:4px;pointer-events:none;z-index:10}
+.hud-pill{background:rgba(15,23,42,0.92);border:1px solid rgba(74,222,128,0.3);padding:4px 10px;border-radius:15px;font-size:9px;font-weight:700;color:#4ade80}
+.distribute-btn{background:linear-gradient(135deg,#10b981,#059669);color:white;padding:10px;font-size:11px;border:none;width:100%;border-radius:8px;cursor:pointer;font-weight:900}
+.matrix-btn{background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:white;padding:10px;font-size:11px;border:none;width:100%;border-radius:8px;cursor:pointer;font-weight:900;margin-top:4px}
+.input-row{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.input-row label{font-size:9px;color:#94a3b8;flex:1}
+.input-row input, .input-row select{background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:4px;color:#fff;padding:4px 8px;width:70px;text-align:center;font-size:10px}
+
+@media print {
+    body, #header, #sidebar, #hud { background: white !important; color: black !important; }
+    #main-container { overflow: visible !important; height: auto !important; }
+    #sidebar, #hud, #header { display: none !important; }
+    #arena { width: 100vw; height: auto; position: static; background: white !important; overflow: visible !important; }
+    #grid-canvas { width: 297mm; height: auto !important; background: white !important; }
+    @page { size: auto; margin: 10mm; }
+}
+</style>
+</head>
+<body>
+<div id="header">
+    <a href="dashboard.html" style="text-decoration:none; color:#4ade80; font-size:12px; font-weight:700; display:flex; align-items:center; gap:4px; margin-right:15px; border-right: 1px solid rgba(255,255,255,0.1); padding-right: 15px;">← Dashboard</a>
+    <span id="header-logo">📐</span>
+    <div id="header-title">Panel Kutu Yerleşimi</div>
+    <div id="header-sub">Tracker & Sabit Masa Dağıtım Motoru</div>
+</div>
+    <div id="header-sub">Simple Print Mode — Pro Final</div>
+</div>
+<div id="main-container">
+    <div id="arena"><canvas id="grid-canvas"></canvas><div id="hud"><div class="hud-pill">MOD: <span id="hud-mode">BOYA</span></div><div class="hud-pill">ZOOM: <span id="hud-zoom">100%</span></div></div></div>
+    <aside id="sidebar">
+        <div class="s-header">🛠️ Kontrol Paneli</div>
+        <div class="s-body">
+            <div class="s-group" style="border:1.5px solid #8b5cf6;background:rgba(139,92,246,0.05)">
+                <p class="s-title" style="color:#a78bfa">🏢 Matris Blok Ekle</p>
+                <div class="input-row"><label>Başl. R/C:</label>
+                    <div style="display:flex;gap:4px"><input type="number" id="m-start-r" value="10"><input type="number" id="m-start-c" value="10"></div>
+                </div>
+                <div class="input-row"><label>Sıra x Adet:</label>
+                    <div style="display:flex;gap:4px"><input type="number" id="m-rows" value="10"><input type="number" id="m-len" value="81"></div>
+                </div>
+                <div class="input-row"><label>Dolu Sıra:</label><input type="number" id="m-full-rows" value="1" min="1"></div>
+                <div class="input-row"><label>Panel Gücü:</label><input type="number" id="m-power" value="550"></div>
+                <div class="input-row"><label>Palet Rengi:</label>
+                    <select id="m-color"><option value="#3b82f6">Mavi</option><option value="#ef4444">Kırmızı</option><option value="#22c55e">Yeşil</option><option value="#f59e0b">Sarı</option><option value="#8b5cf6">Mor</option><option value="#06b6d4">Turkuaz</option></select>
+                </div>
+                <button class="matrix-btn" onclick="createMatrix()">🚀 Yeni Blok Ekle</button>
+            </div>
+            <div class="s-group" style="border:1.5px solid #10b981;background:rgba(16,185,129,0.05)">
+                <p class="s-title" style="color:#34d399">📦 Lojistik Karar</p>
+                <div class="input-row"><label>Saha Tipi:</label>
+                    <select id="dist-mode" style="width:100% !important;text-align:left;padding-left:10px"><option value="tracker">Tracker (İkili Fermuar)</option><option value="sabit">Sabit Masa (Sıralı)</option></select>
+                </div>
+                <div class="input-row"><label>Kutu Başı:</label><input type="number" id="pkg-size" value="31"></div>
+                <button class="distribute-btn" onclick="distributePallets()">📦 Paletleri Dağıt (Trigger)</button>
+                <div class="input-row" style="margin-top:8px"><label>Numaraları Göster:</label><input type="checkbox" id="show-labels" checked onchange="render()"></div>
+                <button class="tool-btn" style="background:#3b82f6;color:white" onclick="window.print()">📄 PDF Sayfasını Yazdır</button>
+            </div>
+            <div class="s-group">
+                <p class="s-title">🖋️ Manuel Müdahale</p>
+                <div style="display:flex;gap:4px"><button class="tool-btn active" id="btn-paint" onclick="setTool('paint')">🖌️ Panel</button><button class="tool-btn" id="btn-erase" onclick="setTool('erase')">🧹 Silgi</button></div>
+                <div style="margin-top:4px;display:flex;flex-direction:column;gap:5px"><button class="tool-btn" onclick="centerView();render()">🎯 Sığdır (Fit)</button><button class="tool-btn" style="background:rgba(239,68,68,0.1);color:#ef4444" onclick="clearAll()">🗑️ Temizle</button></div>
+            </div>
+        </div>
+    </aside>
+</div>
+
+<script>
+const GRID=1000, CELL=22; 
+let grid=Array.from({length:GRID},()=>new Uint8Array(GRID));
+let dataMap=new Map(); 
+let boxMap=Array.from({length:GRID},()=>new Int32Array(GRID));
+let paintOrder=[]; let palletPositions=[]; 
+let pkgSize=31, activeTool='paint', isManualDist=false;
+let vpX=100, vpY=100, vpZ=0.8; 
+let isPainting=false, isPanning=false, panStart={x:0, y:0}, draggedPalletIdx = -1;
+const canvas=document.getElementById('grid-canvas'), ctx=canvas.getContext('2d'), arena=document.getElementById('arena');
+const hudMode=document.getElementById('hud-mode');
+
+window.onload=()=>{ resize(); load(); if(paintOrder.length>0) centerView(); render(); updateHUD(); };
+window.onresize=resize;
+window.onbeforeprint=()=>{ resizeForPrint(); };
+window.onafterprint=()=>{ resize(); };
+
+function resize(){ canvas.width=arena.clientWidth; canvas.height=arena.clientHeight; render() }
+function resizeForPrint(){ 
+    if(paintOrder.length===0) return;
+    let minR=GRID, maxR=0, minC=GRID, maxC=0; paintOrder.forEach(p=>{ minR=Math.min(minR,p.r); maxR=Math.max(maxR,p.r); minC=Math.min(minC,p.c); maxC=Math.max(maxC,p.c); });
+    canvas.width = (maxC - minC + 10) * CELL;
+    canvas.height = (maxR - minR + 10) * CELL;
+    vpZ = 1.0; vpX = -(minC-5)*CELL; vpY = -(minR-5)*CELL; render();
+}
+
+function updateHUD(){ if(document.getElementById('hud-zoom')) document.getElementById('hud-zoom').textContent=Math.round(vpZ*100)+'%'; }
+function setTool(t){ activeTool=t; document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active')); if(document.getElementById('btn-'+t)) document.getElementById('btn-'+t).classList.add('active'); if(hudMode) hudMode.textContent=t.toUpperCase() }
+
+arena.onpointerdown=e=>{ 
+    const r=arena.getBoundingClientRect();
+    const mx=(e.clientX-r.left-vpX)/vpZ, my=(e.clientY-r.top-vpY)/vpZ;
+    if(isManualDist){
+        draggedPalletIdx = palletPositions.findIndex(p => {
+            const dx = (p.c+.5)*CELL - mx, dy = (p.r+.5)*CELL - my;
+            return Math.sqrt(dx*dx + dy*dy) < CELL*2.0;
+        });
+        if(draggedPalletIdx !== -1){ isPainting=false; return; }
+    }
+    if(e.button===1 || (e.button===0 && e.altKey)){ isPanning=true; panStart={x:e.clientX-vpX, y:e.clientY-vpY}; arena.setPointerCapture(e.pointerId); return } 
+    if(e.button===0){ isPainting=true; paint(e) } 
+};
+arena.onpointermove=e=>{ 
+    if(draggedPalletIdx !== -1){
+        const g=s2g(e.clientX, e.clientY);
+        if(g.r>=0&&g.r<GRID&&g.c>=0&&g.c<GRID){ palletPositions[draggedPalletIdx].r=g.r; palletPositions[draggedPalletIdx].c=g.c; render(); }
+        return;
+    }
+    if(isPanning){ vpX=e.clientX-panStart.x; vpY=e.clientY-panStart.y; render() } 
+    if(isPainting) paint(e); 
+};
+arena.onpointerup=e=>{ isPainting=false; isPanning=false; draggedPalletIdx = -1; arena.releasePointerCapture(e.pointerId); save(); };
+arena.onwheel=e=>{ e.preventDefault(); const r=arena.getBoundingClientRect(), mx=e.clientX-r.left, my=e.clientY-r.top; const f=e.deltaY>0?0.9:1.1, nz=Math.max(0.01, Math.min(vpZ*f, 10)); vpX=mx-(mx-vpX)*(nz/vpZ); vpY=my-(my-vpY)*(nz/vpZ); vpZ=nz; updateHUD(); render(); };
+
+function s2g(x,y){ const r=arena.getBoundingClientRect(); return { r:Math.floor((y-r.top-vpY)/vpZ/CELL), c:Math.floor((x-r.left-vpX)/vpZ/CELL) }; }
+function paint(e){
+    const g=s2g(e.clientX, e.clientY); if(g.r<0||g.r>=GRID||g.c<0||g.c>=GRID) return;
+    if(activeTool==='paint') addPanel(g.r, g.c, document.getElementById('m-power').value, document.getElementById('m-color').value);
+    else if(activeTool==='erase') removePanel(g.r, g.c);
+    render();
+}
+function addPanel(r,c,power,color){ if(grid[r][c]===0){ grid[r][c]=1; dataMap.set(`${r},${c}`, {power, color}); paintOrder.push({r,c}); isManualDist=false; return true } return false }
+function removePanel(r,c){ if(grid[r][c]===1){ grid[r][c]=0; dataMap.delete(`${r},${c}`); paintOrder=paintOrder.filter(p=>p.r!==r || p.c!==c); isManualDist=false; return true } return false }
+
+function createMatrix(){
+    const rows=parseInt(document.getElementById('m-rows').value)||0, len=parseInt(document.getElementById('m-len').value)||0;
+    const pwr=document.getElementById('m-power').value, clr=document.getElementById('m-color').value;
+    const startR=parseInt(document.getElementById('m-start-r').value)||10, startC=parseInt(document.getElementById('m-start-c').value)||10;
+    const dolu=parseInt(document.getElementById('m-full-rows').value)||1;
+    let maxBlockR = startR;
+    for(let i=0; i<rows; i++){
+        const physicRow = startR + Math.floor(i/dolu)*(dolu+1) + (i%dolu); 
+        for(let j=0; j<len; j++) addPanel(physicRow, startC+j, pwr, clr);
+        maxBlockR = Math.max(maxBlockR, physicRow);
+    }
+    document.getElementById('m-start-r').value = maxBlockR + 3; 
+    isManualDist=false; render(); save();
+}
+
+function distributePallets(){ isManualDist=true; pkgSize=Math.max(1,parseInt(document.getElementById('pkg-size').value)||31); recalculate(); render(); save(); }
+function recalculate(){
+    boxMap=Array.from({length:GRID},()=>new Int32Array(GRID)); palletPositions=[];
+    const mode = document.getElementById('dist-mode').value;
+    const threshold = (mode === 'tracker') ? 2 : 1;
+    let sortedPanels = [...paintOrder].sort((a,b)=>a.r-b.r || a.c-b.c);
+    let groups = []; let currentGroup = []; let groupUniqueRows = new Set();
+    sortedPanels.forEach((p, idx) => {
+        if(currentGroup.length === 0){ currentGroup.push(p); groupUniqueRows.add(p.r); }
+        else {
+            const prevR = sortedPanels[idx-1].r;
+            if(p.r - prevR <= threshold && (groupUniqueRows.has(p.r) || groupUniqueRows.size < 2)){
+                currentGroup.push(p); groupUniqueRows.add(p.r);
+            } else {
+                groups.push(currentGroup); currentGroup = [p]; groupUniqueRows = new Set([p.r]);
+            }
+        }
+    });
+    if(currentGroup.length > 0) groups.push(currentGroup);
+    groups.sort((a,b)=> Math.min(...a.map(p=>p.r)) - Math.min(...b.map(p=>p.r)) );
+    let globalSequence = [];
+    if(mode === 'sabit'){
+        let allUniqueRows = [...new Set(paintOrder.map(p=>p.r))].sort((a,b)=>a-b);
+        allUniqueRows.forEach((r, idx) => {
+            let rowPanels = paintOrder.filter(p => p.r === r).sort((a,b)=>a.c-b.c);
+            if(idx % 2 !== 0) rowPanels.reverse();
+            globalSequence.push(...rowPanels);
+        });
+    } else {
+        groups.forEach((grp, idx) => {
+            let minC = Math.min(...grp.map(p=>p.c)), maxC = Math.max(...grp.map(p=>p.c));
+            let cols = Array.from({length: maxC-minC+1}, (_,i)=>minC+i);
+            if(idx % 2 !== 0) cols.reverse(); 
+            cols.forEach((c) => {
+                let columnPanels = grp.filter(p => p.c === c).sort((a,b)=>a.r-b.r);
+                globalSequence.push(...columnPanels);
+            });
+        });
+    }
+    const boxCount=Math.ceil(globalSequence.length/pkgSize);
+    for(let i=0; i<boxCount; i++){
+        const boxId=i+1; const chunk=globalSequence.slice(i*pkgSize, (i+1)*pkgSize); if(chunk.length===0) continue;
+        let aR=0, aC=0; chunk.forEach(p=>{ boxMap[p.r][p.c]=boxId; aR+=p.r; aC+=p.c });
+        aR/=chunk.length; aC/=chunk.length; const pr=Math.round(aR), pc=Math.round(aC);
+        const refData = dataMap.get(`${chunk[0].r},${chunk[0].c}`) || {power:'?', color:'#f59e0b'};
+        let found=false; for(let rd=0; rd<150 && !found; rd++){
+            for(let dr=-rd; dr<=rd; dr++)for(let dc=-rd; dc<=rd; dc++){
+                if(Math.abs(dr)!==rd && Math.abs(dc)!==rd) continue;
+                const rr=pr+dr, cc=pc+dc; if(rr>=0&&rr<GRID&&cc>=0&&cc<GRID && grid[rr][cc]===0){
+                    if(!palletPositions.some(pos=>pos.r===rr&&pos.c===cc)){ 
+                        palletPositions.push({r:rr, c:cc, id:boxId, power:refData.power, color:refData.color}); found=true; break; 
+                    }
+                }
+            }
+        }
+    }
+}
+const boxColors=['#3b82f6','#ef4444','#22c55e','#f59e0b','#8b5cf6','#ec4899','#06b6d4','#f97316','#14b8a6','#84cc16','#e11d48','#0ea5e9'];
+function render(){
+    const w=canvas.width, h=canvas.height; if(!w||!h)return; 
+    ctx.fillStyle=(document.body.style.background==='white')?'#fff':'#0f172a'; ctx.fillRect(0,0,w,h);
+    ctx.save(); ctx.translate(vpX, vpY); ctx.scale(vpZ, vpZ);
+    ctx.strokeStyle='#1e293b'; ctx.lineWidth=1/vpZ; ctx.beginPath();
+    const sC=Math.floor(-vpX/vpZ/CELL), eC=sC+Math.ceil(w/vpZ/CELL), sR=Math.floor(-vpY/vpZ/CELL), eR=sR+Math.ceil(h/vpZ/CELL);
+    for(let i=sC; i<=eC; i++){ ctx.moveTo(i*CELL, sR*CELL); ctx.lineTo(i*CELL, eR*CELL); }
+    for(let i=sR; i<=eR; i++){ ctx.moveTo(sC*CELL, i*CELL); ctx.lineTo(eC*CELL, i*CELL); }
+    ctx.stroke(); 
+    
+    // RENDER GRID
+    for(let r=0; r<GRID; r++)for(let c=0; c<GRID; c++) if(grid[r][c]===1){
+        const bid=boxMap[r][c];
+        if(!isManualDist) ctx.fillStyle='#fff'; else ctx.fillStyle=bid>0?boxColors[(bid-1)%boxColors.length]:'#ccc';
+        ctx.fillRect(c*CELL, r*CELL, CELL, CELL); ctx.strokeStyle='rgba(0,0,0,0.4)'; 
+        ctx.lineWidth=1.5/vpZ; ctx.strokeRect(c*CELL, r*CELL, CELL, CELL);
+    }
+    
+    // RENDER LABELS
+    if(document.getElementById('show-labels').checked){
+        ctx.fillStyle='#4ade80'; ctx.font=`${12/vpZ}px sans-serif`; ctx.textAlign='right';
+        let allUniqueRows = [...new Set(paintOrder.map(p=>p.r))].sort((a,b)=>a-b);
+        allUniqueRows.forEach((r, idx) => {
+            const rowPanels = paintOrder.filter(p=>p.r===r).sort((a,b)=>a.c-b.c);
+            if(rowPanels.length>0) ctx.fillText(idx+1, (rowPanels[0].c-0.2)*CELL, (r+0.7)*CELL);
+        });
+        ctx.textAlign='center';
+        let minC = Math.min(...paintOrder.map(p=>p.c)), maxC = Math.max(...paintOrder.map(p=>p.c));
+        for(let c=minC; c<=maxC; c+=5){
+            let row = paintOrder.find(p=>p.c===c);
+            if(row) ctx.fillText(c-minC+1, (c+0.5)*CELL, (row.r-0.5)*CELL);
+        }
+    }
+
+    if(isManualDist){ palletPositions.forEach((p)=>{
+        const x=(p.c+.5)*CELL, y=(p.r+.5)*CELL; 
+        ctx.fillStyle=p.color || '#0f172a'; ctx.beginPath(); ctx.arc(x, y, CELL*1.5, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle='#000'; ctx.lineWidth=1/vpZ; ctx.stroke();
+        ctx.fillStyle='#000'; ctx.font=`bold ${CELL*1.2}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('📦', x, y);
+        ctx.font='bold 9px sans-serif'; ctx.fillText(p.id, x, y-CELL*0.9); ctx.font='7px sans-serif'; ctx.fillText(p.power?p.power+'W':'', x, y+CELL*0.9);
+    }); }
+    ctx.restore();
+}
+
+function centerView(){ 
+    const aw=arena.clientWidth, ah=arena.clientHeight; if(!aw || !ah || paintOrder.length===0) return;
+    let minR=GRID, maxR=0, minC=GRID, maxC=0; paintOrder.forEach(p=>{ minR=Math.min(minR,p.r); maxR=Math.max(maxR,p.r); minC=Math.min(minC,p.c); maxC=Math.max(maxC,p.c); });
+    const wr=(maxC-minC+12)*CELL, hr=(maxR-minR+12)*CELL; vpZ = Math.min(aw/wr, ah/hr, 2.0);
+    vpX = aw/2 - (minC + (maxC-minC)/2)*CELL*vpZ; vpY = ah/2 - (minR + (maxR-minR)/2)*CELL*vpZ; updateHUD(); render();
+}
+function clearAll(){ grid=Array.from({length:GRID},()=>new Uint8Array(GRID)); dataMap.clear(); paintOrder=[]; palletPositions=[]; isManualDist=false; render(); save(); }
+function save(){ const data = { paintOrder, palletPositions, pkgSize, isManualDist, mFullRows: document.getElementById('m-full-rows').value, sahaTipi: document.getElementById('dist-mode').value, userMap: Array.from(dataMap.entries()) }; localStorage.setItem('tracker_v11_data', JSON.stringify(data)); }
+function load(){
+    try {
+        const d = JSON.parse(localStorage.getItem('tracker_v11_data')); if(!d) return;
+        if(d.paintOrder){ paintOrder=d.paintOrder; d.paintOrder.forEach(p=>grid[p.r][p.c]=1); }
+        if(d.palletPositions) palletPositions = d.palletPositions;
+        if(d.userMap) dataMap = new Map(d.userMap);
+        if(d.mFullRows) document.getElementById('m-full-rows').value = d.mFullRows;
+        if(d.sahaTipi) document.getElementById('dist-mode').value = d.sahaTipi;
+        if(d.isManualDist) isManualDist=true;
+        render();
+    } catch(e){}
+}
+</script>
+    <!-- Tam Sayfa Yükleme & Güvenlik Kalkanı -->
+    <div id="auth-guard-loader" style="position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: #020617; z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+        <div style="width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #4ade80; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        <p style="margin-top: 20px; color: #94a3b8; font-family: sans-serif;">Erişim kontrol ediliyor...</p>
+    </div>
+    <style>@keyframes spin {to {transform: rotate(360deg);}}</style>
+
+    <!-- Firebase Güvenlik Motoru -->
+    <script type="module">
+        import { auth, onAuthStateChanged, db, doc, getDoc } from './firebase-app.js';
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                if (!user.emailVerified) {
+                    window.location.href = "login.html";
+                    return;
+                }
+                try {
+                    const userDocRef = doc(db, "users", user.uid);
+                    const userDoc = await getDoc(userDocRef);
+                    if (userDoc.exists()) {
+                        const data = userDoc.data();
+                        if (!data.isPremium) {
+                            const trialEnd = data.trialEndsAt.toDate();
+                            if (new Date() > trialEnd) {
+                                alert("Ücretsiz deneme süreniz sona ermiştir. Lütfen aboneliğinizi yenileyin.");
+                                window.location.href = "dashboard.html";
+                                return;
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error("Yetki çekme hatası:", error);
+                }
+                document.getElementById('auth-guard-loader').style.display = 'none';
+            } else {
+                window.location.href = "login.html";
+            }
+        });
+    </script>
+</body>
+</html>
+
