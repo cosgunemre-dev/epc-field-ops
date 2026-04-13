@@ -74,7 +74,10 @@ function copyFolderSync(from, to) {
 
 function processDirectory(src, dest) {
     // Sadece bulunduğumuz klasördeki dosyaları tara (ve gereksizleri/sonsuz döngü yaratacakları yoksay)
+    // Dosyalar normal obfuscation listesine alınır
     const ignores = ['node_modules', '.git', 'deploy_secure', 'package.json', 'package-lock.json', 'build_secure.js', '.vercel'];
+    // Bu dosyalar PDF export içinde HTML template üretir, obfuscator bozuyor — sadece kopyala
+    const copyOnly = ['app-mobilizasyon.html', 'app-trenchcalc.html'];
     
     fs.readdirSync(src).forEach(file => {
         if (ignores.includes(file)) return;
@@ -87,6 +90,13 @@ function processDirectory(src, dest) {
             copyFolderSync(srcPath, destPath);
         } else {
             const ext = path.extname(file).toLowerCase();
+
+            // copyOnly listesindeki dosyaları obfuscate etme, direkt kopyala
+            if (copyOnly.includes(file)) {
+                fs.copyFileSync(srcPath, destPath);
+                console.log('Kopyalandı (obfuscation yok):', file);
+                return;
+            }
 
             if (ext === '.html') {
                 let html = fs.readFileSync(srcPath, 'utf-8');
