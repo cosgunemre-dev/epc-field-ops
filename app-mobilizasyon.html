@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>Saha Mobilizasyon Yerleşimi</title>
+    <title>Saha Mobilizasyon Yerleşimi — EPC Field Ops</title>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',system-ui,sans-serif; }
         body { display:flex; width:100vw; height:100vh; overflow:hidden; background:#020617; color:#f8fafc; }
@@ -221,11 +221,12 @@
 <body>
 
 
+</div>
 
 <aside id="sidebar">
-    <div class="s-header" style="display:flex; align-items:center;">
-        <a href="dashboard.html" style="text-decoration:none; color:#10b981; font-size:12px; font-weight:700; display:flex; align-items:center; gap:4px; margin-right:15px; border-right: 1px solid rgba(255,255,255,0.1); padding-right: 15px;">← Dashboard</a>
-        ⚡ Saha Mobilizasyon
+    <div class="s-header" style="display:flex;align-items:center;gap:8px;">
+        <a href="dashboard.html" style="text-decoration:none;color:#10b981;font-size:11px;font-weight:700;padding-right:10px;border-right:1px solid rgba(255,255,255,0.15);">← Dashboard</a>
+        ⚡ Saha Mobilizasyonu
     </div>
     <div class="s-body">
 
@@ -339,8 +340,6 @@
 </div>
 
 <script>
-}
-
 // ==============================
 //  STATE
 // ==============================
@@ -1224,23 +1223,17 @@ function exportCSV() {
         html += `<tr><td>${r.loc}</td><td>${r.name}</td><td>${r.qty}</td></tr>`;
     });
     html += `</table>
-    <!-- Tam Sayfa Yükleme & Güvenlik Kalkanı -->
-    <div id="auth-guard-loader" style="position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: #020617; z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-        <div style="width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #4ade80; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-        <p style="margin-top: 20px; color: #94a3b8; font-family: sans-serif;">Erişim kontrol ediliyor...</p>
+    <!-- Auth Guard -->
+    <div id="auth-guard-loader" style="position:fixed;top:0;left:0;width:100%;height:100vh;background:#020617;z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+        <div style="width:40px;height:40px;border:4px solid rgba(255,255,255,0.1);border-top-color:#4ade80;border-radius:50%;animation:spin 1s linear infinite;"></div>
+        <p style="margin-top:20px;color:#94a3b8;font-family:sans-serif;">Erişim kontrol ediliyor...</p>
     </div>
-    <style>@keyframes spin {to {transform: rotate(360deg);}}</style>
-
-    <!-- Firebase Güvenlik Motoru -->
+    <style>@keyframes spin{to{transform:rotate(360deg);}}</style>
     <script type="module">
         import { auth, onAuthStateChanged, db, doc, getDoc } from './firebase-app.js';
-
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                if (!user.emailVerified) {
-                    window.location.href = "login.html";
-                    return;
-                }
+                if (!user.emailVerified) { window.location.href = "login.html"; return; }
                 try {
                     const userDocRef = doc(db, "users", user.uid);
                     const userDoc = await getDoc(userDocRef);
@@ -1249,15 +1242,13 @@ function exportCSV() {
                         if (!data.isPremium) {
                             const trialEnd = data.trialEndsAt.toDate();
                             if (new Date() > trialEnd) {
-                                alert("Ücretsiz deneme süreniz sona ermiştir. Lütfen aboneliğinizi yenileyin.");
+                                alert("Ücretsiz deneme süreniz sona ermiştir.");
                                 window.location.href = "dashboard.html";
                                 return;
                             }
                         }
                     }
-                } catch (error) {
-                    console.error("Yetki çekme hatası:", error);
-                }
+                } catch(e) { console.error(e); }
                 document.getElementById('auth-guard-loader').style.display = 'none';
             } else {
                 window.location.href = "login.html";
@@ -1380,7 +1371,7 @@ function exportPDF() {
                 Emre COŞGUN tarafından hazırlanmıştır.
             </div>
         </div>
-        <script>window.onload = () => setTimeout(() => window.print(), 500);</scr' + 'ipt>
+        <script>window.onload = () => setTimeout(() => window.print(), 500);<" + "/script>
         </body></html>
     `);
     printWin.document.close();
