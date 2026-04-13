@@ -2,10 +2,43 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>SolarMech Plancı V6</title>
+    <title>Saha Mobilizasyon Yerleşimi</title>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',system-ui,sans-serif; }
         body { display:flex; width:100vw; height:100vh; overflow:hidden; background:#020617; color:#f8fafc; }
+
+        /* --- PASSWORD GATE --- */
+        #pw-gate {
+            position:fixed; inset:0; z-index:9999;
+            background:linear-gradient(135deg, #020617 0%, #0f172a 60%, #1e1b4b 100%);
+            display:flex; align-items:center; justify-content:center;
+        }
+        #pw-box {
+            background:rgba(15,23,42,0.95); border:1px solid rgba(139,92,246,0.4);
+            border-radius:20px; padding:40px 48px; text-align:center;
+            width:360px; box-shadow:0 0 60px rgba(139,92,246,0.2), 0 20px 60px rgba(0,0,0,0.8);
+            backdrop-filter:blur(20px);
+        }
+        #pw-logo { font-size:40px; margin-bottom:12px; }
+        #pw-title { font-size:22px; font-weight:800; color:#f1f5f9; margin:0 0 4px; letter-spacing:-0.5px; }
+        #pw-sub { font-size:11px; color:#8b5cf6; margin:0 0 24px; font-weight:600; letter-spacing:0.5px; }
+        #pw-msg { font-size:13px; color:#64748b; margin-bottom:20px; }
+        #pw-input {
+            width:100%; padding:12px 16px; background:#0f172a; border:2px solid rgba(139,92,246,0.3);
+            border-radius:10px; color:#f1f5f9; font-size:15px; font-family:inherit;
+            outline:none; text-align:center; letter-spacing:2px; margin-bottom:12px;
+            transition:border-color 0.2s;
+        }
+        #pw-input:focus { border-color:#8b5cf6; }
+        #pw-btn {
+            width:100%; padding:13px; background:linear-gradient(135deg,#7c3aed,#4f46e5);
+            color:white; border:none; border-radius:10px; font-size:15px;
+            font-weight:700; cursor:pointer; font-family:inherit;
+            transition:opacity 0.2s; letter-spacing:0.5px;
+        }
+        #pw-btn:hover { opacity:0.85; }
+        #pw-err { color:#ef4444; font-size:13px; margin-top:10px; min-height:18px; font-weight:600; }
+        #pw-hint { color:#1e293b; font-size:11px; margin-top:6px; }
 
         /* SIDEBAR */
         #sidebar {
@@ -187,8 +220,13 @@
 </head>
 <body>
 
+
+
 <aside id="sidebar">
-    <div class="s-header">⚡ SolarMech Plancı V6</div>
+    <div class="s-header" style="display:flex; align-items:center;">
+        <a href="dashboard.html" style="text-decoration:none; color:#10b981; font-size:12px; font-weight:700; display:flex; align-items:center; gap:4px; margin-right:15px; border-right: 1px solid rgba(255,255,255,0.1); padding-right: 15px;">← Dashboard</a>
+        ⚡ Saha Mobilizasyon
+    </div>
     <div class="s-body">
 
         <div class="s-group">
@@ -301,6 +339,8 @@
 </div>
 
 <script>
+}
+
 // ==============================
 //  STATE
 // ==============================
@@ -1183,7 +1223,48 @@ function exportCSV() {
     rows.forEach(r => {
         html += `<tr><td>${r.loc}</td><td>${r.name}</td><td>${r.qty}</td></tr>`;
     });
-    html += `</table></body></html>`;
+    html += `</table>
+    <!-- Tam Sayfa Yükleme & Güvenlik Kalkanı -->
+    <div id="auth-guard-loader" style="position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: #020617; z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+        <div style="width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #4ade80; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        <p style="margin-top: 20px; color: #94a3b8; font-family: sans-serif;">Erişim kontrol ediliyor...</p>
+    </div>
+    <style>@keyframes spin {to {transform: rotate(360deg);}}</style>
+
+    <!-- Firebase Güvenlik Motoru -->
+    <script type="module">
+        import { auth, onAuthStateChanged, db, doc, getDoc } from './firebase-app.js';
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                if (!user.emailVerified) {
+                    window.location.href = "login.html";
+                    return;
+                }
+                try {
+                    const userDocRef = doc(db, "users", user.uid);
+                    const userDoc = await getDoc(userDocRef);
+                    if (userDoc.exists()) {
+                        const data = userDoc.data();
+                        if (!data.isPremium) {
+                            const trialEnd = data.trialEndsAt.toDate();
+                            if (new Date() > trialEnd) {
+                                alert("Ücretsiz deneme süreniz sona ermiştir. Lütfen aboneliğinizi yenileyin.");
+                                window.location.href = "dashboard.html";
+                                return;
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error("Yetki çekme hatası:", error);
+                }
+                document.getElementById('auth-guard-loader').style.display = 'none';
+            } else {
+                window.location.href = "login.html";
+            }
+        });
+    </script>
+</body></html>`;
 
     const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -1299,7 +1380,7 @@ function exportPDF() {
                 Emre COŞGUN tarafından hazırlanmıştır.
             </div>
         </div>
-        <script>window.onload = () => setTimeout(() => window.print(), 500);<\/script>
+        <script>window.onload = () => setTimeout(() => window.print(), 500);</scr' + 'ipt>
         </body></html>
     `);
     printWin.document.close();
@@ -1338,43 +1419,6 @@ function loadData() {
         rebuildUnits();
     } catch(e) { console.warn('Load failed', e); }
 }
-</script>
-
-<!-- Firebase Kalkanı -->
-<script type="module">
-    import { auth, onAuthStateChanged, db, doc, getDoc } from './firebase-app.js';
-
-    onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            // E-posta Doğrulama Kontrolü
-            if (!user.emailVerified) {
-                window.location.href = "login.html";
-                return;
-            }
-
-            try {
-                const userDoc = await getDoc(doc(db, "users", user.uid));
-                if (userDoc.exists()) {
-                    const data = userDoc.data();
-                    const now = new Date();
-                    const trialEnds = new Date(data.trialEndsAt);
-
-                    // Premium değilse ve deneme süresi bitmişse Dashboard'a geri şutla
-                    if (!data.isPremium && now > trialEnds) {
-                        window.location.href = "dashboard.html";
-                    }
-                } else {
-                    window.location.href = "login.html";
-                }
-            } catch (error) {
-                console.error("Yetki doğrulaması başarısız:", error);
-                window.location.href = "login.html";
-            }
-        } else {
-            // Hiç giriş yapmamışsa
-            window.location.href = "login.html";
-        }
-    });
 </script>
 </body>
 </html>

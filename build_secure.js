@@ -25,7 +25,7 @@ const obfOptions = {
     renameGlobals: false,
     selfDefending: false,
     simplify: true,
-    splitStrings: true,
+    splitStrings: false,
     splitStringsChunkLength: 10,
     stringArray: true,
     stringArrayCallsTransform: true,
@@ -114,7 +114,9 @@ function processDirectory(src, dest) {
                         if (rawJS && rawJS.trim().length > 10) {
                             try {
                                 const obfResult = JavaScriptObfuscator.obfuscate(rawJS, obfOptions);
-                                $(el).html(obfResult.getObfuscatedCode());
+                                let safeCode = obfResult.getObfuscatedCode();
+                                safeCode = safeCode.replace(/<\/script>/ig, '<\\/script>');
+                                $(el).html(safeCode);
                             } catch (e) {
                                 console.error('Obfuscation error in:', file, e);
                             }
