@@ -75,7 +75,7 @@ function copyFolderSync(from, to) {
 function processDirectory(src, dest) {
     // Sadece bulunduğumuz klasördeki dosyaları tara (ve gereksizleri/sonsuz döngü yaratacakları yoksay)
     // Dosyalar normal obfuscation listesine alınır
-    const ignores = ['node_modules', '.git', 'deploy_secure', 'package.json', 'package-lock.json', 'build_secure.js', '.vercel'];
+    const ignores = ['node_modules', '.git', 'deploy_secure', 'package.json', 'package-lock.json', 'build_secure.js', '.vercel', 'verify'];
     // Bu dosyalar PDF export içinde HTML template üretir, obfuscator bozuyor — sadece kopyala
     const copyOnly = ['app-mobilizasyon.html', 'app-trenchcalc.html', 'app-makenik.html'];
     
