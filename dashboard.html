@@ -138,6 +138,14 @@
                         <p>AG/OG kablo kanallarınızı dinamik kesitlerle tasarlayın, hafriyat, kum ve boru metrajlarını saniyeler içinde hesaplayın.</p>
                         <span style="display: inline-block; padding: 8px 16px; background: rgba(139, 92, 246, 0.1); color: #8b5cf6; border-radius: 8px; font-weight: 600; font-size: 0.9rem;" id="trenchcalc-action-text">Uygulamayı Aç →</span>
                     </a>
+
+                    <!-- Makenik V6 Plancı -->
+                    <a href="app-makenik.html" class="app-card" id="makenik-card">
+                        <div class="app-icon">⚙️</div>
+                        <h3>Mekanik V6 <span class="status-badge" id="makenik-badge">AKTİF</span></h3>
+                        <p>GES projelerinizin mekanik montaj ilerleyişini, BOM listelerini ve depo stoklarını eşzamanlı olarak takip edin.</p>
+                        <span style="display: inline-block; padding: 8px 16px; background: rgba(236, 72, 153, 0.1); color: #ec4899; border-radius: 8px; font-weight: 600; font-size: 0.9rem;" id="makenik-action-text">Uygulamayı Aç →</span>
+                    </a>
                 </div>
             </div>
 
@@ -228,6 +236,13 @@
                                 document.getElementById('trenchcalc-badge').innerText = "KİLİTLİ";
                                 document.getElementById('trenchcalc-badge').classList.add('locked');
                                 document.getElementById('trenchcalc-action-text').innerText = "Abonelik Gereklidir";
+
+                                const makenikCard = document.getElementById('makenik-card');
+                                makenikCard.classList.add('locked');
+                                makenikCard.href = "#";
+                                document.getElementById('makenik-badge').innerText = "KİLİTLİ";
+                                document.getElementById('makenik-badge').classList.add('locked');
+                                document.getElementById('makenik-action-text').innerText = "Abonelik Gereklidir";
                             } else {
                                 // SÜRE DEVAM EDİYOR
                                 document.getElementById('days-left').innerText = diffDays;

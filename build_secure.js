@@ -77,7 +77,7 @@ function processDirectory(src, dest) {
     // Dosyalar normal obfuscation listesine alınır
     const ignores = ['node_modules', '.git', 'deploy_secure', 'package.json', 'package-lock.json', 'build_secure.js', '.vercel'];
     // Bu dosyalar PDF export içinde HTML template üretir, obfuscator bozuyor — sadece kopyala
-    const copyOnly = ['app-mobilizasyon.html', 'app-trenchcalc.html'];
+    const copyOnly = ['app-mobilizasyon.html', 'app-trenchcalc.html', 'app-makenik.html'];
     
     fs.readdirSync(src).forEach(file => {
         if (ignores.includes(file)) return;
