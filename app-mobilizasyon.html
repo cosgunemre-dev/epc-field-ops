@@ -221,7 +221,6 @@
 <body>
 
 
-</div>
 
 <aside id="sidebar">
     <div class="s-header" style="display:flex;align-items:center;gap:8px;">
@@ -1222,40 +1221,7 @@ function exportCSV() {
     rows.forEach(r => {
         html += `<tr><td>${r.loc}</td><td>${r.name}</td><td>${r.qty}</td></tr>`;
     });
-    html += `</table>
-    <!-- Auth Guard -->
-    <div id="auth-guard-loader" style="position:fixed;top:0;left:0;width:100%;height:100vh;background:#020617;z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-        <div style="width:40px;height:40px;border:4px solid rgba(255,255,255,0.1);border-top-color:#4ade80;border-radius:50%;animation:spin 1s linear infinite;"></div>
-        <p style="margin-top:20px;color:#94a3b8;font-family:sans-serif;">Erişim kontrol ediliyor...</p>
-    </div>
-    <style>@keyframes spin{to{transform:rotate(360deg);}}</style>
-    <script type="module">
-        import { auth, onAuthStateChanged, db, doc, getDoc } from './firebase-app.js';
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                if (!user.emailVerified) { window.location.href = "login.html"; return; }
-                try {
-                    const userDocRef = doc(db, "users", user.uid);
-                    const userDoc = await getDoc(userDocRef);
-                    if (userDoc.exists()) {
-                        const data = userDoc.data();
-                        if (!data.isPremium) {
-                            const trialEnd = data.trialEndsAt.toDate();
-                            if (new Date() > trialEnd) {
-                                alert("Ücretsiz deneme süreniz sona ermiştir.");
-                                window.location.href = "dashboard.html";
-                                return;
-                            }
-                        }
-                    }
-                } catch(e) { console.error(e); }
-                document.getElementById('auth-guard-loader').style.display = 'none';
-            } else {
-                window.location.href = "login.html";
-            }
-        });
-    </script>
-</body></html>`;
+    html += `</table></body></html>`;
 
     const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -1371,7 +1337,7 @@ function exportPDF() {
                 Emre COŞGUN tarafından hazırlanmıştır.
             </div>
         </div>
-        <script>window.onload = () => setTimeout(() => window.print(), 500);<" + "/script>
+        <script>window.onload = () => setTimeout(() => window.print(), 500);<\/script>
         </body></html>
     `);
     printWin.document.close();
@@ -1411,5 +1377,38 @@ function loadData() {
     } catch(e) { console.warn('Load failed', e); }
 }
 </script>
+
+    <!-- Auth Guard -->
+    <div id="auth-guard-loader" style="position:fixed;top:0;left:0;width:100%;height:100vh;background:#020617;z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+        <div style="width:40px;height:40px;border:4px solid rgba(255,255,255,0.1);border-top-color:#4ade80;border-radius:50%;animation:spin 1s linear infinite;"></div>
+        <p style="margin-top:20px;color:#94a3b8;font-family:sans-serif;">Erişim kontrol ediliyor...</p>
+    </div>
+    <style>@keyframes spin{to{transform:rotate(360deg);}}</style>
+    <script type="module">
+        import { auth, onAuthStateChanged, db, doc, getDoc } from './firebase-app.js';
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                if (!user.emailVerified) { window.location.href = "login.html"; return; }
+                try {
+                    const userDocRef = doc(db, "users", user.uid);
+                    const userDoc = await getDoc(userDocRef);
+                    if (userDoc.exists()) {
+                        const data = userDoc.data();
+                        if (!data.isPremium) {
+                            const trialEnd = data.trialEndsAt.toDate();
+                            if (new Date() > trialEnd) {
+                                alert("Ücretsiz deneme süreniz sona ermiştir.");
+                                window.location.href = "dashboard.html";
+                                return;
+                            }
+                        }
+                    }
+                } catch(e) { console.error(e); }
+                document.getElementById('auth-guard-loader').style.display = 'none';
+            } else {
+                window.location.href = "login.html";
+            }
+        });
+    </script>
 </body>
 </html>
