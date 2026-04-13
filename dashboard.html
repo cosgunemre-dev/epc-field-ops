@@ -130,6 +130,14 @@
                         <p>Tracker ve sabit masa tiplerine göre panel kutularını sahaya hatasız sırayla dağıtın ve lojistiği kusursuz planlayın.</p>
                         <span style="display: inline-block; padding: 8px 16px; background: rgba(74, 222, 128, 0.1); color: #4ade80; border-radius: 8px; font-weight: 600; font-size: 0.9rem;" id="tracker-action-text">Uygulamayı Aç →</span>
                     </a>
+
+                    <!-- TrenchCalc Pro -->
+                    <a href="app-trenchcalc.html" class="app-card" id="trenchcalc-card">
+                        <div class="app-icon">🚧</div>
+                        <h3>TrenchCalc Pro <span class="status-badge" id="trenchcalc-badge">AKTİF</span></h3>
+                        <p>AG/OG kablo kanallarınızı dinamik kesitlerle tasarlayın, hafriyat, kum ve boru metrajlarını saniyeler içinde hesaplayın.</p>
+                        <span style="display: inline-block; padding: 8px 16px; background: rgba(139, 92, 246, 0.1); color: #8b5cf6; border-radius: 8px; font-weight: 600; font-size: 0.9rem;" id="trenchcalc-action-text">Uygulamayı Aç →</span>
+                    </a>
                 </div>
             </div>
 
@@ -213,6 +221,13 @@
                                 document.getElementById('tracker-badge').innerText = "KİLİTLİ";
                                 document.getElementById('tracker-badge').classList.add('locked');
                                 document.getElementById('tracker-action-text').innerText = "Abonelik Gereklidir";
+
+                                const trenchCard = document.getElementById('trenchcalc-card');
+                                trenchCard.classList.add('locked');
+                                trenchCard.href = "#";
+                                document.getElementById('trenchcalc-badge').innerText = "KİLİTLİ";
+                                document.getElementById('trenchcalc-badge').classList.add('locked');
+                                document.getElementById('trenchcalc-action-text').innerText = "Abonelik Gereklidir";
                             } else {
                                 // SÜRE DEVAM EDİYOR
                                 document.getElementById('days-left').innerText = diffDays;

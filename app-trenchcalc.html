@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrenchCalc Pro — Dinamik Kanal Tasarımcısı</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,sans-serif}
+body{background:#020617;color:#f8fafc;min-height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* PASSWORD GATE */
+#pw-gate{position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#020617,#0f172a 60%,#1e1b4b);display:flex;align-items:center;justify-content:center}
+#pw-box{background:rgba(15,23,42,0.95);border:1px solid rgba(139,92,246,0.4);border-radius:20px;padding:40px 48px;text-align:center;width:400px;box-shadow:0 0 60px rgba(139,92,246,0.2),0 20px 60px rgba(0,0,0,0.8);backdrop-filter:blur(20px)}
+#pw-logo{font-size:44px;margin-bottom:12px;filter:drop-shadow(0 0 12px #8b5cf6)}
+#pw-title{font-size:22px;font-weight:800;color:#f1f5f9;margin-bottom:4px}
+#pw-input{width:100%;padding:12px 16px;background:#0f172a;border:2px solid rgba(139,92,246,0.3);border-radius:10px;color:#f1f5f9;font-size:15px;outline:none;text-align:center;letter-spacing:2px;margin-bottom:12px;transition:border-color 0.2s}
+#pw-input:focus{border-color:#8b5cf6}
+#pw-btn{width:100%;padding:13px;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:white;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;transition:0.2s}
+#pw-btn:hover{opacity:0.85;transform:scale(1.01)}
+#pw-err{color:#ef4444;font-size:13px;margin-top:10px;min-height:18px}
+
+/* TRUCK SETUP GATE */
+#truck-gate{position:fixed;inset:0;z-index:9998;background:rgba(2,6,23,0.95);backdrop-filter:blur(20px);display:none;align-items:center;justify-content:center}
+#truck-box{background:#1e293b;border:1px solid rgba(245,158,11,0.5);border-radius:24px;padding:48px;text-align:center;width:460px;box-shadow:0 0 80px rgba(245,158,11,0.15),0 20px 60px rgba(0,0,0,0.8)}
+.truck-icon{font-size:52px;margin-bottom:16px;filter:drop-shadow(0 0 16px #f59e0b)}
+.truck-title{font-size:24px;font-weight:900;color:#f1f5f9;margin-bottom:6px}
+.truck-sub{font-size:13px;color:#64748b;margin-bottom:32px;line-height:1.6}
+.truck-presets{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:28px}
+.truck-preset{padding:18px 8px;background:rgba(255,255,255,0.03);border:2px solid rgba(255,255,255,0.08);border-radius:14px;cursor:pointer;transition:all 0.2s;text-align:center}
+.truck-preset:hover{border-color:#f59e0b;background:rgba(245,158,11,0.08);transform:translateY(-2px)}
+.truck-preset.selected{border-color:#f59e0b;background:rgba(245,158,11,0.15);box-shadow:0 0 20px rgba(245,158,11,0.2)}
+.truck-preset .tp-val{font-size:22px;font-weight:900;color:#f59e0b}
+.truck-preset .tp-lbl{font-size:10px;color:#64748b;margin-top:4px;font-weight:700}
+.truck-custom{display:flex;gap:12px;align-items:center;margin-bottom:28px}
+.truck-custom input{flex:1;padding:14px;background:#0f172a;border:2px solid rgba(255,255,255,0.1);border-radius:12px;color:#f1f5f9;font-size:16px;font-weight:700;outline:none;text-align:center;transition:border-color 0.2s}
+.truck-custom input:focus{border-color:#f59e0b}
+.truck-custom span{font-size:14px;color:#64748b;font-weight:700;white-space:nowrap}
+#truck-confirm{width:100%;padding:16px;background:linear-gradient(135deg,#d97706,#f59e0b);color:white;border:none;border-radius:12px;font-size:16px;font-weight:800;cursor:pointer;transition:0.2s;letter-spacing:0.3px}
+#truck-confirm:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(245,158,11,0.4)}
+
+/* HEADER */
+#header{height:55px;background:linear-gradient(90deg,#0f172a,#1e1b4b);border-bottom:1px solid rgba(139,92,246,0.3);display:flex;align-items:center;padding:0 24px;gap:16px;z-index:20}
+#header-logo{font-size:24px;filter:drop-shadow(0 0 8px #8b5cf6)}
+#header-title{font-size:18px;font-weight:800;color:#f1f5f9}
+#header-sub{font-size:11px;color:#8b5cf6;font-weight:600;letter-spacing:0.5px}
+.header-spacer{flex:1}
+.truck-badge{display:flex;align-items:center;gap:7px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:5px 14px;cursor:pointer;transition:0.2s}
+.truck-badge:hover{background:rgba(245,158,11,0.2)}
+.truck-badge span{font-size:12px;color:#f59e0b;font-weight:800}
+
+/* MAIN LAYOUT */
+#app{display:flex;flex:1;overflow:hidden}
+#sidebar{width:300px;background:#111827;border-right:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+#content{flex:1;overflow-y:auto;padding:28px;display:flex;flex-direction:column;gap:28px;background:radial-gradient(circle at top right, rgba(139,92,246,0.05), transparent 40%)}
+
+/* SIDEBAR COMPONENTS */
+.s-section{padding:18px;border-bottom:1px solid rgba(255,255,255,0.06)}
+.s-label{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#64748b;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.s-btn{width:100%;padding:11px;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-size:13px;transition:0.2s;display:flex;align-items:center;gap:10px;justify-content:center}
+.btn-primary{background:linear-gradient(135deg,#7c3aed,#4f46e5);color:white;box-shadow:0 4px 15px rgba(124,58,237,0.3)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(124,58,237,0.4)}
+
+#library-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 18px 18px;overflow-y:auto}
+.lib-item{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:10px;cursor:pointer;transition:0.2s;text-align:center;position:relative}
+.lib-item:hover{background:rgba(139,92,246,0.1);border-color:rgba(139,92,246,0.3)}
+.lib-item.active{border-color:#38bdf8;background:rgba(56,189,248,0.1)}
+.lib-preview{width:100%;height:60px;margin-bottom:6px}
+.lib-name{font-size:10px;font-weight:700;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lib-del{position:absolute;top:5px;right:5px;width:18px;height:18px;background:rgba(239,68,68,0.2);color:#ef4444;border-radius:50%;display:none;align-items:center;justify-content:center;font-size:10px}
+.lib-item:hover .lib-del{display:flex}
+
+/* DESIGNER MODAL */
+#designer-modal{position:fixed;inset:0;z-index:1000;background:rgba(2,6,23,0.92);backdrop-filter:blur(20px);display:none;align-items:center;justify-content:center}
+#designer-box{background:#1e293b;border:1px solid rgba(139,92,246,0.4);border-radius:24px;width:960px;max-width:96vw;display:flex;height:640px;max-height:92vh;overflow:hidden;box-shadow:0 0 100px rgba(0,0,0,0.8)}
+.designer-form{width:440px;padding:28px;display:flex;flex-direction:column;gap:0;border-right:1px solid rgba(255,255,255,0.06);overflow-y:auto}
+.designer-form-inner{display:flex;flex-direction:column;gap:16px}
+.designer-preview{flex:1;background:#0f172a;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;position:relative}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-label{font-size:10px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:0.5px}
+.form-input,.form-select{background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#f1f5f9;padding:10px 12px;font-size:14px;outline:none;transition:border-color 0.2s}
+.form-input:focus{border-color:#8b5cf6}
+.form-select:focus{border-color:#8b5cf6}
+.section-divider{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:#334155;padding:10px 0 6px;border-top:1px solid rgba(255,255,255,0.06);margin-top:4px;display:flex;align-items:center;gap:8px}
+.section-divider::after{content:'';flex:1;height:1px;background:rgba(255,255,255,0.06)}
+.preview-title{position:absolute;top:20px;left:20px;font-size:11px;color:#64748b;font-weight:700;letter-spacing:1px}
+.pipe-info-badge{font-size:11px;background:rgba(56,189,248,0.1);color:#38bdf8;padding:4px 10px;border-radius:6px;font-weight:700}
+
+/* BOQ CARDS */
+.entry-card{background:rgba(30,41,59,0.5);border:1px solid rgba(56,189,248,0.3);border-radius:20px;padding:22px;display:flex;align-items:center;gap:24px;box-shadow:0 10px 30px rgba(0,0,0,0.2)}
+.entry-viz{width:160px;height:110px;background:rgba(15,23,42,0.5);border-radius:12px;padding:8px;flex-shrink:0}
+.entry-info{flex:1}
+.entry-info h3{font-size:18px;margin-bottom:4px;color:#f1f5f9}
+.entry-info p{font-size:11px;color:#64748b;line-height:1.6}
+.entry-inputs{display:flex;align-items:flex-end;gap:12px;margin-top:14px;flex-wrap:wrap}
+#boy-input{background:#0f172a;border:2px solid #38bdf8;border-radius:12px;color:#f1f5f9;padding:12px 18px;font-size:18px;font-weight:800;width:140px;outline:none;transition:border-color 0.2s}
+#boy-input:focus{border-color:#7c3aed}
+
+/* BOQ TABLE */
+#boq-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:16px}
+#boq-table th{background:#0f172a;color:#64748b;font-size:9px;text-transform:uppercase;letter-spacing:1px;padding:12px 10px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.08);white-space:nowrap}
+#boq-table td{padding:12px 10px;border-bottom:1px solid rgba(255,255,255,0.05);color:#f1f5f9;vertical-align:middle}
+.qty-badge{background:rgba(74,222,128,0.1);color:#4ade80;padding:3px 8px;border-radius:16px;font-weight:800;font-size:13px;display:inline-block}
+.qty-badge-blue{background:rgba(56,189,248,0.1);color:#38bdf8;padding:3px 8px;border-radius:16px;font-weight:800;font-size:13px;display:inline-block}
+.qty-badge-amber{background:rgba(245,158,11,0.1);color:#f59e0b;padding:3px 8px;border-radius:16px;font-weight:800;font-size:13px;display:inline-block}
+.total-row td{background:rgba(139,92,246,0.08);border-top:2px solid rgba(139,92,246,0.3);font-weight:800;color:#c4b5fd}
+.total-row td .qty-badge{background:rgba(139,92,246,0.2);color:#c4b5fd}
+
+/* UTILS */
+.empty-state{text-align:center;padding:80px 0;color:#334155}
+.empty-icon{font-size:56px;margin-bottom:14px;opacity:0.3}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+
+@media print{
+  #sidebar,#designer-modal,#truck-gate,.entry-card button{display:none!important}
+  body{background:white;color:black;overflow:visible}
+  #content{padding:0}
+  #boq-table th,#boq-table td{color:black;border-color:#ccc}
+}
+</style>
+</head>
+<body>
+
+
+
+<!-- TRUCK CAPACITY GATE -->
+<div id="truck-gate">
+  <div id="truck-box">
+    <div class="truck-icon">🚛</div>
+    <div class="truck-title">Kamyon Kapasitesi</div>
+    <div class="truck-sub">Bu projedeki kamyonların kapasitesini seçin.<br>Tüm hafriyat hesapları bu değere göre yapılacaktır.</div>
+    <div class="truck-presets">
+      <div class="truck-preset" onclick="selectTruckPreset(10,this)">
+        <div class="tp-val">10</div>
+        <div class="tp-lbl">m³</div>
+      </div>
+      <div class="truck-preset selected" onclick="selectTruckPreset(15,this)">
+        <div class="tp-val">15</div>
+        <div class="tp-lbl">m³</div>
+      </div>
+      <div class="truck-preset" onclick="selectTruckPreset(20,this)">
+        <div class="tp-val">20</div>
+        <div class="tp-lbl">m³</div>
+      </div>
+      <div class="truck-preset" onclick="selectTruckPreset(25,this)">
+        <div class="tp-val">25</div>
+        <div class="tp-lbl">m³</div>
+      </div>
+    </div>
+    <div class="truck-custom">
+      <input type="number" id="truck-custom-val" placeholder="Özel değer" min="1" max="100" oninput="selectTruckCustom()">
+      <span>m³ / kamyon</span>
+    </div>
+    <button id="truck-confirm" onclick="confirmTruck()">Hesaplamaya Başla ⚡</button>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div id="header">
+  <a href="dashboard.html" style="text-decoration:none; color:#10b981; font-size:12px; font-weight:700; display:flex; align-items:center; gap:4px; margin-right:15px; border-right: 1px solid rgba(255,255,255,0.1); padding-right: 15px;">← Dashboard</a>
+  <div id="header-logo">🚧</div>
+  <div>
+    <div id="header-title">TrenchCalc Pro</div>
+    <div id="header-sub">DİNAMİK KESİT TASARIMI & METRAJ</div>
+  </div>
+  <div class="header-spacer"></div>
+  <div class="truck-badge" onclick="reopenTruckGate()" title="Kamyon kapasitesini değiştir">
+    <span>🚛</span>
+    <span id="truck-badge-val">15 m³</span>
+  </div>
+  <button class="s-btn btn-primary" style="width:auto;padding:8px 20px;margin-left:12px" onclick="openDesigner()">➕ Yeni Kesit Tasarla</button>
+</div>
+
+<div id="app">
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div class="s-section">
+      <div class="s-label">Kesit Kütüphanesi</div>
+      <button class="s-btn btn-primary" onclick="openDesigner()" style="margin-bottom:12px">➕ Yeni Kesit Ekle</button>
+    </div>
+    <div id="library-grid"></div>
+    <div style="margin-top:auto">
+      <div class="s-section">
+        <button class="s-btn" style="background:#f59e0b;color:white;margin-bottom:10px" onclick="window.print()">📄 PDF Rapor Al</button>
+        <button class="s-btn" style="background:rgba(239,68,68,0.1);color:#ef4444" onclick="resetAll()">🗑️ Tümünü Sıfırla</button>
+      </div>
+      <div style="padding:14px;text-align:center;font-size:10px;color:#334155">
+        DESIGNED BY <strong>EMRE COŞGUN</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div id="content">
+    <div id="main-entry-area">
+      <div class="empty-state">
+        <div class="empty-icon">📐</div>
+        <h3>Henüz Bir Kesit Seçilmedi</h3>
+        <p style="margin-top:8px;font-size:13px">Sol taraftaki kütüphaneden bir kesit seçin veya yeni bir tane oluşturun.</p>
+      </div>
+    </div>
+
+    <div id="boq-area" style="display:none">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+        <div style="width:4px;height:24px;background:#8b5cf6;border-radius:2px"></div>
+        <h2 style="font-size:18px">Metraj Listesi (BOQ)</h2>
+        <span id="truck-boq-info" style="font-size:11px;background:rgba(245,158,11,0.1);color:#f59e0b;padding:4px 10px;border-radius:6px;font-weight:700;margin-left:auto">🚛 Kamyon: 15 m³</span>
+      </div>
+      <div style="background:#1e293b;border:1px solid rgba(255,255,255,0.05);border-radius:16px;overflow:hidden;overflow-x:auto">
+        <table id="boq-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Kesit</th>
+              <th>Boy (m)</th>
+              <th>Hafriyat (m³)</th>
+              <th>Kum Ham (m³)</th>
+              <th>Boru Hacmi (m³)</th>
+              <th>Net Kum (m³)</th>
+              <th>Bims (Adet)</th>
+              <th>Kamyon</th>
+              <th>İşlem</th>
+            </tr>
+          </thead>
+          <tbody id="boq-body"></tbody>
+          <tfoot id="boq-foot"></tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DESIGNER MODAL -->
+<div id="designer-modal">
+  <div id="designer-box">
+    <div class="designer-form">
+      <h2 style="margin-bottom:20px;font-size:18px;color:#f1f5f9">⚙️ Kanal Tasarımcısı</h2>
+      <div class="designer-form-inner">
+
+        <div class="form-group">
+          <label class="form-label">Kesit İsmi / Kod</label>
+          <input class="form-input" id="d-name" placeholder="Ör. OG-1.1 + AC-2" value="Yeni Kesit">
+        </div>
+
+        <!-- KANAL GEOMETRİSİ -->
+        <div class="section-divider">📏 Kanal Geometrisi</div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Üst Genişlik (cm)</label>
+            <input type="number" class="form-input" id="d-top" value="110" oninput="drawPreview()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Alt Genişlik (cm)</label>
+            <input type="number" class="form-input" id="d-bot" value="90" oninput="drawPreview()">
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Top. Derinlik (cm)</label>
+            <input type="number" class="form-input" id="d-depth" value="110" oninput="drawPreview()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Kum Yüksekliği (cm)</label>
+            <input type="number" class="form-input" id="d-sand" value="28" oninput="drawPreview()">
+          </div>
+        </div>
+
+        <!-- KORİGE BORU -->
+        <div class="section-divider">🌀 Koruge Boru</div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Boru Çapı (mm)</label>
+            <input type="number" class="form-input" id="d-pipe-dia" value="0" placeholder="0 = boru yok" oninput="drawPreview()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Boru Adedi</label>
+            <input type="number" class="form-input" id="d-pipe-count" value="1" min="1" oninput="drawPreview()">
+          </div>
+        </div>
+
+        <!-- BİMS -->
+        <div class="section-divider">🧱 Bims Boyutları</div>
+        <div class="grid-3">
+          <div class="form-group">
+            <label class="form-label">En (cm)</label>
+            <input type="number" class="form-input" id="d-bims-w" value="25" oninput="drawPreview()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Boy (cm)</label>
+            <input type="number" class="form-input" id="d-bims-l" value="40" oninput="drawPreview()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Yükseklik (cm)</label>
+            <input type="number" class="form-input" id="d-bims-h" value="6" oninput="drawPreview()">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ara Bims Düzeni</label>
+          <select class="form-select" id="d-ara" onchange="drawPreview()">
+            <option value="0">Ara Bims Yok</option>
+            <option value="2">2 Metrede Bir (Ara Bims)</option>
+            <option value="1">Kesintisiz (Boydan Boya)</option>
+          </select>
+        </div>
+
+        <div style="flex:1;min-height:8px"></div>
+        <div style="display:flex;gap:12px;padding-top:8px">
+          <button class="s-btn" style="flex:1;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:white" onclick="saveSection()">💾 Kaydet</button>
+          <button class="s-btn" style="background:#334155;color:white;flex:0 0 80px" onclick="closeDesigner()">İptal</button>
+        </div>
+      </div>
+    </div>
+    <div class="designer-preview">
+      <div class="preview-title">KESİT TEKNİK ÖNİZLEME</div>
+      <svg id="p-svg" width="380" height="380" viewBox="0 0 400 420" style="background:#020617;border-radius:12px;max-width:100%"></svg>
+      <div id="preview-stats" style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════
+   AUTH & TRUCK SETUP
+═══════════════════════════════════════════ */
+const PASSWORDS=['SOLAR-emre','SOLAR-cosgun','SOLAR-smart'];
+const PW_KEY='boq_pw_v2';
+let truckM3=15;
+let truckSetDone=false;
+
+function checkPW(){
+  const v=document.getElementById('pw-input').value.trim();
+  const err=document.getElementById('pw-err');
+  if(PASSWORDS.includes(v)){
+    localStorage.setItem(PW_KEY,'1');
+    document.getElementById('pw-gate').style.display='none';
+    // Show truck gate if not set yet
+    if(!truckSetDone){
+      document.getElementById('truck-gate').style.display='flex';
+    }
+  } else {
+    err.textContent='Hatalı şifre. Tekrar deneyin.';
+    setTimeout(()=>err.textContent='',2000);
+  }
+}
+
+function selectTruckPreset(val, el){
+  truckM3=val;
+  document.querySelectorAll('.truck-preset').forEach(x=>x.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('truck-custom-val').value='';
+}
+
+function selectTruckCustom(){
+  const val=parseFloat(document.getElementById('truck-custom-val').value);
+  if(val>0){
+    truckM3=val;
+    document.querySelectorAll('.truck-preset').forEach(x=>x.classList.remove('selected'));
+  }
+}
+
+function confirmTruck(){
+  const cv=parseFloat(document.getElementById('truck-custom-val').value);
+  if(cv>0) truckM3=cv;
+  truckSetDone=true;
+  document.getElementById('truck-gate').style.display='none';
+  document.getElementById('truck-badge-val').textContent=truckM3+' m³';
+  document.getElementById('truck-boq-info').textContent='🚛 Kamyon: '+truckM3+' m³';
+  renderBOQ();
+}
+
+function reopenTruckGate(){
+  document.getElementById('truck-gate').style.display='flex';
+}
+
+window.onload=()=>{
+  document.getElementById('truck-gate').style.display='flex';
+  loadLibrary();
+};
+
+/* ═══════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════ */
+let sections=[];
+let boqItems=[];
+let activeSection=null;
+
+/* ═══════════════════════════════════════════
+   DESIGNER MODAL
+═══════════════════════════════════════════ */
+function openDesigner(){
+  document.getElementById('designer-modal').style.display='flex';
+  drawPreview();
+}
+function closeDesigner(){
+  document.getElementById('designer-modal').style.display='none';
+}
+
+function getDesignerParams(){
+  return{
+    top:    parseFloat(document.getElementById('d-top').value)||100,
+    bot:    parseFloat(document.getElementById('d-bot').value)||80,
+    depth:  parseFloat(document.getElementById('d-depth').value)||110,
+    sand:   parseFloat(document.getElementById('d-sand').value)||25,
+    ara:    document.getElementById('d-ara').value,
+    pipeDia:    parseFloat(document.getElementById('d-pipe-dia').value)||0,
+    pipeCount:  parseInt(document.getElementById('d-pipe-count').value)||1,
+    bimsW:  parseFloat(document.getElementById('d-bims-w').value)||25,
+    bimsL:  parseFloat(document.getElementById('d-bims-l').value)||40,
+    bimsH:  parseFloat(document.getElementById('d-bims-h').value)||6,
+  };
+}
+
+function drawPreview(svgId='p-svg', params=null){
+  const svg=document.getElementById(svgId);
+  if(!svg) return;
+  const p=params||getDesignerParams();
+
+  const maxW=Math.max(p.top,p.bot);
+  const scale=Math.min(300/maxW, 300/p.depth);
+
+  const cx=200;
+  const x1=cx-(p.top*scale)/2, x2=cx+(p.top*scale)/2;
+  const x3=cx-(p.bot*scale)/2, x4=cx+(p.bot*scale)/2;
+  const y1=50, y2=y1+p.depth*scale;
+  const ySand=y2-p.sand*scale;
+  // Interpolated x at sand level
+  const t=p.sand/p.depth;
+  const lx_sand = x3+(x1-x3)*t;
+  const rx_sand = x4+(x2-x4)*t;
+
+  let html='';
+  // Main trench
+  html+=`<polygon points="${x1},${y1} ${x2},${y1} ${x4},${y2} ${x3},${y2}" fill="#1e3a5f" stroke="#334155" stroke-width="2"/>`;
+  // Sand layer
+  html+=`<polygon points="${x3},${y2} ${x4},${y2} ${rx_sand},${ySand} ${lx_sand},${ySand}" fill="#fcd34d" fill-opacity="0.35"/>`;
+  // Bims line (top of sand)
+  const bimsH_px=Math.max(p.bimsH*scale,4);
+  html+=`<rect x="${lx_sand}" y="${ySand-bimsH_px}" width="${rx_sand-lx_sand}" height="${bimsH_px}" fill="#ef4444" fill-opacity="0.6" stroke="#ef4444" stroke-width="1" rx="1"/>`;
+
+  // Koruge borular (in sand layer)
+  if(p.pipeDia>0 && p.pipeCount>0){
+    const r_px=(p.pipeDia/10*scale)/2; // mm→cm→px
+    const sandH_px=y2-ySand;
+    const pipeY=ySand+(sandH_px/2);
+    const sandW_px=rx_sand-lx_sand;
+    const spacing=sandW_px/(p.pipeCount+1);
+    for(let i=1;i<=p.pipeCount;i++){
+      const px=lx_sand+spacing*i;
+      html+=`<circle cx="${px}" cy="${pipeY}" r="${r_px}" fill="#0f172a" stroke="#38bdf8" stroke-width="1.5"/>`;
+      html+=`<circle cx="${px}" cy="${pipeY}" r="${Math.max(r_px*0.5,1)}" fill="#1e3a5f" stroke="#38bdf8" stroke-width="0.5" stroke-dasharray="2,2"/>`;
+    }
+  }
+
+  // Dimension lines
+  html+=`<line x1="${x1}" y1="${y1-10}" x2="${x2}" y2="${y1-10}" stroke="#64748b" stroke-width="1" marker-end="url(#arr)"/>`;
+  html+=`<text x="${cx}" y="${y1-14}" fill="#94a3b8" font-size="9" text-anchor="middle">${p.top} cm</text>`;
+  html+=`<line x1="${x3}" y1="${y2+10}" x2="${x4}" y2="${y2+10}" stroke="#64748b" stroke-width="1"/>`;
+  html+=`<text x="${cx}" y="${y2+21}" fill="#94a3b8" font-size="9" text-anchor="middle">${p.bot} cm</text>`;
+  html+=`<line x1="${x1-14}" y1="${y1}" x2="${x1-14}" y2="${y2}" stroke="#64748b" stroke-width="1"/>`;
+  html+=`<text x="${x1-22}" y="${(y1+y2)/2}" fill="#94a3b8" font-size="9" text-anchor="middle" transform="rotate(-90,${x1-22},${(y1+y2)/2})">${p.depth} cm</text>`;
+  // Sand label
+  html+=`<text x="${cx}" y="${(ySand+y2)/2+4}" fill="#fcd34d" font-size="9" text-anchor="middle" font-weight="700">Kum ${p.sand}cm</text>`;
+
+  svg.innerHTML=html;
+
+  // Preview stats (only for main modal)
+  if(svgId==='p-svg'){
+    const statsEl=document.getElementById('preview-stats');
+    if(statsEl){
+      const pipeVol=p.pipeDia>0? (Math.PI*Math.pow(p.pipeDia/2/1000,2)*p.pipeCount).toFixed(4):0;
+      statsEl.innerHTML=`
+        <span class="pipe-info-badge">Bims: ${p.bimsW}×${p.bimsL}×${p.bimsH} cm</span>
+        ${p.pipeDia>0?`<span class="pipe-info-badge">Boru: Ø${p.pipeDia}mm × ${p.pipeCount} adet</span>`:''}
+      `;
+    }
+  }
+}
+
+function saveSection(){
+  const p=getDesignerParams();
+  const s={
+    id:Date.now(),
+    name:document.getElementById('d-name').value||'Yeni Kesit',
+    ...p
+  };
+  sections.push(s);
+  localStorage.setItem('sm_boq_sections_v2',JSON.stringify(sections));
+  loadLibrary();
+  closeDesigner();
+}
+
+/* ═══════════════════════════════════════════
+   LIBRARY
+═══════════════════════════════════════════ */
+function loadLibrary(){
+  const stored=localStorage.getItem('sm_boq_sections_v2');
+  if(stored) sections=JSON.parse(stored);
+  const grid=document.getElementById('library-grid');
+  grid.innerHTML='';
+  if(sections.length===0){
+    grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:#334155;font-size:11px">Henüz kesit yok</div>';
+    return;
+  }
+  sections.forEach(s=>{
+    const div=document.createElement('div');
+    div.className='lib-item';
+    div.onclick=()=>setActive(s);
+    div.innerHTML=`
+      <svg id="svg-${s.id}" class="lib-preview" viewBox="0 0 400 420"></svg>
+      <div class="lib-name">${s.name}</div>
+      <div class="lib-del" onclick="event.stopPropagation();deleteSection(${s.id})">×</div>
+    `;
+    grid.appendChild(div);
+    drawPreview('svg-'+s.id,s);
+  });
+}
+
+function deleteSection(id){
+  sections=sections.filter(x=>x.id!==id);
+  localStorage.setItem('sm_boq_sections_v2',JSON.stringify(sections));
+  loadLibrary();
+}
+
+/* ═══════════════════════════════════════════
+   ACTIVE SECTION & BOQ
+═══════════════════════════════════════════ */
+function setActive(s){
+  activeSection=s;
+  document.querySelectorAll('.lib-item').forEach(el=>el.classList.remove('active'));
+  // Highlight
+  document.querySelectorAll('.lib-item').forEach(el=>{
+    if(el.querySelector('svg')?.id==='svg-'+s.id) el.classList.add('active');
+  });
+
+  const hasPipe=s.pipeDia>0;
+  const pipeInfoHtml=hasPipe
+    ?`<br>🌀 Boru: Ø${s.pipeDia}mm × ${s.pipeCount} adet (kum'dan düşülür)`
+    :'<br>🌀 Koruge boru yok';
+  const bimsInfoHtml=`🧱 Bims: ${s.bimsW}×${s.bimsL}×${s.bimsH} cm`;
+
+  const area=document.getElementById('main-entry-area');
+  area.innerHTML=`
+    <div class="entry-card">
+      <svg id="active-viz" class="entry-viz" viewBox="0 0 400 420"></svg>
+      <div class="entry-info">
+        <h3>${s.name}</h3>
+        <p>Kesit: ${s.top}/${s.bot} × ${s.depth} cm &nbsp;|&nbsp; Kum: ${s.sand} cm</p>
+        <p>${bimsInfoHtml}${pipeInfoHtml}</p>
+        <div class="entry-inputs">
+          <div class="form-group">
+            <label class="form-label">Kanal Boyu (Metre)</label>
+            <input type="number" id="boy-input" placeholder="0.00" min="0" step="0.5" onkeydown="if(event.key==='Enter')addBOQ()">
+          </div>
+          <button class="s-btn btn-primary" style="height:46px;padding:0 20px" onclick="addBOQ()">➕ Metraja Ekle</button>
+        </div>
+      </div>
+    </div>
+  `;
+  drawPreview('active-viz',s);
+}
+
+function calcBOQ(s, boy){
+  // ── Hafriyat ──
+  const s_haf=((s.top+s.bot)/2)*s.depth/10000; // m²
+  const v_haf=s_haf*boy*1.25; // m³ (kabarma %25)
+
+  // ── Kum (ham) ──
+  const s_kum=s.bot*s.sand/10000; // m² (alt genişlik × kum yüksekliği)
+  const v_kum_raw=s_kum*boy; // m³
+
+  // ── Boru hacmi ──
+  let v_pipe=0;
+  if(s.pipeDia>0 && s.pipeCount>0){
+    const r_m=(s.pipeDia/2)/1000; // mm → m (radius)
+    const pipe_area=Math.PI*r_m*r_m;
+    v_pipe=pipe_area*s.pipeCount*boy;
+  }
+
+  // ── Net kum ──
+  const v_kum_net=Math.max(0, v_kum_raw-v_pipe);
+
+  // ── Bims adedi ──
+  // Kum seviyesindeki kanal genişliği (trapez interpole)
+  const t_sand = s.sand / s.depth; // kum yüksekliğinin toplam derinliğe oranı
+  const width_at_sand = (s.bot + (s.top - s.bot) * t_sand) / 100; // cm → m
+  // Kaplama alanı = kanal boyu × kum seviyesi genişliği
+  const cover_area = boy * width_at_sand; // m²
+  // Bims alanı
+  const bims_area = (s.bimsW || 25) / 100 * (s.bimsL || 40) / 100; // m²
+  let bims_adet = Math.ceil(cover_area / bims_area);
+  if(s.ara==='1') bims_adet *= 2;                    // Kesintisiz çift kat
+  if(s.ara==='2') bims_adet += Math.ceil(boy / 2);  // 2m'de bir ara bims
+
+  // ── Kamyon ──
+  const trucks=Math.ceil(v_haf/truckM3);
+
+  return{v_haf, v_kum_raw, v_pipe, v_kum_net, bims_adet, trucks};
+}
+
+function addBOQ(){
+  const boy=parseFloat(document.getElementById('boy-input').value);
+  if(!boy||boy<=0||!activeSection){
+    if(!activeSection) alert('Lütfen önce bir kesit seçin.');
+    return;
+  }
+  const calc=calcBOQ(activeSection, boy);
+  boqItems.push({
+    section:activeSection.name,
+    boy,
+    truckM3,
+    ...calc
+  });
+  renderBOQ();
+  document.getElementById('boy-input').value='';
+  document.getElementById('boy-input').focus();
+}
+
+function renderBOQ(){
+  const body=document.getElementById('boq-body');
+  const foot=document.getElementById('boq-foot');
+  body.innerHTML='';
+  if(boqItems.length===0){
+    document.getElementById('boq-area').style.display='none';
+    return;
+  }
+  document.getElementById('boq-area').style.display='block';
+  document.getElementById('truck-boq-info').textContent='🚛 Kamyon: '+truckM3+' m³';
+
+  let tot={boy:0,v_haf:0,v_kum_raw:0,v_pipe:0,v_kum_net:0,bims_adet:0,trucks:0};
+
+  boqItems.forEach((it,i)=>{
+    tot.boy+=it.boy;
+    tot.v_haf+=it.v_haf;
+    tot.v_kum_raw+=it.v_kum_raw;
+    tot.v_pipe+=it.v_pipe;
+    tot.v_kum_net+=it.v_kum_net;
+    tot.bims_adet+=it.bims_adet;
+    tot.trucks+=it.trucks;
+
+    const pipeCell=it.v_pipe>0
+      ?`<span style="color:#38bdf8;font-weight:700">−${it.v_pipe.toFixed(3)}</span>`
+      :`<span style="color:#334155">—</span>`;
+
+    body.innerHTML+=`
+      <tr>
+        <td style="color:#64748b;font-size:11px">${i+1}</td>
+        <td><strong style="color:#e2e8f0">${it.section}</strong></td>
+        <td>${it.boy} m</td>
+        <td><span class="qty-badge">${it.v_haf.toFixed(2)}</span></td>
+        <td style="color:#94a3b8">${it.v_kum_raw.toFixed(3)}</td>
+        <td>${pipeCell}</td>
+        <td><span class="qty-badge-blue">${it.v_kum_net.toFixed(3)}</span></td>
+        <td><span class="qty-badge-amber">${it.bims_adet} adet</span></td>
+        <td>🚛 ${it.trucks}</td>
+        <td><button onclick="removeBOQ(${i})" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:18px;padding:2px 6px" title="Kaldır">×</button></td>
+      </tr>
+    `;
+  });
+
+  // Toplam satırı
+  foot.innerHTML=`
+    <tr class="total-row">
+      <td colspan="2" style="font-size:11px;color:#8b5cf6;font-weight:900;letter-spacing:1px">TOPLAM</td>
+      <td>${tot.boy.toFixed(1)} m</td>
+      <td><span class="qty-badge">${tot.v_haf.toFixed(2)}</span></td>
+      <td style="color:#94a3b8">${tot.v_kum_raw.toFixed(3)}</td>
+      <td><span style="color:#38bdf8;font-weight:700">−${tot.v_pipe.toFixed(3)}</span></td>
+      <td><span class="qty-badge-blue">${tot.v_kum_net.toFixed(3)}</span></td>
+      <td><span class="qty-badge-amber">${tot.bims_adet} adet</span></td>
+      <td>🚛 ${tot.trucks}</td>
+      <td></td>
+    </tr>
+  `;
+}
+
+function removeBOQ(i){
+  boqItems.splice(i,1);
+  renderBOQ();
+}
+
+function resetAll(){
+  if(confirm('Tüm kütüphane ve metraj verileri silinecek. Emin misiniz?')){
+    localStorage.removeItem('sm_boq_sections_v2');
+    boqItems=[];
+    sections=[];
+    activeSection=null;
+    loadLibrary();
+    document.getElementById('main-entry-area').innerHTML=`
+      <div class="empty-state">
+        <div class="empty-icon">📐</div>
+        <h3>Henüz Bir Kesit Seçilmedi</h3>
+        <p style="margin-top:8px;font-size:13px">Sol taraftaki kütüphaneden bir kesit seçin veya yeni bir tane oluşturun.</p>
+      </div>`;
+    document.getElementById('boq-area').style.display='none';
+  }
+}
+</script>
+
+    <!-- Tam Sayfa Yükleme & Güvenlik Kalkanı -->
+    <div id="auth-guard-loader" style="position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: #020617; z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+        <div style="width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #4ade80; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        <p style="margin-top: 20px; color: #94a3b8; font-family: sans-serif;">Erişim kontrol ediliyor...</p>
+    </div>
+    <style>@keyframes spin {to {transform: rotate(360deg);}}</style>
+
+    <!-- Firebase Güvenlik Motoru -->
+    <script type="module">
+        import { auth, onAuthStateChanged, db, doc, getDoc } from './firebase-app.js';
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                if (!user.emailVerified) {
+                    window.location.href = "login.html";
+                    return;
+                }
+                try {
+                    const userDocRef = doc(db, "users", user.uid);
+                    const userDoc = await getDoc(userDocRef);
+                    if (userDoc.exists()) {
+                        const data = userDoc.data();
+                        if (!data.isPremium) {
+                            const trialEnd = data.trialEndsAt.toDate();
+                            if (new Date() > trialEnd) {
+                                alert("Ücretsiz deneme süreniz sona ermiştir. Lütfen aboneliğinizi yenileyin.");
+                                window.location.href = "dashboard.html";
+                                return;
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error("Yetki çekme hatası:", error);
+                }
+                document.getElementById('auth-guard-loader').style.display = 'none';
+            } else {
+                window.location.href = "login.html";
+            }
+        });
+    </script>
+</body>
+</html>
