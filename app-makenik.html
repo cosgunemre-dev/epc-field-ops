@@ -5152,7 +5152,9 @@ window.addEventListener('beforeunload', () => {
     <style>@keyframes spin{to{transform:rotate(360deg);}}</style>
 
     <script type="module">
-        import { auth, onAuthStateChanged, db, doc, getDoc, setDoc, collection, getDocs, query, where } from './firebase-app.js';
+        import { auth, db } from './firebase-app.js';
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-auth.js";
+        import { doc, getDoc, setDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
         import { getStorage, ref, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-storage.js";
 
         // Makenik state reference workaround
