@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>OmniSync Pro - Saha Topoloji & Devreye Alma</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet"/>
+<!-- React + ReactDOM -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<!-- React Flow -->
+<script src="https://unpkg.com/@xyflow/react@12/dist/umd/index.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/@xyflow/react@12/dist/style.css"/>
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getStorage, ref, uploadString, getDownloadURL, listAll } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAWlSm4uQ1r4_5R5BJzmi2EsoB5LHD62xY",
+  authDomain: "epc-field-ops.firebaseapp.com",
+  projectId: "epc-field-ops",
+  storageBucket: "epc-field-ops.firebasestorage.app",
+  messagingSenderId: "898161873065",
+  appId: "1:898161873065:web:eea40264f6faa07df6d9b8"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const storage = getStorage(app);
+
+window.__firebaseReady = false;
+window.__fbStorage = storage;
+window.__fbRef = ref;
+window.__fbUploadString = uploadString;
+window.__fbGetDownloadURL = getDownloadURL;
+window.__fbListAll = listAll;
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) { window.location.href = 'login.html'; return; }
+  try {
+    const userDoc = await getDoc(doc(db, "users", user.uid));
+    if (!userDoc.exists()) { window.location.href = 'login.html'; return; }
+    const data = userDoc.data();
+    const trialEnd = data.trialEndsAt ? data.trialEndsAt.toDate() : new Date(0);
+    if (!data.isPremium && new Date() > trialEnd) {
+      alert("Ücretsiz deneme süreniz sona ermiştir. Lütfen abonelik satın alın.");
+      window.location.href = 'dashboard.html'; return;
+    }
+    window.__userUid = user.uid;
+    window.__firebaseReady = true;
+    document.getElementById('loading-screen').style.display = 'none';
+    document.getElementById('app-root').style.display = 'flex';
+    if (window.__startApp) window.__startApp();
+  } catch(e) { window.location.href = 'login.html'; }
+});
+</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',sans-serif;background:#020617;color:white;height:100vh;overflow:hidden;}
+#loading-screen{position:fixed;inset:0;background:#020617;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;}
+.spinner{width:44px;height:44px;border:4px solid rgba(255,255,255,0.1);border-top-color:#00ffcc;border-radius:50%;animation:spin 0.9s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+#loading-screen p{margin-top:18px;color:#94a3b8;font-weight:700;font-size:14px;letter-spacing:2px;text-transform:uppercase;}
+#app-root{display:none;flex-direction:row;height:100vh;width:100vw;}
+/* Sidebar */
+#sidebar{width:160px;min-width:160px;background:#0f172a;border-right:1px solid #1e293b;display:flex;flex-direction:column;padding:12px 8px;gap:4px;overflow-y:auto;}
+#sidebar-title{font-size:9px;font-weight:900;color:#475569;text-transform:uppercase;letter-spacing:3px;text-align:center;padding:8px 0 10px;border-bottom:1px solid #1e293b;margin-bottom:6px;}
+.sb-btn{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:10px;border:1px solid #1e293b;background:transparent;color:#94a3b8;font-size:10px;font-weight:700;cursor:pointer;transition:all .15s;text-align:left;width:100%;}
+.sb-btn:hover{background:#1e293b;color:white;border-color:#334155;}
+.sb-btn .ic{font-size:16px;}
+/* Main area */
+#canvas-area{flex:1;position:relative;overflow:hidden;}
+/* Top header */
+#top-header{height:56px;background:rgba(15,23,42,0.97);border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between;padding:0 20px;gap:12px;z-index:20;position:relative;}
+#project-name{font-size:14px;font-weight:900;color:white;letter-spacing:1px;}
+#project-path{font-size:9px;color:#475569;font-weight:700;letter-spacing:1px;}
+.hdr-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:1px solid #334155;background:#1e293b;color:#cbd5e1;font-size:10px;font-weight:900;cursor:pointer;text-transform:uppercase;letter-spacing:1px;transition:all .15s;}
+.hdr-btn:hover{border-color:#64748b;color:white;}
+.hdr-btn.primary{background:#00ffcc;color:#0f172a;border-color:#00ffcc;box-shadow:0 0 18px rgba(0,255,204,0.35);}
+.hdr-btn.primary:hover{transform:scale(1.05);}
+/* ReactFlow container */
+#rf-container{position:absolute;top:56px;left:0;right:0;bottom:0;}
+/* Right panel */
+#right-panel{position:absolute;right:0;top:56px;bottom:0;width:440px;background:rgba(15,23,42,0.97);border-left:1px solid #1e293b;z-index:15;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s ease;}
+#right-panel.open{transform:translateX(0);}
+#rp-header{padding:16px 20px;border-bottom:1px solid #1e293b;display:flex;justify-content:space-between;align-items:flex-start;background:#0f172a;}
+#rp-close{background:none;border:none;color:#64748b;font-size:22px;cursor:pointer;line-height:1;}
+#rp-close:hover{color:white;}
+#rp-body{flex:1;overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;gap:18px;}
+#rp-body::-webkit-scrollbar{width:4px;}
+#rp-body::-webkit-scrollbar-track{background:#0f172a;}
+#rp-body::-webkit-scrollbar-thumb{background:#334155;border-radius:4px;}
+.rp-label{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:2px;color:#00ffcc;margin-bottom:6px;display:block;}
+.rp-input{width:100%;background:#020617;border:1px solid #1e293b;border-radius:8px;padding:9px 12px;color:white;font-size:12px;font-weight:700;outline:none;transition:border-color .15s;}
+.rp-input:focus{border-color:#00ffcc;}
+.rp-textarea{width:100%;background:#020617;border:1px solid #1e293b;border-radius:8px;padding:9px 12px;color:#94a3b8;font-size:11px;font-weight:600;outline:none;resize:none;transition:border-color .15s;}
+.rp-textarea:focus{border-color:#475569;}
+/* Status toggle buttons in the node type list */
+.status-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;}
+.st-btn{padding:7px 0;border-radius:8px;border:1px solid;font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:1px;cursor:pointer;transition:all .15s;text-align:center;}
+/* Matrix table */
+.matrix-grid{display:flex;flex-direction:column;gap:6px;}
+.matrix-row{background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:8px 10px;}
+.matrix-row-title{font-size:9px;font-weight:900;color:#00ffcc;text-transform:uppercase;margin-bottom:6px;}
+.matrix-btns{display:flex;gap:4px;flex-wrap:wrap;}
+.mx-btn{padding:4px 8px;border-radius:6px;border:1px solid;font-size:8px;font-weight:900;cursor:pointer;text-transform:uppercase;transition:all .15s;}
+.mx-inp{flex:1;min-width:80px;background:#020617;border:1px solid #1e293b;border-radius:6px;padding:4px 8px;color:#a3e635;font-size:8px;font-weight:700;outline:none;}
+.mx-inp::placeholder{color:#334155;}
+/* Cloud Modal */
+#cloud-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:99999;align-items:center;justify-content:center;}
+#cloud-modal.open{display:flex;}
+.cloud-box{background:#0f172a;border:1px solid #334155;border-radius:16px;padding:24px;min-width:400px;max-width:480px;}
+.cloud-box h2{color:white;font-size:18px;font-weight:900;margin-bottom:16px;}
+.cloud-list{max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
+.cloud-item{padding:12px 16px;background:#1e293b;border:1px solid #334155;border-radius:10px;color:white;font-weight:700;cursor:pointer;transition:border-color .15s;text-align:left;font-size:13px;}
+.cloud-item:hover{border-color:#3b82f6;}
+.cloud-empty{color:#475569;font-size:13px;padding:8px 0;}
+.cloud-close{width:100%;padding:12px;background:#ef4444;color:white;font-weight:900;border-radius:10px;border:none;cursor:pointer;font-size:13px;}
+/* Lucide-style icons via emoji replacements */
+.node-delete-btn{position:absolute;top:-10px;right:-10px;width:22px;height:22px;border-radius:50%;background:#0f172a;border:2px solid #334155;color:#64748b;display:none;align-items:center;justify-content:center;font-size:11px;cursor:pointer;z-index:30;}
+.rf-node-wrap:hover .node-delete-btn{display:flex;}
+/* Back to dashboard */
+#back-btn{position:absolute;top:50%;transform:translateY(-50%);left:0;background:#1e293b;border:none;color:#64748b;padding:6px 12px;border-radius:0 8px 8px 0;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;}
+#back-btn:hover{color:white;background:#334155;}
+</style>
+</head>
+<body>
+
+<!-- Loading Screen -->
+<div id="loading-screen">
+  <div class="spinner"></div>
+  <p>OmniSync Pro Yükleniyor...</p>
+</div>
+
+<!-- Cloud Projects Modal -->
+<div id="cloud-modal">
+  <div class="cloud-box">
+    <h2>☁️ OmniSync Bulut Projeleri</h2>
+    <div class="cloud-list" id="cloud-list"></div>
+    <button class="cloud-close" onclick="closeCloudModal()">Kapat</button>
+  </div>
+</div>
+
+<!-- App -->
+<div id="app-root">
+  <!-- Sidebar: Device Palette -->
+  <div id="sidebar">
+    <div id="sidebar-title">Bileşen Ekle</div>
+    <!-- Buttons injected by JS -->
+  </div>
+
+  <!-- Main Canvas Area -->
+  <div id="canvas-area" style="display:flex;flex-direction:column;">
+    <!-- Top Header -->
+    <div id="top-header">
+      <a href="dashboard.html" style="color:#475569;font-size:11px;font-weight:700;text-decoration:none;white-space:nowrap;">← Dashboard</a>
+      <div style="flex:1;padding:0 16px;">
+        <div id="project-name">İsimsiz Şebeke Ağı</div>
+        <div id="project-path">OmniSync Pro — Topoloji & Devreye Alma</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="hdr-btn" onclick="handleNew()">📄 Yeni</button>
+        <button class="hdr-btn" onclick="handleOpen()">📂 Aç</button>
+        <button class="hdr-btn primary" onclick="handleSave()">💾 Kaydet</button>
+        <button class="hdr-btn" onclick="handleSaveAs()" title="Farklı Kaydet" style="padding:7px 10px;">💾+</button>
+      </div>
+    </div>
+
+    <!-- React Flow Mount Point -->
+    <div id="rf-container"></div>
+
+    <!-- Right Detail Panel -->
+    <div id="right-panel">
+      <div id="rp-header">
+        <div>
+          <div id="rp-type-label" style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:2px;color:#00ffcc;margin-bottom:4px;"></div>
+          <input id="rp-name-input" class="rp-input" style="font-size:18px;font-weight:900;background:transparent;border:none;border-bottom:1px solid #1e293b;border-radius:0;padding:4px 0;" placeholder="Cihaz Adı..." oninput="updateSelectedNodeLabel(this.value)"/>
+        </div>
+        <button id="rp-close" onclick="closeRightPanel()">×</button>
+      </div>
+      <div id="rp-body">
+        <!-- Dynamically filled -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────────
+let nodes = [];
+let edges = [];
+let selectedNodeId = null;
+let activeProjectName = null;
+let rfInstance = null;
+let appReady = false;
+
+const STATUS_CONFIGS = {
+  none:      { border: '#ef4444', text: '#ef4444', label: 'ÇALIŞMA YOK', bg: '#1f0a0a' },
+  active:    { border: '#eab308', text: '#eab308', label: 'DEVAM EDİYOR', bg: '#1c1500' },
+  completed: { border: '#10b981', text: '#10b981', label: 'TAMAMLANDI',  bg: '#051a10' }
+};
+
+const NODE_TYPES = [
+  { type: "Metin Başlığı", color: "#ffffff", emoji: "📝" },
+  { type: "Trafo",          color: "#eab308", emoji: "⚡" },
+  { type: "Güneş Paneli",   color: "#3b82f6", emoji: "☀️" },
+  { type: "İnverter",       color: "#a855f7", emoji: "🔋" },
+  { type: "CCTV",           color: "#ef4444", emoji: "📷" },
+  { type: "Güvenlik",       color: "#ec4899", emoji: "🛡️" },
+  { type: "Topraklama",     color: "#10b981", emoji: "🌍" },
+  { type: "Sensörler",      color: "#06b6d4", emoji: "📡" },
+  { type: "Haberleşme",     color: "#8b5cf6", emoji: "📶" },
+  { type: "Ağ Panosu",      color: "#f97316", emoji: "🖧"  },
+  { type: "Paratoner",      color: "#fcd34d", emoji: "⚡" },
+  { type: "Merkezi İnverter",color:"#8b5cf6", emoji: "🏭" },
+  { type: "OG Hücre",       color: "#ef4444", emoji: "🔌" },
+  { type: "DC Box",         color: "#f59e0b", emoji: "📦" },
+  { type: "Trafo Zati Koruma", color:"#10b981",emoji:"🛡️" },
+];
+
+const DEVICE_FIELDS = {
+  "Trafo": [
+    {key:"guc_kva",label:"Trafo Gücü (kVA)"},{key:"gerilim",label:"Gerilim (kV)"},
+    {key:"marka",label:"Marka / Model"},{key:"seri_no",label:"Seri Numarası"},
+    {key:"uretim_yili",label:"Üretim Yılı"},{key:"sogutma",label:"Soğutma Tipi"}
+  ],
+  "İnverter":[{key:"guc_kw",label:"Güç (kW)"},{key:"marka",label:"Marka/Model"},{key:"seri_no",label:"Seri No"},{key:"mppt",label:"MPPT Sayısı"},{key:"max_giris",label:"Maks Giriş (V)"}],
+  "Güneş Paneli":[{key:"guc_wp",label:"Panel Gücü (Wp)"},{key:"marka",label:"Marka/Model"},{key:"hucre",label:"Hücre Tipi"},{key:"seri_no",label:"Seri No"}],
+  "Sensörler":[{key:"tip",label:"Sensör Tipi"},{key:"marka",label:"Marka/Model"},{key:"seri_no",label:"Seri No"},{key:"protokol",label:"Haberleşme"}],
+  "Haberleşme":[{key:"datalogger",label:"Datalogger Model"},{key:"ip_adres",label:"IP Adresi"},{key:"mac_adres",label:"MAC Adresi"}],
+  "Topraklama":[{key:"iletken_tip",label:"İletken Tipi"},{key:"kesit",label:"Kesit (mm²)"},{key:"direnc",label:"Ölçülen Direnç (Ω)"}],
+  "CCTV":[{key:"kamera_tip",label:"Kamera Tipi"},{key:"ip_adres",label:"IP Adresi"},{key:"nvr_model",label:"NVR Modeli"}],
+  "OG Hücre":[{key:"gerilim_kv",label:"Gerilim (kV)"},{key:"akim_a",label:"Anma Akımı (A)"},{key:"hucre_sayisi",label:"Hücre Sayısı"},{key:"marka",label:"Marka/Model"}],
+  "DC Box":[{key:"giris_sayisi",label:"Giriş Sayısı"},{key:"sigorta_akimi",label:"Sigorta Akımı (A)"},{key:"marka",label:"Marka/Model"}],
+  "Merkezi İnverter":[{key:"guc_mw",label:"Güç (MW)"},{key:"marka",label:"Marka/Model"},{key:"seri_no",label:"Seri No"},{key:"unite_sayisi",label:"Ünite Sayısı"}],
+  "Trafo Zati Koruma":[{key:"trafo_adi",label:"Bağlı Trafo"},{key:"koruma_unitesi",label:"Koruma Ünitesi Modeli"},{key:"seri_no",label:"Seri No"}],
+};
+
+// ─────────────────────────────────────────────────────
+// SIDEBAR
+// ─────────────────────────────────────────────────────
+function buildSidebar() {
+  const sb = document.getElementById('sidebar');
+  NODE_TYPES.forEach(t => {
+    const btn = document.createElement('button');
+    btn.className = 'sb-btn';
+    btn.innerHTML = `<span class="ic">${t.emoji}</span><span style="font-size:10px;color:#cbd5e1;">${t.type}</span>`;
+    btn.onclick = () => addNode(t);
+    sb.appendChild(btn);
+  });
+}
+
+// ─────────────────────────────────────────────────────
+// REACT FLOW — We use the UMD bundle via window.ReactFlow
+// ─────────────────────────────────────────────────────
+function startReactFlow() {
+  const { ReactFlow, Background, MiniMap, BackgroundVariant, Handle, Position,
+          applyNodeChanges, applyEdgeChanges, addEdge,
+          ReactFlowProvider } = window.ReactFlow || {};
+
+  if (!ReactFlow) { setTimeout(startReactFlow, 300); return; }
+
+  const { createElement: h, useState, useCallback, useMemo } = React;
+
+  // Custom Node
+  function DeviceNode({ data, id, selected }) {
+    const isText = data.customType === 'Metin Başlığı';
+    const sc = STATUS_CONFIGS[data.status || 'none'];
+    const borderColor = selected ? '#ffffff' : sc.border;
+
+    if (isText) return h('div', {
+      style: { minWidth: 200, padding: 8, border: selected ? '2px dashed #475569' : '2px solid transparent',
+               borderRadius: 12, background: selected ? 'rgba(30,41,59,0.5)' : 'transparent' }
+    },
+      h('button', { onClick: e => { e.stopPropagation(); deleteNodeById(id); },
+        style: { position:'absolute',top:-10,right:-10,width:22,height:22,borderRadius:'50%',
+                 background:'#0f172a',border:'2px solid #334155',color:'#ef4444',cursor:'pointer',
+                 display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,lineHeight:1 }
+      }, '×'),
+      h('h1', { style: { fontSize:28, fontWeight:900, color:'white', letterSpacing:2 } }, data.label)
+    );
+
+    return h('div', {
+      style: { width:170, borderRadius:12, border:`2px solid ${borderColor}`,
+               background:'#0f172a', boxShadow:`0 0 15px ${borderColor}30`,
+               transition:'all .15s', cursor:'pointer', position:'relative' }
+    },
+      h('button', { onClick: e => { e.stopPropagation(); deleteNodeById(id); },
+        style: { position:'absolute',top:-10,right:-10,width:22,height:22,borderRadius:'50%',
+                 background:'#0f172a',border:'2px solid #334155',color:'#ef4444',cursor:'pointer',
+                 display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,lineHeight:1,zIndex:30 }
+      }, '×'),
+      // Target handle (left)
+      h(Handle, { type:'target', position:Position.Left,
+        style:{ width:14,height:28,borderRadius:4,background:'#1e293b',border:'2px solid #94a3b8',left:-7 } }),
+      h('div', { style:{ padding:'12px 12px 6px', textAlign:'center' } },
+        h('div', { style:{ fontSize:22, marginBottom:6 } }, NODE_TYPES.find(n=>n.type===data.customType)?.emoji || '⚙️'),
+        h('div', { style:{ fontSize:11, fontWeight:900, color:borderColor, letterSpacing:1, wordBreak:'break-word' } }, data.label)
+      ),
+      h('button', {
+        onClick: e => { e.stopPropagation(); cycleStatus(id); },
+        style: { width:'100%', padding:'6px 0', background:sc.border, borderTop:`2px solid ${sc.border}`,
+                 color:'#0f172a', fontSize:8, fontWeight:900, letterSpacing:'0.15em',
+                 textTransform:'uppercase', border:'none', borderRadius:'0 0 10px 10px', cursor:'pointer' }
+      }, sc.label),
+      // Source handle (right)
+      h(Handle, { type:'source', position:Position.Right,
+        style:{ width:28,height:28,borderRadius:'50%',background:'#00ffcc',border:'4px solid #0f172a',right:-14,zIndex:30 } })
+    );
+  }
+
+  const nodeTypes = { deviceNode: DeviceNode };
+  const defaultEdgeOptions = { animated:true, style:{ stroke:'#00ffcc', strokeWidth:2, strokeDasharray:'5 5' } };
+
+  function FlowApp() {
+    const [ns, setNs] = useState(nodes);
+    const [es, setEs] = useState(edges);
+
+    // expose setters globally
+    window.__setNodes = n => { nodes = typeof n === 'function' ? n(nodes) : n; setNs([...nodes]); };
+    window.__setEdges = e => { edges = typeof e === 'function' ? e(edges) : e; setEs([...edges]); };
+    window.__getNodes = () => nodes;
+    window.__getEdges = () => edges;
+
+    const onNodesChange = useCallback(changes => {
+      nodes = applyNodeChanges(changes, nodes);
+      setNs([...nodes]);
+    }, []);
+    const onEdgesChange = useCallback(changes => {
+      edges = applyEdgeChanges(changes, edges);
+      setEs([...edges]);
+    }, []);
+    const onConnect = useCallback(params => {
+      edges = addEdge({ ...params, animated:true, style:{ stroke:'#00ffcc', strokeWidth:2, strokeDasharray:'5 5' } }, edges);
+      setEs([...edges]);
+    }, []);
+
+    const onNodeClick = useCallback((_, node) => { selectNode(node.id); }, []);
+    const onPaneClick = useCallback(() => { deselectNode(); }, []);
+
+    return h(ReactFlow, {
+      nodes: ns, edges: es, nodeTypes,
+      onNodesChange, onEdgesChange, onConnect,
+      onNodeClick, onPaneClick,
+      fitView: true,
+      proOptions: { hideAttribution: true },
+      defaultEdgeOptions,
+      style: { background:'#020617' }
+    },
+      h(Background, { variant: BackgroundVariant.Dots, gap:24, size:2, color:'#1e293b' })
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('rf-container')).render(
+    h(ReactFlowProvider, null, h(FlowApp))
+  );
+  appReady = true;
+}
+
+// ─────────────────────────────────────────────────────
+// NODE ACTIONS
+// ─────────────────────────────────────────────────────
+function addNode(typeDef) {
+  const isText = typeDef.type === 'Metin Başlığı';
+  const node = {
+    id: `node-${Date.now()}`,
+    type: 'deviceNode',
+    position: { x: 150 + Math.random()*200, y: 100 + Math.random()*200 },
+    data: { label: isText ? 'YENİ BAŞLIK' : typeDef.type, customType: typeDef.type,
+            color: typeDef.color, status: 'none', details: '', properties:{}, masalar:{},
+            uniteStatus:{}, hucreStatus:{}, poles:{} }
+  };
+  nodes = [...nodes, node];
+  if (window.__setNodes) window.__setNodes([...nodes]);
+}
+
+function deleteNodeById(id) {
+  nodes = nodes.filter(n => n.id !== id);
+  edges = edges.filter(e => e.source !== id && e.target !== id);
+  if (window.__setNodes) window.__setNodes([...nodes]);
+  if (window.__setEdges) window.__setEdges([...edges]);
+  if (selectedNodeId === id) deselectNode();
+}
+
+function cycleStatus(id) {
+  const order = ['none','active','completed'];
+  nodes = nodes.map(n => {
+    if (n.id !== id) return n;
+    const cur = n.data.status || 'none';
+    const next = order[(order.indexOf(cur)+1) % order.length];
+    return { ...n, data: { ...n.data, status: next } };
+  });
+  if (window.__setNodes) window.__setNodes([...nodes]);
+  if (selectedNodeId === id) renderRightPanel();
+}
+
+function selectNode(id) {
+  selectedNodeId = id;
+  openRightPanel();
+  renderRightPanel();
+}
+
+function deselectNode() {
+  selectedNodeId = null;
+  closeRightPanel();
+}
+
+function updateSelectedNodeLabel(val) {
+  if (!selectedNodeId) return;
+  nodes = nodes.map(n => n.id === selectedNodeId ? { ...n, data: { ...n.data, label: val } } : n);
+  if (window.__setNodes) window.__setNodes([...nodes]);
+}
+
+function updateSelectedNodeProp(key, val) {
+  if (!selectedNodeId) return;
+  nodes = nodes.map(n => {
+    if (n.id !== selectedNodeId) return n;
+    const props = n.data.properties || {};
+    return { ...n, data: { ...n.data, properties: { ...props, [key]: val } } };
+  });
+  if (window.__setNodes) window.__setNodes([...nodes]);
+}
+
+function updateSelectedNodeDetails(val) {
+  if (!selectedNodeId) return;
+  nodes = nodes.map(n => n.id !== selectedNodeId ? n : { ...n, data: { ...n.data, details: val } });
+  if (window.__setNodes) window.__setNodes([...nodes]);
+}
+
+function toggleMasa(masaId, col) {
+  nodes = nodes.map(n => {
+    if (n.id !== selectedNodeId) return n;
+    const masalar = { ...(n.data.masalar||{}) };
+    const row = masalar[masaId] || {};
+    masalar[masaId] = { ...row, [col]: !row[col] };
+    return { ...n, data: { ...n.data, masalar } };
+  });
+  if (window.__setNodes) window.__setNodes([...nodes]);
+  renderRightPanel();
+}
+
+function updateMasa(masaId, col, val) {
+  nodes = nodes.map(n => {
+    if (n.id !== selectedNodeId) return n;
+    const masalar = { ...(n.data.masalar||{}) };
+    const row = masalar[masaId] || {};
+    masalar[masaId] = { ...row, [col]: val };
+    return { ...n, data: { ...n.data, masalar } };
+  });
+  if (window.__setNodes) window.__setNodes([...nodes]);
+}
+
+function toggleSimple(col) {
+  nodes = nodes.map(n => {
+    if (n.id !== selectedNodeId) return n;
+    return { ...n, data: { ...n.data, [col]: !n.data[col] } };
+  });
+  if (window.__setNodes) window.__setNodes([...nodes]);
+  renderRightPanel();
+}
+
+function toggleHucre(id, col) {
+  nodes = nodes.map(n => {
+    if (n.id !== selectedNodeId) return n;
+    const hs = { ...(n.data.hucreStatus||{}) };
+    const row = hs[id] || {};
+    hs[id] = { ...row, [col]: !row[col] };
+    return { ...n, data: { ...n.data, hucreStatus: hs } };
+  });
+  if (window.__setNodes) window.__setNodes([...nodes]);
+  renderRightPanel();
+}
+
+function toggleUnite(id, col) {
+  nodes = nodes.map(n => {
+    if (n.id !== selectedNodeId) return n;
+    const us = { ...(n.data.uniteStatus||{}) };
+    const row = us[id] || {};
+    us[id] = { ...row, [col]: !row[col] };
+    return { ...n, data: { ...n.data, uniteStatus: us } };
+  });
+  if (window.__setNodes) window.__setNodes([...nodes]);
+  renderRightPanel();
+}
+
+function togglePole(id, col) {
+  nodes = nodes.map(n => {
+    if (n.id !== selectedNodeId) return n;
+    const ps = { ...(n.data.poles||{}) };
+    const row = ps[id] || {};
+    ps[id] = { ...row, [col]: !row[col] };
+    return { ...n, data: { ...n.data, poles: ps } };
+  });
+  if (window.__setNodes) window.__setNodes([...nodes]);
+  renderRightPanel();
+}
+
+function updatePoleVal(id, col, val) {
+  nodes = nodes.map(n => {
+    if (n.id !== selectedNodeId) return n;
+    const ps = { ...(n.data.poles||{}) };
+    const row = ps[id] || {};
+    ps[id] = { ...row, [col]: val };
+    return { ...n, data: { ...n.data, poles: ps } };
+  });
+  if (window.__setNodes) window.__setNodes([...nodes]);
+}
+
+// ─────────────────────────────────────────────────────
+// RIGHT PANEL
+// ─────────────────────────────────────────────────────
+function openRightPanel() { document.getElementById('right-panel').classList.add('open'); }
+function closeRightPanel() { document.getElementById('right-panel').classList.remove('open'); selectedNodeId = null; }
+
+function mkBtn(text, active, onClick, activeColor='#10b981', activeText='#020617') {
+  const b = document.createElement('button');
+  b.className = 'mx-btn';
+  b.textContent = text;
+  b.style.background = active ? activeColor : '#1e293b';
+  b.style.borderColor = active ? activeColor : '#334155';
+  b.style.color = active ? activeText : '#64748b';
+  b.onclick = onClick;
+  return b;
+}
+
+function mkInp(placeholder, value, onInput, color='#a3e635') {
+  const i = document.createElement('input');
+  i.className = 'mx-inp';
+  i.placeholder = placeholder;
+  i.value = value || '';
+  i.style.color = color;
+  i.oninput = e => onInput(e.target.value);
+  return i;
+}
+
+function renderRightPanel() {
+  const node = nodes.find(n => n.id === selectedNodeId);
+  if (!node) return;
+  const d = node.data;
+  const ct = d.customType;
+
+  document.getElementById('rp-type-label').textContent = ct;
+  document.getElementById('rp-name-input').value = d.label || '';
+
+  const body = document.getElementById('rp-body');
+  body.innerHTML = '';
+
+  // ── Status Buttons
+  const statusSection = document.createElement('div');
+  statusSection.innerHTML = '<span class="rp-label">Durum</span>';
+  const statusRow = document.createElement('div');
+  statusRow.className = 'status-row';
+  ['none','active','completed'].forEach(s => {
+    const sc = STATUS_CONFIGS[s];
+    const active = (d.status || 'none') === s;
+    const btn = document.createElement('button');
+    btn.className = 'st-btn';
+    btn.textContent = sc.label;
+    btn.style.background = active ? sc.border : '#0f172a';
+    btn.style.borderColor = sc.border;
+    btn.style.color = active ? '#020617' : sc.border;
+    btn.onclick = () => {
+      nodes = nodes.map(n => n.id === selectedNodeId ? { ...n, data: { ...n.data, status: s } } : n);
+      if (window.__setNodes) window.__setNodes([...nodes]);
+      renderRightPanel();
+    };
+    statusRow.appendChild(btn);
+  });
+  statusSection.appendChild(statusRow);
+  body.appendChild(statusSection);
+
+  // ── İnverter 24 masa matrix
+  if (ct === 'İnverter') {
+    const sec = document.createElement('div');
+    sec.innerHTML = '<span class="rp-label">Masa Kontrol (24 Adet)</span>';
+    const grid = document.createElement('div');
+    grid.className = 'matrix-grid';
+    for (let i = 1; i <= 24; i++) {
+      const masalar = d.masalar || {};
+      const state = masalar[i] || {};
+      const row = document.createElement('div');
+      row.className = 'matrix-row';
+      const title = document.createElement('div');
+      title.className = 'matrix-row-title';
+      title.textContent = `Masa ${i}`;
+      row.appendChild(title);
+      const btns = document.createElement('div');
+      btns.className = 'matrix-btns';
+      btns.appendChild(mkBtn('MNTJ', !!state.montaj, () => toggleMasa(i,'montaj'), '#10b981'));
+      btns.appendChild(mkBtn('KBLO', !!state.kablo,  () => toggleMasa(i,'kablo'),  '#eab308'));
+      btns.appendChild(mkBtn('GİRİŞ',!!state.giris, () => toggleMasa(i,'giris'),  '#06b6d4'));
+      btns.appendChild(mkInp('I-V Core...', state.ivCore, v => updateMasa(i,'ivCore',v)));
+      btns.appendChild(mkInp('Voltaj...', state.voltage, v => updateMasa(i,'voltage',v), '#fbbf24'));
+      row.appendChild(btns);
+      grid.appendChild(row);
+    }
+    sec.appendChild(grid);
+    body.appendChild(sec);
+  }
+
+  // ── OG Hücre matrix (6)
+  if (ct === 'OG Hücre') {
+    const sec = document.createElement('div');
+    sec.innerHTML = '<span class="rp-label">Hücre Kontrol Matrisi (6 Adet)</span>';
+    const grid = document.createElement('div');
+    grid.className = 'matrix-grid';
+    for (let i = 1; i <= 6; i++) {
+      const state = (d.hucreStatus||{})[i] || {};
+      const row = document.createElement('div');
+      row.className = 'matrix-row';
+      row.innerHTML = `<div class="matrix-row-title">Hücre ${i}</div>`;
+      const btns = document.createElement('div');
+      btns.className = 'matrix-btns';
+      [{key:'kesici',label:'KS'},{key:'ayirici',label:'AY'},{key:'role',label:'RL'},{key:'kablo',label:'KB'}].forEach(({key,label}) => {
+        btns.appendChild(mkBtn(label, !!state[key], () => toggleHucre(i,key)));
+      });
+      row.appendChild(btns);
+      grid.appendChild(row);
+    }
+    sec.appendChild(grid);
+    body.appendChild(sec);
+  }
+
+  // ── Merkezi İnverter
+  if (ct === 'Merkezi İnverter') {
+    const sec = document.createElement('div');
+    sec.innerHTML = '<span class="rp-label">Genel Kontrol</span>';
+    const btns = document.createElement('div');
+    btns.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;';
+    [{key:'ag_kablo',label:'AG Kablo'},{key:'dc_kablo',label:'DC Kablo'},{key:'topraklama',label:'Topraklama'},{key:'support',label:'Support'},{key:'devreye_alindi',label:'Devreye Alım'}].forEach(({key,label}) => {
+      const b = document.createElement('button');
+      b.style.cssText = `padding:8px;border-radius:8px;border:1px solid;font-size:9px;font-weight:900;cursor:pointer;text-transform:uppercase;background:${d[key]?'#10b981':'#0f172a'};border-color:${d[key]?'#10b981':'#334155'};color:${d[key]?'#020617':'#64748b'};`;
+      b.textContent = label + ': ' + (d[key]?'TAMAM':'YOK');
+      b.onclick = () => toggleSimple(key);
+      btns.appendChild(b);
+    });
+    sec.appendChild(btns);
+    const unitLabel = document.createElement('span');
+    unitLabel.className = 'rp-label';
+    unitLabel.textContent = 'Ünite Durumları';
+    sec.appendChild(unitLabel);
+    const unitRow = document.createElement('div');
+    unitRow.style.cssText = 'display:grid;grid-template-columns:repeat(4,1fr);gap:8px;';
+    [1,2,3,4].forEach(id => {
+      const state = (d.uniteStatus||{})[id]||{};
+      const b = document.createElement('button');
+      b.style.cssText = `padding:10px 0;border-radius:10px;border:1px solid;font-size:10px;font-weight:900;cursor:pointer;background:${state.active?'rgba(168,85,247,0.2)':'#0f172a'};border-color:${state.active?'#a855f7':'#1e293b'};color:${state.active?'#a855f7':'#475569'};`;
+      b.innerHTML = `<div>U${id}</div><div style="font-size:8px;margin-top:4px;">${state.active?'AKTİF':'PASİF'}</div>`;
+      b.onclick = () => toggleUnite(id, 'active');
+      unitRow.appendChild(b);
+    });
+    sec.appendChild(unitRow);
+    body.appendChild(sec);
+  }
+
+  // ── DC Box
+  if (ct === 'DC Box') {
+    const sec = document.createElement('div');
+    sec.innerHTML = '<span class="rp-label">DC Box Kontrol</span>';
+    const grid = document.createElement('div');
+    grid.style.cssText = 'display:flex;flex-direction:column;gap:8px;';
+    [{key:'montaj',label:'Panel Montajı'},{key:'kablo',label:'Kablo Bağlantıları'},{key:'giris',label:'Sigorta/Giriş'},{key:'haberlesme',label:'Haberleşme'}].forEach(({key,label}) => {
+      const b = document.createElement('button');
+      b.style.cssText = `display:flex;justify-content:space-between;padding:10px 14px;border-radius:10px;border:1px solid;font-size:10px;font-weight:900;cursor:pointer;text-transform:uppercase;background:${d[key]?'#eab308':'#0f172a'};border-color:${d[key]?'#eab308':'#334155'};color:${d[key]?'#020617':'#64748b'};`;
+      b.innerHTML = `<span>${label}</span><span>${d[key]?'TAMAMLANDI':'BEKLEMEDE'}</span>`;
+      b.onclick = () => toggleSimple(key);
+      grid.appendChild(b);
+    });
+    sec.appendChild(grid);
+    body.appendChild(sec);
+  }
+
+  // ── Trafo Zati Koruma
+  if (ct === 'Trafo Zati Koruma') {
+    const sec = document.createElement('div');
+    sec.innerHTML = '<span class="rp-label">Zati Koruma Kontrol</span>';
+    const grid = document.createElement('div');
+    grid.style.cssText = 'display:flex;flex-direction:column;gap:8px;';
+    [{key:'buchholz',label:'Buchholz Rölesi'},{key:'termometre',label:'Termometre'},{key:'yag_seviye',label:'Yağ Seviyesi'},{key:'basinc_tahliye',label:'Basınç Tahliye'},{key:'silikajel',label:'Silikajel'}].forEach(({key,label}) => {
+      const b = document.createElement('button');
+      b.style.cssText = `display:flex;justify-content:space-between;padding:10px 14px;border-radius:10px;border:1px solid;font-size:10px;font-weight:900;cursor:pointer;text-transform:uppercase;background:${d[key]?'#10b981':'#0f172a'};border-color:${d[key]?'#10b981':'#334155'};color:${d[key]?'#020617':'#64748b'};`;
+      b.innerHTML = `<span>${label}</span><span>${d[key]?'OK':'KONTROL'}</span>`;
+      b.onclick = () => toggleSimple(key);
+      grid.appendChild(b);
+    });
+    sec.appendChild(grid);
+    body.appendChild(sec);
+  }
+
+  // ── CCTV Poles (20)
+  if (ct === 'CCTV') {
+    const sec = document.createElement('div');
+    sec.innerHTML = '<span class="rp-label">Direk Matrisi (20 Adet)</span>';
+    const grid = document.createElement('div');
+    grid.className = 'matrix-grid';
+    for (let i = 1; i <= 20; i++) {
+      const state = (d.poles||{})[i] || {};
+      const row = document.createElement('div');
+      row.className = 'matrix-row';
+      row.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><span class="matrix-row-title" style="margin:0">Direk ${i}</span></div>`;
+      const btns = document.createElement('div');
+      btns.className = 'matrix-btns';
+      btns.appendChild(mkBtn(state.montaj?'MONTAJ TAMAM':'MONTAJ YOK', !!state.montaj, () => togglePole(i,'montaj')));
+      btns.appendChild(mkInp('Projektör/Güç...', state.projektor, v => updatePoleVal(i,'projektor',v), '#94a3b8'));
+      btns.appendChild(mkInp('Kamera bilgisi...', state.kamera, v => updatePoleVal(i,'kamera',v), '#94a3b8'));
+      row.appendChild(btns);
+      grid.appendChild(row);
+    }
+    sec.appendChild(grid);
+    body.appendChild(sec);
+  }
+
+  // ── Generic device fields
+  const fields = DEVICE_FIELDS[ct];
+  if (fields && fields.length) {
+    const sec = document.createElement('div');
+    sec.innerHTML = '<span class="rp-label">⚙️ Cihaz Parametreleri</span>';
+    const grid = document.createElement('div');
+    grid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:10px;';
+    const props = d.properties || {};
+    fields.forEach(f => {
+      const wrap = document.createElement('div');
+      wrap.innerHTML = `<div style="font-size:8px;font-weight:900;color:#475569;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">${f.label}</div>`;
+      const inp = document.createElement('input');
+      inp.className = 'rp-input';
+      inp.style.fontSize = '11px';
+      inp.placeholder = 'Girin...';
+      inp.value = props[f.key] || '';
+      inp.oninput = e => updateSelectedNodeProp(f.key, e.target.value);
+      wrap.appendChild(inp);
+      grid.appendChild(wrap);
+    });
+    sec.appendChild(grid);
+    body.appendChild(sec);
+  }
+
+  // ── Notes
+  const notesSec = document.createElement('div');
+  notesSec.innerHTML = '<span class="rp-label">Notlar</span>';
+  const ta = document.createElement('textarea');
+  ta.className = 'rp-textarea';
+  ta.rows = 3;
+  ta.placeholder = 'Teknik notlar...';
+  ta.value = d.details || '';
+  ta.oninput = e => updateSelectedNodeDetails(e.target.value);
+  notesSec.appendChild(ta);
+  body.appendChild(notesSec);
+}
+
+// ─────────────────────────────────────────────────────
+// PROJECT OPERATIONS
+// ─────────────────────────────────────────────────────
+function handleNew() {
+  if (!confirm('Yeni proje açılsın mı? Kaydedilmemiş değişiklikler silinecek.')) return;
+  nodes = []; edges = [];
+  if (window.__setNodes) window.__setNodes([]);
+  if (window.__setEdges) window.__setEdges([]);
+  activeProjectName = null;
+  document.getElementById('project-name').textContent = 'İsimsiz Şebeke Ağı';
+  deselectNode();
+}
+
+async function handleOpen() {
+  if (!window.__firebaseReady) { alert('Firebase bağlantısı hazır değil, lütfen bekleyin.'); return; }
+  const uid = window.__userUid;
+  const listRef = window.__fbRef(window.__fbStorage, `users/${uid}/verify_projects`);
+  const list = document.getElementById('cloud-list');
+  list.innerHTML = '<span class="cloud-empty">Yükleniyor...</span>';
+  document.getElementById('cloud-modal').classList.add('open');
+  try {
+    const res = await window.__fbListAll(listRef);
+    list.innerHTML = '';
+    if (!res.items.length) {
+      list.innerHTML = '<span class="cloud-empty">Henüz kaydedilmiş proje yok.</span>';
+      return;
+    }
+    res.items.forEach(item => {
+      const name = item.name.replace('.json','');
+      const btn = document.createElement('button');
+      btn.className = 'cloud-item';
+      btn.innerHTML = `📄 ${name}`;
+      btn.onclick = () => loadCloudProject(name);
+      list.appendChild(btn);
+    });
+  } catch(e) { list.innerHTML = '<span class="cloud-empty">Hata oluştu.</span>'; }
+}
+
+async function loadCloudProject(name) {
+  const uid = window.__userUid;
+  try {
+    const fileRef = window.__fbRef(window.__fbStorage, `users/${uid}/verify_projects/${name}.json`);
+    const url = await window.__fbGetDownloadURL(fileRef);
+    const res = await fetch(url);
+    const data = await res.json();
+    nodes = data.nodes || [];
+    edges = data.edges || [];
+    if (window.__setNodes) window.__setNodes([...nodes]);
+    if (window.__setEdges) window.__setEdges([...edges]);
+    activeProjectName = name;
+    document.getElementById('project-name').textContent = name;
+    closeCloudModal();
+    deselectNode();
+  } catch(e) { alert('Proje yüklenemedi.'); }
+}
+
+function closeCloudModal() { document.getElementById('cloud-modal').classList.remove('open'); }
+
+async function handleSave() {
+  if (!activeProjectName) { await handleSaveAs(); return; }
+  await saveToCloud(activeProjectName);
+}
+
+async function handleSaveAs() {
+  const name = prompt('Proje adı:', activeProjectName || 'Yeni OmniSync Projesi');
+  if (!name) return;
+  activeProjectName = name;
+  document.getElementById('project-name').textContent = name;
+  await saveToCloud(name);
+}
+
+async function saveToCloud(name) {
+  if (!window.__firebaseReady) { alert('Firebase bağlantısı hazır değil.'); return; }
+  const uid = window.__userUid;
+  try {
+    const fileRef = window.__fbRef(window.__fbStorage, `users/${uid}/verify_projects/${name}.json`);
+    const data = JSON.stringify({ nodes, edges }, null, 2);
+    await window.__fbUploadString(fileRef, data, 'raw');
+    const t = document.title;
+    document.title = '☁️ KAYDEDİLDİ ✔';
+    setTimeout(() => document.title = t, 2000);
+    alert(`"${name}" başarıyla buluta kaydedildi!`);
+  } catch(e) { alert('Kaydetme hatası: ' + e.message); }
+}
+
+// ─────────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────────
+window.__startApp = function() {
+  buildSidebar();
+  startReactFlow();
+};
+
+// If firebase was already ready before script ran (unlikely but safe)
+if (window.__firebaseReady) window.__startApp();
+</script>
+</body>
+</html>
