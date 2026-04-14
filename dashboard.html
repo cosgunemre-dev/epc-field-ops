@@ -63,6 +63,47 @@
         .ad-section { flex: 1; min-width: 250px; }
         .ad-banner { background: var(--surface); border: 1px dashed var(--text-dim); border-radius: 12px; height: 300px; display: flex; align-items: center; justify-content: center; color: var(--text-dim); text-align: center; padding: 20px; margin-bottom: 20px; transition: 0.3s; }
         .ad-banner:hover { border-color: var(--accent); color: var(--text); background: rgba(255,255,255,0.02); }
+
+        /* ASEM Solar Reklam Kartı Stilleri */
+        .ad-card { 
+            background: var(--surface); 
+            border: 1px solid var(--border); 
+            border-radius: 15px; 
+            overflow: hidden; 
+            transition: 0.3s;
+            position: relative;
+            text-decoration: none;
+            display: block;
+        }
+        .ad-card:hover { border-color: var(--accent); transform: translateY(-3px); }
+        .ad-label {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.6);
+            color: #fff;
+            font-size: 0.6rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            z-index: 10;
+        }
+        .ad-image { 
+            width: 100%; 
+            height: auto; 
+            display: block; 
+            aspect-ratio: 4/5;
+            object-fit: cover;
+        }
+        .ad-footer {
+            padding: 12px;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            text-align: center;
+            background: rgba(255,255,255,0.02);
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -159,13 +200,12 @@
             <!-- Sağ Taraf Reklam Alanları -->
             <div class="ad-section">
                 <!-- STANDART REKLAM KUTUSU -->
-                <div class="ad-banner">
-                    <div>
-                        <span style="font-size: 2rem; display:block; margin-bottom:10px;">📣</span>
-                        <strong>Sponsor Alanı</strong><br>
-                        <small>Buraya firmanızın reklamını verebilirsiniz.</small>
-                    </div>
-                </div>
+                <!-- ASEM SOLAR SPONSOR KARTU -->
+                <a href="index.html" class="ad-card">
+                    <div class="ad-label">SPONSORLU</div>
+                    <img src="images/asemsolar.png" alt="ASEM Solar" class="ad-image">
+                    <div class="ad-footer">⚡ ASEM Solar — Güneşin Gücü Yanınızda</div>
+                </a>
             </div>
         </div>
     </main>
