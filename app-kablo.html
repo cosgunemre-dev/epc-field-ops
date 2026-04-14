@@ -237,43 +237,13 @@
     
     <!-- Firebase Güvenlik Motoru -->
     <script type="module">
-        import { auth, onAuthStateChanged, db, doc, getDoc } from './firebase-app.js';
+        import { protectPage } from './auth-guard-central.js';
 
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                // GÜVENLİK YAMASI: E-POSTA ONAYLI MI?
-                if (!user.emailVerified) {
-                    window.location.href = "login.html";
-                    return;
-                }
-
-                try {
-                    const userDocRef = doc(db, "users", user.uid);
-                    const userDoc = await getDoc(userDocRef);
-                    
-                    if (userDoc.exists()) {
-                        const data = userDoc.data();
-                        
-                        // Deneme Süresi Kontrolü
-                        if (!data.isPremium) {
-                            const trialEnd = data.trialEndsAt.toDate();
-                            if (new Date() > trialEnd) {
-                                // SÜRE BİTMİŞ! KULLANICIYI ZORLA DASHBOARD'A GERİ GÖNDER
-                                alert("Ücretsiz deneme süreniz sona ermiştir. Lütfen aboneliğinizi yenileyin.");
-                                window.location.href = "dashboard.html";
-                                return;
-                            }
-                        }
-                    }
-                } catch (error) {
-                    console.error("Yetki çekme hatası:", error);
-                }
-                
+        // Sayfa koruyucu bekçiyi çalıştır
+        protectPage().then(({ authorized }) => {
+            if (authorized) {
                 // Kapıları Aç
                 document.getElementById('auth-guard-loader').style.display = 'none';
-            } else {
-                // KULLANICI YOK! GİRİŞ SAYFASINA KOV
-                window.location.href = "login.html";
             }
         });
     </script>

@@ -31,6 +31,8 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
+import { protectPage } from './auth-guard-central.js';
+
 window.__firebaseReady = false;
 window.__fbStorage = storage;
 window.__fbRef = ref;
@@ -38,23 +40,14 @@ window.__fbUploadString = uploadString;
 window.__fbGetDownloadURL = getDownloadURL;
 window.__fbListAll = listAll;
 
-onAuthStateChanged(auth, async (user) => {
-  if (!user) { window.location.href = 'login.html'; return; }
-  try {
-    const userDoc = await getDoc(doc(db, "users", user.uid));
-    if (!userDoc.exists()) { window.location.href = 'login.html'; return; }
-    const data = userDoc.data();
-    const trialEnd = data.trialEndsAt ? data.trialEndsAt.toDate() : new Date(0);
-    if (!data.isPremium && new Date() > trialEnd) {
-      alert("Ücretsiz deneme süreniz sona ermiştir. Lütfen abonelik satın alın.");
-      window.location.href = 'dashboard.html'; return;
-    }
-    window.__userUid = user.uid;
+protectPage().then(({ authorized, data }) => {
+  if (authorized) {
+    window.__userUid = auth.currentUser.uid;
     window.__firebaseReady = true;
     document.getElementById('loading-screen').style.display = 'none';
     document.getElementById('app-root').style.display = 'flex';
     if (window.__startApp) window.__startApp();
-  } catch(e) { window.location.href = 'login.html'; }
+  }
 });
 </script>
 <style>

@@ -128,9 +128,18 @@
                     const userData = documento.data();
                     const userId = documento.id;
                     
-                    const endDate = new Date(userData.trialEndsAt);
+                    // Tarih Ayıklama (Uyumlu mod)
+                    let endDate;
+                    if (userData.trialEndsAt && typeof userData.trialEndsAt.toDate === 'function') {
+                        endDate = userData.trialEndsAt.toDate();
+                    } else if (userData.trialEndsAt) {
+                        endDate = new Date(userData.trialEndsAt);
+                    } else {
+                        endDate = new Date(0);
+                    }
+
                     const now = new Date();
-                    const isExpired = now > endDate;
+                    const isExpired = now > (endDate.getTime() + (1000 * 60 * 60)); // Nezaket süresi burada da geçerli
 
                     // Durum Belirleme
                     let statusClass = "trial";
@@ -148,7 +157,7 @@
                     tr.innerHTML = `
                         <td><strong>${userData.name}</strong></td>
                         <td>${userData.email}</td>
-                        <td><span style="color:var(--text-dim)">${new Date(userData.createdAt).toLocaleDateString()}</span></td>
+                        <td><span style="color:var(--text-dim)">${userData.createdAt ? (typeof userData.createdAt.toDate === 'function' ? userData.createdAt.toDate().toLocaleDateString() : new Date(userData.createdAt).toLocaleDateString()) : '---'}</span></td>
                         <td id="date-${userId}" style="font-weight: 600;">${endDate.toLocaleDateString()}</td>
                         <td><span class="status ${statusClass}" id="status-${userId}">${statusText}</span></td>
                         <td>
@@ -180,7 +189,7 @@
                 
                 const userRef = doc(db, "users", userId);
                 await updateDoc(userRef, {
-                    trialEndsAt: newEndDate.toISOString(),
+                    trialEndsAt: newEndDate,
                     isPremium: true
                 });
 
@@ -206,7 +215,7 @@
                 
                 const userRef = doc(db, "users", userId);
                 await updateDoc(userRef, {
-                    trialEndsAt: newEndDate.toISOString(),
+                    trialEndsAt: newEndDate,
                     isPremium: false // Demo/Hediye olduğu için premium klasmanına sokmuyoruz, geçici trial sayıyoruz
                 });
 

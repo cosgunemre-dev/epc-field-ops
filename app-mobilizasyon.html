@@ -1385,28 +1385,10 @@ function loadData() {
     </div>
     <style>@keyframes spin{to{transform:rotate(360deg);}}</style>
     <script type="module">
-        import { auth, onAuthStateChanged, db, doc, getDoc } from './firebase-app.js';
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                if (!user.emailVerified) { window.location.href = "login.html"; return; }
-                try {
-                    const userDocRef = doc(db, "users", user.uid);
-                    const userDoc = await getDoc(userDocRef);
-                    if (userDoc.exists()) {
-                        const data = userDoc.data();
-                        if (!data.isPremium) {
-                            const trialEnd = data.trialEndsAt.toDate();
-                            if (new Date() > trialEnd) {
-                                alert("Ücretsiz deneme süreniz sona ermiştir.");
-                                window.location.href = "dashboard.html";
-                                return;
-                            }
-                        }
-                    }
-                } catch(e) { console.error(e); }
+        import { protectPage } from './auth-guard-central.js';
+        protectPage().then(({ authorized }) => {
+            if (authorized) {
                 document.getElementById('auth-guard-loader').style.display = 'none';
-            } else {
-                window.location.href = "login.html";
             }
         });
     </script>

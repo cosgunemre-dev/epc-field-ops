@@ -5157,28 +5157,16 @@ window.addEventListener('beforeunload', () => {
         import { doc, getDoc, setDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
         import { getStorage, ref, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-storage.js";
 
+        import { protectPage } from './auth-guard-central.js';
+
         // Makenik state reference workaround
         window.userUid = null;
         const storage = getStorage();
 
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                if (!user.emailVerified) { window.location.href = "login.html"; return; }
-                try {
-                    const userDoc = await getDoc(doc(db, "users", user.uid));
-                    if (userDoc.exists()) {
-                        const data = userDoc.data();
-                        if (!data.isPremium && new Date() > data.trialEndsAt.toDate()) {
-                            alert("Ücretsiz deneme süreniz sona ermiştir.");
-                            window.location.href = "dashboard.html";
-                            return;
-                        }
-                        window.userUid = user.uid; // Ready for cloud ops
-                    }
-                } catch(e) { console.error(e); }
+        protectPage().then(({ authorized, data }) => {
+            if (authorized) {
+                window.userUid = auth.currentUser.uid; // Ready for cloud ops
                 document.getElementById('auth-guard-loader').style.display = 'none';
-            } else {
-                window.location.href = "login.html";
             }
         });
 

@@ -170,116 +170,78 @@
         </div>
     </main>
 
-    <!-- Firebase Güvenlik Mimarisi -->
+    <!-- Firebase & Güvenlik Mimarisi -->
     <script type="module">
-        import { auth, onAuthStateChanged, signOut, db, doc, getDoc } from './firebase-app.js';
+        import { auth, signOut } from './firebase-app.js';
+        import { protectPage } from './auth-guard-central.js';
 
-        // Güvenlik Bekçisi: Sayfa açıldığında kullanıcı var mı kontrol et
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                // GÜVENLİK YAMASI: E-POSTA ONAYLI MI?
-                if (!user.emailVerified) {
-                    window.location.href = "login.html";
-                    return;
-                }
+        // Güvenlik Bekçisi: Sayfa açıldığında yetkiyi kontrol et
+        protectPage().then(({ authorized, data }) => {
+            // KULLANICI GİRİŞ YAPMIŞ, VERİLERİNİ ÇEKELİM
+            document.getElementById('user-email-text').innerText = data.email || "---";
+            const name = data.displayName || data.name || (data.email ? data.email.split('@')[0] : "Kullanıcı");
+            document.getElementById('user-display-name').innerText = name;
+            document.getElementById('user-avatar').innerText = name.charAt(0);
 
-                // KULLANICI GİRİŞ YAPMIŞ, VERİLERİNİ ÇEKELİM
-                document.getElementById('user-email-text').innerText = user.email;
+            if (!authorized) {
+                // SÜRE BİTMİŞ! TÜM UYGULAMALARI KİLİTLE
+                document.getElementById('days-left').innerText = "0";
+                document.getElementById('trial-banner').style.display = 'flex';
+                document.getElementById('trial-banner').style.background = "rgba(239, 68, 68, 0.2)";
+                document.getElementById('trial-banner').style.borderColor = "var(--error)";
                 
-                try {
-                    // Veritabanından Kullanıcının Evrağını (Doc) alalım
-                    const userDocRef = doc(db, "users", user.uid);
-                    const userDoc = await getDoc(userDocRef);
-                    
-                    if (userDoc.exists()) {
-                        const data = userDoc.data();
+                // Tüm kartları döngüyle kilitliyoruz
+                const cardIds = [
+                    'kablo-card', 'mobilizasyon-card', 'tracker-card', 
+                    'trenchcalc-card', 'makenik-card', 'omnisync-card'
+                ];
+                
+                cardIds.forEach(id => {
+                    const card = document.getElementById(id);
+                    if (card) {
+                        card.classList.add('locked');
+                        card.href = "#"; // Tıklamayı engelle
                         
-                        // İsim Ataması
-                        const name = data.displayName || user.email.split('@')[0];
-                        document.getElementById('user-display-name').innerText = name;
-                        document.getElementById('user-avatar').innerText = name.charAt(0);
-
-                        // Deneme Süresi Kontrolü
-                        if (!data.isPremium) {
-                            const trialEnd = data.trialEndsAt.toDate(); // Veritabanı tarihini JS tarihine çevir
-                            const now = new Date();
-                            
-                            // Geriye Kalan Gün Sayısını Hesapla
-                            const diffTime = trialEnd - now;
-                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-
-                            document.getElementById('trial-banner').style.display = 'flex';
-
-                            if (diffDays <= 0) {
-                                // SÜRE BİTMİŞ! UYGULAMAYI KİLİTLE
-                                document.getElementById('days-left').innerText = "0";
-                                document.getElementById('trial-banner').style.background = "rgba(239, 68, 68, 0.2)";
-                                document.getElementById('trial-banner').style.borderColor = "var(--error)";
-                                
-                                const card = document.getElementById('kablo-card');
-                                card.classList.add('locked');
-                                card.href = "#"; // Tıklamayı engelle
-                                document.getElementById('kablo-badge').innerText = "KİLİTLİ";
-                                document.getElementById('kablo-badge').classList.add('locked');
-                                document.getElementById('kablo-action-text').innerText = "Abonelik Gereklidir";
-
-                                const mobCard = document.getElementById('mobilizasyon-card');
-                                mobCard.classList.add('locked');
-                                mobCard.href = "#";
-                                document.getElementById('mobilizasyon-badge').innerText = "KİLİTLİ";
-                                document.getElementById('mobilizasyon-badge').classList.add('locked');
-                                document.getElementById('mobilizasyon-action-text').innerText = "Abonelik Gereklidir";
-
-                                const trackerCard = document.getElementById('tracker-card');
-                                trackerCard.classList.add('locked');
-                                trackerCard.href = "#";
-                                document.getElementById('tracker-badge').innerText = "KİLİTLİ";
-                                document.getElementById('tracker-badge').classList.add('locked');
-                                document.getElementById('tracker-action-text').innerText = "Abonelik Gereklidir";
-
-                                const trenchCard = document.getElementById('trenchcalc-card');
-                                trenchCard.classList.add('locked');
-                                trenchCard.href = "#";
-                                document.getElementById('trenchcalc-badge').innerText = "KİLİTLİ";
-                                document.getElementById('trenchcalc-badge').classList.add('locked');
-                                document.getElementById('trenchcalc-action-text').innerText = "Abonelik Gereklidir";
-
-                                
-                                const makenikCard = document.getElementById('makenik-card');
-                                makenikCard.classList.add('locked');
-                                makenikCard.href = "#";
-                                document.getElementById('makenik-badge').innerText = "KİLİTLİ";
-                                document.getElementById('makenik-badge').classList.add('locked');
-                                document.getElementById('makenik-action-text').innerText = "Abonelik Gereklidir";
-
-                                const omnisyncCard = document.getElementById('omnisync-card');
-                                omnisyncCard.classList.add('locked');
-                                omnisyncCard.href = "#";
-                                document.getElementById('omnisync-badge').innerText = "KİLİTLİ";
-                                document.getElementById('omnisync-badge').classList.add('locked');
-                                document.getElementById('omnisync-action-text').innerText = "Abonelik Gereklidir";
-                            } else {
-                                // SÜRE DEVAM EDİYOR
-                                document.getElementById('days-left').innerText = diffDays;
-                            }
+                        // Badge'i bul ve güncelle
+                        const badge = card.querySelector('.badge');
+                        if (badge) {
+                            badge.innerText = "KİLİTLİ";
+                            badge.classList.add('locked');
+                        }
+                        
+                        // Buton metnini güncelle
+                        const actionText = card.querySelector('.btn-primary');
+                        if (actionText) {
+                            actionText.innerText = "Abonelik Gereklidir";
+                            actionText.href = "abonelik.html";
                         }
                     }
-                } catch (error) {
-                    console.error("Veri çekme hatası:", error);
+                });
+            } else if (!data.isPremium) {
+                // Deneme süresi devam ediyor, kalan günü göster
+                document.getElementById('trial-banner').style.display = 'flex';
+                
+                let trialEnd;
+                if (data.trialEndsAt && typeof data.trialEndsAt.toDate === 'function') {
+                    trialEnd = data.trialEndsAt.toDate();
+                } else {
+                    trialEnd = new Date(data.trialEndsAt);
                 }
-
-                // Ekranı Göster (Yükleyiciyi kaldır)
-                document.getElementById('loader').style.display = 'none';
-            } else {
-                // KULLANICI YOK! KAPI DIŞARI ET (Login Sayfasına)
-                window.location.href = "login.html";
+                
+                const diffTime = trialEnd - new Date();
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                document.getElementById('days-left').innerText = Math.max(0, diffDays);
             }
+
+            // Ekranı Göster (Yükleyiciyi kaldır)
+            const loader = document.getElementById('loader');
+            if (loader) loader.style.display = 'none';
         });
 
         // Çıkış Yapma Butonu Fonksiyonu
         document.getElementById('btn-logout').addEventListener('click', () => {
             signOut(auth).then(() => {
-                // Zaten onAuthStateChanged tetiklenip Login sayfasına atacaktır
+                window.location.href = "login.html";
             }).catch((error) => {
                 alert("Çıkış yapılırken bir hata oluştu.");
             });
