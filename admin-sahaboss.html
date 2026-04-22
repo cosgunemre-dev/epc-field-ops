@@ -7,7 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <style>
-        :root { --bg: #0f172a; --surface: #1e293b; --accent: #f59e0b; --text: #f1f5f9; --text-dim: #94a3b8; --border: rgba(255, 255, 255, 0.1); --danger: #ef4444; }
+        :root { --bg: #0f172a; --surface: #1e293b; --accent: #f59e0b; --text: #f1f5f9; --text-dim: #94a3b8; --border: rgba(255, 255, 255, 0.1); }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Outfit', sans-serif; }
         body { background: var(--bg); color: var(--text); padding: 40px; min-height: 100vh; }
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
@@ -22,7 +22,7 @@
         input:focus { border-color: var(--accent); }
         
         .btn { padding: 12px 24px; border-radius: 10px; border: none; font-weight: 800; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
-        .btn-primary { background: var(--accent); color: #000; }
+        .btn-primary { background: var(--accent); color: #000; width: 100%; justify-content: center; }
         .btn-ghost { background: var(--border); color: #fff; }
         .btn:hover { filter: brightness(1.1); transform: translateY(-2px); }
 
@@ -31,9 +31,7 @@
         td { padding: 15px 10px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
         .badge { padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 800; }
         
-        .hidden { display: none !important; }
         #loader { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-        
         .loader-spin { width: 40px; height: 40px; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
@@ -45,44 +43,41 @@
     <header>
         <div>
             <a href="dashboard.html" style="color: var(--text-dim); text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; gap: 5px; margin-bottom: 10px;"><i class='bx bx-arrow-back'></i> Geri Dön</a>
-            <h1>Saha Ekibi ve Proje Yönetimi</h1>
+            <h1>SahaBOSS — Ekip Yönetimi</h1>
         </div>
-        <div class="user-info" style="text-align: right;">
-            <span id="user-email-text" style="font-size: 0.85rem; color: var(--text-dim);">...</span>
-        </div>
+        <div id="user-email-text" style="font-size: 0.85rem; color: var(--text-dim);">...</div>
     </header>
 
     <div class="grid">
-        <!-- PERSONEL EKLEME -->
+        <!-- PERSONEL EKLEME (E-POSTA İLE BAĞLAMA) -->
         <div class="card">
-            <h2><i class='bx bx-user-plus'></i> Yeni Saha Elemanı Kaydet</h2>
-            <form id="form-add-staff">
-                <div class="form-group"><label>Ad Soyad</label><input type="text" id="st-name" required placeholder="Örn: Ahmet Yılmaz"></div>
-                <div class="form-group"><label>E-posta (Giriş için)</label><input type="email" id="st-email" required placeholder="ahmet@saha.com"></div>
-                <div class="form-group"><label>Şifre (En az 6 karakter)</label><input type="password" id="st-pass" required placeholder="123456"></div>
+            <h2><i class='bx bx-user-plus'></i> Ekipe Personel Ekle</h2>
+            <p style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 20px;">Personelin önce sisteme üye olması ve e-postasını onaylaması gerekir.</p>
+            <form id="form-link-staff">
                 <div class="form-group">
-                    <label>Rol / Ünvan</label>
+                    <label>Personel E-posta Adresi</label>
+                    <input type="email" id="st-email" required placeholder="ornek@saha.com">
+                </div>
+                <div class="form-group">
+                    <label>Saha Rolü / Ünvanı</label>
                     <select id="st-role">
-                        <option value="koordinator">Koordinatör (Tüm Yetkiler)</option>
-                        <option value="mudur" selected>Proje Müdürü</option>
+                        <option value="mudur">Proje Müdürü</option>
                         <option value="sef">Şef / Mühendis</option>
                         <option value="forman">Formen</option>
-                        <option value="isci">İşçi (Kısıtlı Görünüm)</option>
+                        <option value="isci" selected>İşçi</option>
                     </select>
                 </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%;" id="btn-save-staff"><i class='bx bx-save'></i> Personeli Kaydet ve Yetkilendir</button>
+                <button type="submit" class="btn btn-primary" id="btn-link-submit"><i class='bx bx-link-alt'></i> Ekibe Bağla ve Yetkilendir</button>
             </form>
         </div>
 
         <!-- EKİP LİSTESİ -->
         <div class="card">
-            <h2><i class='bx bx-group'></i> Mevcut Saha Ekibi</h2>
+            <h2><i class='bx bx-group'></i> Mevcut Saha Ekibiniz</h2>
             <div id="staff-list-container" style="max-height: 400px; overflow-y: auto;">
                 <table>
                     <thead><tr><th>PERSONEL</th><th>ROL</th><th>İŞLEM</th></tr></thead>
-                    <tbody id="staff-table-body">
-                        <!-- Dinamik Veri -->
-                    </tbody>
+                    <tbody id="staff-table-body"></tbody>
                 </table>
             </div>
         </div>
@@ -93,74 +88,87 @@
         <h2><i class='bx bx-layer'></i> Sahadaki Projeler</h2>
         <div style="display: flex; gap: 10px; margin-bottom: 20px;">
             <input type="text" id="new-project-name" placeholder="Yeni Proje Adı (Örn: X GES Projesi Sahası)" style="flex: 1;">
-            <button class="btn btn-primary" id="btn-add-project"><i class='bx bx-plus'></i> Ekle</button>
+            <button class="btn btn-primary" id="btn-add-project" style="width: auto;"><i class='bx bx-plus'></i> Ekle</button>
         </div>
-        <div id="project-list" style="display: flex; flex-wrap: wrap; gap: 10px;">
-            <!-- Proje Rozetleri -->
-        </div>
+        <div id="project-list" style="display: flex; flex-wrap: wrap; gap: 10px;"></div>
     </div>
 
-    <!-- SCRIPTS -->
     <script type="module">
         import { auth, db } from './firebase-app.js';
         import { protectPage } from './auth-guard-central.js';
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-auth.js";
         import { 
-            collection, query, where, getDocs, addDoc, setDoc, doc, onSnapshot, serverTimestamp, deleteDoc 
+            collection, query, where, getDocs, updateDoc, doc, onSnapshot, serverTimestamp, deleteDoc, addDoc 
         } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
         
-        // ZORLU LOADER KAPATICI: 5 saniye sonra ne olursa olsun halkayı kapat
-        setTimeout(() => {
-            const loader = document.getElementById('loader');
-            if (loader) loader.style.display = 'none';
-        }, 5000);
+        setTimeout(() => { if (document.getElementById('loader')) document.getElementById('loader').style.display = 'none'; }, 5000);
 
-        const secondaryApp = initializeApp({
-            apiKey: "AIzaSyAWlSm4uQ1r4_5R5BJzmi2EsoB5LHD62xY",
-            authDomain: "epc-field-ops.firebaseapp.com",
-            projectId: "epc-field-ops",
-            storageBucket: "epc-field-ops.firebasestorage.app",
-            messagingSenderId: "898161873065",
-            appId: "1:898161873065:web:eea40264f6faa07df6d9b8"
-        }, "Secondary");
-        const secondaryAuth = getAuth(secondaryApp);
-
-        window.adminUser = null;
-
-        // GÜVENLİK VE BAŞLATMA
         protectPage().then(async ({ authorized, data }) => {
             document.getElementById('loader').style.display = 'none';
-            
-            window.adminUser = auth.currentUser;
-            if (!window.adminUser) return;
-            
-            document.getElementById('user-email-text').innerText = window.adminUser.email;
-
-            loadStaff(window.adminUser.uid);
-            loadProjects(window.adminUser.uid);
-        }).catch(err => {
-            console.error("Başlatma hatası:", err);
-            document.getElementById('loader').style.display = 'none';
+            if (!authorized) return;
+            document.getElementById('user-email-text').innerText = auth.currentUser.email;
+            loadStaff(auth.currentUser.uid);
+            loadProjects(auth.currentUser.uid);
         });
+
+        // EKİBE BAĞLAMA MANTIĞI
+        document.getElementById('form-link-staff').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-link-submit');
+            const email = document.getElementById('st-email').value.trim();
+            const role = document.getElementById('st-role').value;
+
+            btn.disabled = true;
+            btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Aranıyor...";
+
+            try {
+                // 1. Kullanıcıyı e-posta ile bul
+                const q = query(collection(db, 'users'), where('email', '==', email));
+                const snap = await getDocs(q);
+
+                if (snap.empty) {
+                    alert('HATA: Bu e-posta ile kayıtlı bir kullanıcı bulunamadı. Lütfen personelin önce kayıt olduğundan emin olun.');
+                } else {
+                    const userDoc = snap.docs[0];
+                    // 2. Kullanıcıyı ekip üyesi olarak güncelle
+                    await updateDoc(doc(db, 'users', userDoc.id), {
+                        managedBy: auth.currentUser.uid,
+                        role: role,
+                        isFieldStaff: true,
+                        // Not: Proje ID şimdilik şefin mevcut projesi olabilir
+                        projectId: window.adminData?.projectId || 'default_project'
+                    });
+                    alert(`${email} başarıyla ekibinize eklendi!`);
+                    document.getElementById('st-email').value = '';
+                }
+            } catch (err) {
+                alert('Bağlama hatası: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = "<i class='bx bx-link-alt'></i> Ekibe Bağla ve Yetkilendir";
+            }
+        };
 
         function loadStaff(uid) {
             const q = query(collection(db, 'users'), where('managedBy', '==', uid));
             onSnapshot(q, (snapshot) => {
                 const tbody = document.getElementById('staff-table-body');
                 tbody.innerHTML = '';
-                snapshot.forEach(doc => {
-                    const u = doc.data();
-                    tbody.innerHTML += `
-                        <tr>
-                            <td><strong>${u.name || u.displayName}</strong><br><small>${u.email}</small></td>
-                            <td><span class="badge" style="background:rgba(255,255,255,0.1)">${(u.role || 'isci').toUpperCase()}</span></td>
-                            <td><button class="btn btn-ghost" style="padding:5px 10px; font-size:10px;" onclick="window.deleteUser('${doc.id}')">Kaldır</button></td>
-                        </tr>
-                    `;
+                snapshot.forEach(d => {
+                    const u = d.data();
+                    tbody.innerHTML += `<tr>
+                        <td><strong>${u.name || u.displayName}</strong><br><small>${u.email}</small></td>
+                        <td><span class="badge" style="background:var(--border)">${(u.role || 'isci').toUpperCase()}</span></td>
+                        <td><button class="btn btn-ghost" style="padding:5px 10px; font-size:10px;" onclick="window.unlinkUser('${d.id}')">Kaldır</button></td>
+                    </tr>`;
                 });
-            }, (err) => console.error("Ekip yükleme hatası:", err));
+            });
         }
+
+        window.unlinkUser = async (id) => {
+            if(confirm('Personeli ekibinizden çıkarmak istiyor musunuz?')) {
+                await updateDoc(doc(db, 'users', id), { managedBy: null, isFieldStaff: false });
+            }
+        };
 
         function loadProjects(uid) {
              const q = query(collection(db, 'projects'), where('ownerId', '==', uid));
@@ -168,58 +176,17 @@
                  const container = document.getElementById('project-list');
                  container.innerHTML = '';
                  snapshot.forEach(doc => {
-                     const p = doc.data();
-                     container.innerHTML += `<span class="badge" style="background:var(--accent); color:#000; padding:10px 15px; font-size:0.9rem;">${p.name}</span>`;
+                     container.innerHTML += `<span class="badge" style="background:var(--accent); color:#000; padding:10px 15px; font-size:0.9rem;">${doc.data().name}</span>`;
                  });
-             }, (err) => console.error("Proje yükleme hatası:", err));
+             });
         }
-
-        // PERSONEL KAYDI
-        document.getElementById('form-add-staff').onsubmit = async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('btn-save-staff');
-            const nm = document.getElementById('st-name').value.trim();
-            const em = document.getElementById('st-email').value.trim();
-            const pw = document.getElementById('st-pass').value;
-            const rl = document.getElementById('st-role').value;
-
-            btn.disabled = true;
-            btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Kaydediliyor...";
-
-            try {
-                const cred = await createUserWithEmailAndPassword(secondaryAuth, em, pw);
-                await setDoc(doc(db, 'users', cred.user.uid), {
-                    name: nm, displayName: nm, email: em, role: rl,
-                    managedBy: window.adminUser.uid,
-                    createdAt: serverTimestamp(),
-                    isFieldStaff: true
-                });
-                alert(`${nm} başarıyla kaydedildi.`);
-                document.getElementById('form-add-staff').reset();
-            } catch (err) {
-                alert('Hata: ' + err.message);
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = "<i class='bx bx-save'></i> Personeli Kaydet";
-            }
-        };
 
         document.getElementById('btn-add-project').onclick = async () => {
             const name = document.getElementById('new-project-name').value.trim();
-            if(!name || !window.adminUser) return;
-            try {
-                await addDoc(collection(db, 'projects'), {
-                    name, ownerId: window.adminUser.uid, createdAt: serverTimestamp()
-                });
-                document.getElementById('new-project-name').value = '';
-            } catch (err) { alert('Proje eklenemedi: ' + err.message); }
+            if(!name) return;
+            await addDoc(collection(db, 'projects'), { name, ownerId: auth.currentUser.uid, createdAt: serverTimestamp() });
+            document.getElementById('new-project-name').value = '';
         };
-
-        window.deleteUser = async (id) => {
-            if(confirm('Kaldırmak istediğinize emin misiniz?')) {
-                try { await deleteDoc(doc(db, 'users', id)); } catch(err) { alert('Hata: ' + err.message); }
-            }
-        }
     </script>
 </body>
 </html>

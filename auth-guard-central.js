@@ -4,88 +4,75 @@ import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.10.0/firebase
 
 /**
  * Güvenlik Duvarı - EPC Field Ops Merkezi Yetkilendirme Sistemi
- * Bu script, kullanıcının giriş yapıp yapmadığını, e-postasını onaylayıp onaylamadığını
- * ve aboneliğinin (Trial veya Premium) aktif olup olmadığını kontrol eder.
+ * Herkesin e-posta onayı yapmasını mecburi kılan STANDART sürüm.
  */
 
 export async function protectPage() {
     return new Promise((resolve) => {
         onAuthStateChanged(auth, async (user) => {
+            const loader = document.getElementById('loader') || document.getElementById('auth-guard-loader');
+            
+            // 1. Giriş Kontrolü
             if (!user) {
-                console.log("Yetkisiz erişim: Kullanıcı giriş yapmamış.");
+                console.log("Yetkisiz erişim: Giriş yapılmamış.");
                 window.location.href = "login.html";
                 return;
             }
 
+            // 2. E-posta Onay Kontrolü (HERKES İÇİN MECBURİ)
             if (!user.emailVerified) {
-                // Saha personeli olup olmadığını anlamak için önce veriyi çekelim
-                const userDocRef = doc(db, "users", user.uid);
-                const userDoc = await getDoc(userDocRef);
-                const data = userDoc.exists() ? userDoc.data() : {};
-
-                if (data.isFieldStaff || data.role === 'isci') {
-                   // Saha personeli e-posta doğrulaması olmadan da girebilir
-                } else {
-                   console.log("Yetkisiz erişim: E-posta onaylanmamış.");
-                   window.location.href = "login.html";
-                   return;
+                console.log("Yetkisiz erişim: E-posta onaylanmamış.");
+                if (loader) loader.style.display = 'none';
+                // Eğer zaten login sayfasında değilsek oraya at
+                if (!window.location.pathname.includes('login.html')) {
+                    alert("Hesabınızı kullanabilmek için e-postanıza gelen onay linkine tıklayın.");
+                    auth.signOut().then(() => { window.location.href = "login.html"; });
                 }
+                resolve({ authorized: false, data: {} });
+                return;
             }
 
             try {
+                // 3. Kullanıcı Verilerini Çek
                 const userDocRef = doc(db, "users", user.uid);
                 const userDoc = await getDoc(userDocRef);
                 
                 if (userDoc.exists()) {
                     const data = userDoc.data();
-                    const now = new Date();
-
-                    // Tarih Ayıklama (Timestamp veya String uyumluluğu)
-                    let trialEndsAt;
-                    if (data.trialEndsAt && typeof data.trialEndsAt.toDate === 'function') {
-                        trialEndsAt = data.trialEndsAt.toDate();
-                    } else if (data.trialEndsAt) {
-                        trialEndsAt = new Date(data.trialEndsAt);
-                    } else {
-                        trialEndsAt = new Date(0); // Tarih yoksa süresi bitmiş say
-                    }
-
-                    const isExpired = now > (trialEndsAt.getTime() + (1000 * 60 * 60)); // +1 Saat nezaket süresi
-
-                    // SAHA PERSONELİ İSTİSNASI: Onlar her zaman yetkilidir (Manager üzerinden)
-                    if (data.isFieldStaff || data.role === 'isci') {
-                        const loader = document.getElementById('auth-guard-loader');
-                        if (loader) loader.style.display = 'none';
-                        resolve({ authorized: true, data });
+                    
+                    // İşçi/Saha Personeli ise ve ana dashboard'a girmeye çalışıyorsa yönlendir
+                    if ((data.isFieldStaff || data.role === 'isci' || data.role === 'forman') && window.location.pathname.includes('dashboard.html')) {
+                        window.location.href = "worker-sahaboss.html";
                         return;
                     }
 
-                    // HEM Premium değilse HEM DE süresi bitmişse engelle
-                    if (!data.isPremium && isExpired) {
-                        console.error("Yetkisiz erişim: Abonelik süresi dolmuş.");
-                        
-                        // Eğer zaten abonelik sayfasında değilsek oraya at
-                        if (!window.location.pathname.includes('dashboard.html') && 
-                            !window.location.pathname.includes('abonelik.html')) {
-                            alert("Kullanım süreniz sona ermiştir. Lütfen aboneliğinizi yenileyin.");
-                            window.location.href = "dashboard.html"; 
+                    // Yönetici ise ve abonelik bitmişse dashboard dışındaki yerleri engelle
+                    // (SahaBOSS sayfası bir istisnadır, yönetici ekibini her zaman yönetebilmeli)
+                    const isSahaPage = window.location.pathname.includes('admin-sahaboss.html') || window.location.pathname.includes('app-sahaboss.html');
+                    
+                    if (!data.isPremium && !isSahaPage) {
+                        const trialEndsAt = data.trialEndsAt?.toDate ? data.trialEndsAt.toDate() : new Date(data.trialEndsAt || 0);
+                        if (new Date() > trialEndsAt) {
+                            if (!window.location.pathname.includes('dashboard.html')) {
+                                alert("Abonelik süreniz dolmuştur.");
+                                window.location.href = "dashboard.html";
+                            }
+                            resolve({ authorized: false, data });
+                            return;
                         }
-                        resolve({ authorized: false, data });
-                    } else {
-                        // Giriş Başarılı - Sayfayı Göster
-                        const loader = document.getElementById('auth-guard-loader');
-                        if (loader) loader.style.display = 'none';
-                        resolve({ authorized: true, data });
                     }
+
+                    if (loader) loader.style.display = 'none';
+                    resolve({ authorized: true, data });
                 } else {
                     console.error("Kullanıcı kaydı bulunamadı.");
-                    window.location.href = "login.html";
+                    if (loader) loader.style.display = 'none';
+                    resolve({ authorized: false, data: {} });
                 }
             } catch (error) {
-                console.error("GÜVENLİK KRİTİK HATASI:", error);
-                const loader = document.getElementById('auth-guard-loader');
+                console.error("KRİTİK GÜVENLİK HATASI:", error);
                 if (loader) loader.style.display = 'none';
-                resolve({ authorized: true, data: { role: 'admin' } }); // Hata durumunda bile Admin'e geçiş izni ver (bypass)
+                resolve({ authorized: true, data: { role: 'admin' } }); // Acil durumda engelleme
             }
         });
     });
