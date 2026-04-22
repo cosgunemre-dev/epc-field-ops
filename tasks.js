@@ -43,10 +43,10 @@ export function initTasks() {
             where('assignedTo', '==', window.user.uid)
         );
     } else {
-        // Şef/Müdür: Projedeki tüm görevler
+        // Şef/Müdür: Kendi atadığı veya kendi projesindeki görevler
         q = query(
             collection(db, 'tasks'),
-            where('projectId', '==', u.projectId)
+            where('assignedBy', '==', window.user.uid)
         );
     }
 
@@ -71,6 +71,7 @@ export function initTasks() {
 
     // Alt kademeyi yükle (atama yapabilmek için)
     loadSubordinates();
+    loadProjectsForManager();
 }
 
 async function loadSubordinates() {
@@ -78,8 +79,8 @@ async function loadSubordinates() {
     const myRole = (u.role || '').toLowerCase();
     const myRank = ROLE_RANKS[myRole] || 99;
     
-    // Projedeki herkesi çek (büyük projelerde limitlenmeli)
-    const q = query(collection(db, 'users'), where('projectId', '==', u.projectId));
+    // Sadece bu yöneticinin doğrudan yönettiği (eklediği) personelleri çek
+    const q = query(collection(db, 'users'), where('managedBy', '==', window.user.uid));
     
     onSnapshot(q, (snapshot) => {
         const users = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -98,6 +99,20 @@ async function loadSubordinates() {
             subordinates.forEach(s => {
                 const roleLabel = (s.role || 'isci').toUpperCase();
                 select.innerHTML += `<option value="${s.id}">${s.name} [${roleLabel}]</option>`;
+            });
+        }
+    });
+}
+
+async function loadProjectsForManager() {
+    const q = query(collection(db, 'projects'), where('ownerId', '==', window.user.uid));
+    onSnapshot(q, (snapshot) => {
+        const select = document.getElementById('nt-project');
+        if (select) {
+            select.innerHTML = '<option value="">— Proje Seçin —</option>';
+            snapshot.forEach(doc => {
+                const p = doc.data();
+                select.innerHTML += `<option value="${doc.id}">${p.name}</option>`;
             });
         }
     });
@@ -331,9 +346,10 @@ document.getElementById('btn-save-new-task').onclick = async () => {
     const desc = document.getElementById('nt-desc').value.trim();
     const priority = document.getElementById('nt-priority').value;
     const assigneeId = document.getElementById('nt-assignee').value;
+    const selectedProjectId = document.getElementById('nt-project')?.value || window.userData.projectId;
 
-    if (!title || !assigneeId) {
-        alert('Lütfen başlık ve personeli doldurun.');
+    if (!title || !assigneeId || !selectedProjectId) {
+        alert('Lütfen proje, başlık ve personeli doldurun.');
         return;
     }
 
@@ -351,7 +367,7 @@ document.getElementById('btn-save-new-task').onclick = async () => {
             assignedToName: assignee ? assignee.name : 'Unknown',
             assignedBy: window.user.uid,
             assignedByName: window.userData.name,
-            projectId: window.userData.projectId,
+            projectId: selectedProjectId,
             status: 'pending',
             createdAt: serverTimestamp()
         });
