@@ -40,14 +40,6 @@ export async function protectPage() {
                 if (userDoc.exists()) {
                     const data = userDoc.data();
                     
-                    // İşçi/Saha Personeli ise ve ana dashboard'a girmeye çalışıyorsa yönlendir
-                    // KRİTİK: Eğer kullanıcı PREMİUM ise yönlendirme yapma, ana dashboard'da kalabilsin.
-                    const isStaff = data.isFieldStaff || data.role === 'isci' || data.role === 'forman';
-                    if (isStaff && !data.isPremium && window.location.pathname.includes('dashboard.html')) {
-                        window.location.href = "worker-sahaboss.html";
-                        return;
-                    }
-
                     // Yönetici ise ve abonelik bitmişse dashboard dışındaki yerleri engelle
                     // (SahaBOSS sayfası bir istisnadır, yönetici ekibini her zaman yönetebilmeli)
                     const isSahaPage = window.location.pathname.includes('admin-sahaboss.html') || window.location.pathname.includes('app-sahaboss.html');
