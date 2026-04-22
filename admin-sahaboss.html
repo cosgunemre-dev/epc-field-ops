@@ -129,19 +129,42 @@
 
         // GÜVENLİK
         protectPage().then(async ({ authorized, data }) => {
-            if (!authorized || (data.role !== 'admin' && data.role !== 'koordinator' && !data.isPremium)) {
-                // Sadece yönetici veya premium üyeler girebilir
-                // alert('Bu sayfaya sadece yöneticiler erişebilir.');
-                // window.location.href = 'dashboard.html';
-            }
+            if (!authorized) return;
+            
             window.adminUser = auth.currentUser;
             window.adminData = data;
-            document.getElementById('user-email-text').innerText = data.email;
+            
+            if (document.getElementById('user-email-text')) {
+                document.getElementById('user-email-text').innerText = data.email || window.adminUser.email;
+            }
+            
             document.getElementById('loader').style.display = 'none';
 
-            loadStaff();
-            loadProjects();
+            // Verileri Yükle
+            loadStaff(window.adminUser.uid);
+            loadProjects(window.adminUser.uid);
         });
+
+        function loadStaff(uid) {
+            console.log("Ekip yükleniyor, UID:", uid);
+            const q = query(collection(db, 'users'), where('managedBy', '==', uid));
+            onSnapshot(q, (snapshot) => {
+                console.log("Ekip verisi geldi, Adet:", snapshot.size);
+                const tbody = document.getElementById('staff-table-body');
+                if (!tbody) return;
+                tbody.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const u = doc.data();
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><strong>${u.name}</strong><br><small>${u.email}</small></td>
+                            <td><span class="badge" style="background:rgba(255,255,255,0.1)">${u.role.toUpperCase()}</span></td>
+                            <td><button class="btn btn-ghost" style="padding:5px 10px; font-size:10px;" onclick="window.deleteUser('${doc.id}')">Kaldır</button></td>
+                        </tr>
+                    `;
+                });
+            });
+        }
 
         // PERSONEL KAYDI
         document.getElementById('form-add-staff').onsubmit = async (e) => {
@@ -201,10 +224,13 @@
             });
         }
 
-        async function loadProjects() {
-             const q = query(collection(db, 'projects'), where('ownerId', '==', window.adminUser.uid));
+        function loadProjects(uid) {
+             console.log("Projeler yükleniyor, UID:", uid);
+             const q = query(collection(db, 'projects'), where('ownerId', '==', uid));
              onSnapshot(q, (snapshot) => {
+                 console.log("Proje verisi geldi, Adet:", snapshot.size);
                  const container = document.getElementById('project-list');
+                 if (!container) return;
                  container.innerHTML = '';
                  snapshot.forEach(doc => {
                      const p = doc.data();

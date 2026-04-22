@@ -83,24 +83,22 @@ async function loadSubordinates() {
     const q = query(collection(db, 'users'), where('managedBy', '==', window.user.uid));
     
     onSnapshot(q, (snapshot) => {
+        console.log("Alt kademe verisi geldi, Adet:", snapshot.size);
         const users = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         
-        // Sadece daha düşük rütbelileri filtrele
-        subordinates = users.filter(user => {
-            const itsRole = (user.role || '').toLowerCase();
-            const itsRank = ROLE_RANKS[itsRole] || 99;
-            return itsRank > myRank;
-        });
+        subordinates = users; // Filtrelemeyi şimdilik geniş tutalım ki kimse kaçmasın
 
-        // Dropdown'ı doldur
         const select = document.getElementById('nt-assignee');
         if (select) {
             select.innerHTML = '<option value="">— Personel Seçin —</option>';
             subordinates.forEach(s => {
                 const roleLabel = (s.role || 'isci').toUpperCase();
-                select.innerHTML += `<option value="${s.id}">${s.name} [${roleLabel}]</option>`;
+                select.innerHTML += `<option value="${s.id}">${s.name || s.displayName} [${roleLabel}]</option>`;
             });
+            console.log("Personel dropdown güncellendi.");
         }
+    }, (err) => {
+        console.error("PERSONEL ÇEKME HATASI (Rules?):", err);
     });
 }
 
