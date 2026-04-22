@@ -7,13 +7,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <style>
-        :root { --bg: #0f172a; --surface: #1e293b; --accent: #f59e0b; --text: #f1f5f9; --text-dim: #94a3b8; --border: rgba(255, 255, 255, 0.1); }
+        :root { --bg: #0f172a; --surface: #1e293b; --accent: #f59e0b; --text: #f1f5f9; --text-dim: #94a3b8; --border: rgba(255, 255, 255, 0.1); --danger: #ef4444; }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Outfit', sans-serif; }
-        body { background: var(--bg); color: var(--text); padding: 40px; }
+        body { background: var(--bg); color: var(--text); padding: 40px; min-height: 100vh; }
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
         .card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 30px; margin-bottom: 30px; }
-        h2 { margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        h2 { margin-bottom: 20px; display: flex; align-items: center; gap: 10px; font-size: 1.2rem; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } body { padding: 20px; } }
         
         .form-group { margin-bottom: 15px; }
         label { display: block; font-size: 0.8rem; color: var(--text-dim); margin-bottom: 6px; }
@@ -30,21 +31,24 @@
         td { padding: 15px 10px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
         .badge { padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 800; }
         
-        .hidden { display: none; }
-        #loader { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 100; }
+        .hidden { display: none !important; }
+        #loader { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        
+        .loader-spin { width: 40px; height: 40px; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-    <div id="loader"><i class='bx bx-loader-alt bx-spin' style="font-size: 3rem; color: var(--accent);"></i></div>
+    <div id="loader"><div class="loader-spin"></div></div>
 
     <header>
         <div>
-            <a href="app-sahaboss.html" style="color: var(--text-dim); text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; gap: 5px; margin-bottom: 10px;"><i class='bx bx-arrow-back'></i> Geri Dön</a>
+            <a href="dashboard.html" style="color: var(--text-dim); text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; gap: 5px; margin-bottom: 10px;"><i class='bx bx-arrow-back'></i> Geri Dön</a>
             <h1>Saha Ekibi ve Proje Yönetimi</h1>
         </div>
-        <div class="user-info">
-            <span id="user-email-text" style="font-size: 0.9rem; color: var(--text-dim);">...</span>
+        <div class="user-info" style="text-align: right;">
+            <span id="user-email-text" style="font-size: 0.85rem; color: var(--text-dim);">...</span>
         </div>
     </header>
 
@@ -60,23 +64,20 @@
                     <label>Rol / Ünvan</label>
                     <select id="st-role">
                         <option value="koordinator">Koordinatör (Tüm Yetkiler)</option>
-                        <option value="mudur">Proje Müdürü</option>
+                        <option value="mudur" selected>Proje Müdürü</option>
                         <option value="sef">Şef / Mühendis</option>
                         <option value="forman">Formen</option>
-                        <option value="isci" selected>İşçi (Kısıtlı Görünüm)</option>
+                        <option value="isci">İşçi (Kısıtlı Görünüm)</option>
                     </select>
                 </div>
                 <button type="submit" class="btn btn-primary" style="width: 100%;" id="btn-save-staff"><i class='bx bx-save'></i> Personeli Kaydet ve Yetkilendir</button>
             </form>
-            <p style="font-size: 0.7rem; color: var(--text-dim); margin-top: 15px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
-                <i class='bx bx-info-circle'></i> İşçiyi buraya kaydettikten sonra, ona verdiğiniz e-posta ve şifre ile "İşçi Portalı" üzerinden giriş yapabilir.
-            </p>
         </div>
 
         <!-- EKİP LİSTESİ -->
         <div class="card">
             <h2><i class='bx bx-group'></i> Mevcut Saha Ekibi</h2>
-            <div id="staff-list-container">
+            <div id="staff-list-container" style="max-height: 400px; overflow-y: auto;">
                 <table>
                     <thead><tr><th>PERSONEL</th><th>ROL</th><th>İŞLEM</th></tr></thead>
                     <tbody id="staff-table-body">
@@ -87,7 +88,7 @@
         </div>
     </div>
 
-    <!-- PROJE LİSTESİ (ALTTA) -->
+    <!-- PROJE LİSTESİ -->
     <div class="card">
         <h2><i class='bx bx-layer'></i> Sahadaki Projeler</h2>
         <div style="display: flex; gap: 10px; margin-bottom: 20px;">
@@ -99,21 +100,22 @@
         </div>
     </div>
 
-    <!-- MODAL (Şifre Değiştirme vb. için gerekirse) -->
-
     <!-- SCRIPTS -->
     <script type="module">
-        import { auth, db, storage } from './firebase-app.js';
+        import { auth, db } from './firebase-app.js';
         import { protectPage } from './auth-guard-central.js';
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-auth.js";
         import { 
             collection, query, where, getDocs, addDoc, setDoc, doc, onSnapshot, serverTimestamp, deleteDoc 
         } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
         
-        // ÖNEMLİ: Kendi oturumumuzu bozmadan yeni kullanıcı açmak için ikincil bir firebase app kuruyoruz
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-auth.js";
+        // ZORLU LOADER KAPATICI: 5 saniye sonra ne olursa olsun halkayı kapat
+        setTimeout(() => {
+            const loader = document.getElementById('loader');
+            if (loader) loader.style.display = 'none';
+        }, 5000);
 
-        // İkincil App Ayarları (firebase-app.js'den kopyalanmış)
         const secondaryApp = initializeApp({
             apiKey: "AIzaSyAWlSm4uQ1r4_5R5BJzmi2EsoB5LHD62xY",
             authDomain: "epc-field-ops.firebaseapp.com",
@@ -125,45 +127,51 @@
         const secondaryAuth = getAuth(secondaryApp);
 
         window.adminUser = null;
-        window.adminData = null;
 
-        // GÜVENLİK
+        // GÜVENLİK VE BAŞLATMA
         protectPage().then(async ({ authorized, data }) => {
-            if (!authorized) return;
+            document.getElementById('loader').style.display = 'none';
             
             window.adminUser = auth.currentUser;
-            window.adminData = data;
+            if (!window.adminUser) return;
             
-            if (document.getElementById('user-email-text')) {
-                document.getElementById('user-email-text').innerText = data.email || window.adminUser.email;
-            }
-            
-            document.getElementById('loader').style.display = 'none';
+            document.getElementById('user-email-text').innerText = window.adminUser.email;
 
-            // Verileri Yükle
             loadStaff(window.adminUser.uid);
             loadProjects(window.adminUser.uid);
+        }).catch(err => {
+            console.error("Başlatma hatası:", err);
+            document.getElementById('loader').style.display = 'none';
         });
 
         function loadStaff(uid) {
-            console.log("Ekip yükleniyor, UID:", uid);
             const q = query(collection(db, 'users'), where('managedBy', '==', uid));
             onSnapshot(q, (snapshot) => {
-                console.log("Ekip verisi geldi, Adet:", snapshot.size);
                 const tbody = document.getElementById('staff-table-body');
-                if (!tbody) return;
                 tbody.innerHTML = '';
                 snapshot.forEach(doc => {
                     const u = doc.data();
                     tbody.innerHTML += `
                         <tr>
-                            <td><strong>${u.name}</strong><br><small>${u.email}</small></td>
-                            <td><span class="badge" style="background:rgba(255,255,255,0.1)">${u.role.toUpperCase()}</span></td>
+                            <td><strong>${u.name || u.displayName}</strong><br><small>${u.email}</small></td>
+                            <td><span class="badge" style="background:rgba(255,255,255,0.1)">${(u.role || 'isci').toUpperCase()}</span></td>
                             <td><button class="btn btn-ghost" style="padding:5px 10px; font-size:10px;" onclick="window.deleteUser('${doc.id}')">Kaldır</button></td>
                         </tr>
                     `;
                 });
-            });
+            }, (err) => console.error("Ekip yükleme hatası:", err));
+        }
+
+        function loadProjects(uid) {
+             const q = query(collection(db, 'projects'), where('ownerId', '==', uid));
+             onSnapshot(q, (snapshot) => {
+                 const container = document.getElementById('project-list');
+                 container.innerHTML = '';
+                 snapshot.forEach(doc => {
+                     const p = doc.data();
+                     container.innerHTML += `<span class="badge" style="background:var(--accent); color:#000; padding:10px 15px; font-size:0.9rem;">${p.name}</span>`;
+                 });
+             }, (err) => console.error("Proje yükleme hatası:", err));
         }
 
         // PERSONEL KAYDI
@@ -179,85 +187,37 @@
             btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Kaydediliyor...";
 
             try {
-                // 1. İkincil auth kanalıyla kullanıcıyı aç
                 const cred = await createUserWithEmailAndPassword(secondaryAuth, em, pw);
-                const newUid = cred.user.uid;
-
-                // 2. Firestore'a rolüyle birlikte kaydet
-                await setDoc(doc(db, 'users', newUid), {
-                    name: nm,
-                    displayName: nm,
-                    email: em,
-                    role: rl,
-                    projectId: window.adminData.projectId || 'default_project',
+                await setDoc(doc(db, 'users', cred.user.uid), {
+                    name: nm, displayName: nm, email: em, role: rl,
                     managedBy: window.adminUser.uid,
                     createdAt: serverTimestamp(),
-                    isFieldStaff: true // Saha personeli olduğunu işaretle
+                    isFieldStaff: true
                 });
-
-                alert(`${nm} başarıyla kaydedildi. Artık sisteme girebilir.`);
+                alert(`${nm} başarıyla kaydedildi.`);
                 document.getElementById('form-add-staff').reset();
             } catch (err) {
-                alert('Kayıt Hatası: ' + err.message);
+                alert('Hata: ' + err.message);
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = "<i class='bx bx-save'></i> Personeli Kaydet ve Yetkilendir";
+                btn.innerHTML = "<i class='bx bx-save'></i> Personeli Kaydet";
             }
         };
 
-        function loadStaff() {
-            // Sadece bu adminin yönettiği ekibi çek
-            const q = query(collection(db, 'users'), where('managedBy', '==', window.adminUser.uid));
-            onSnapshot(q, (snapshot) => {
-                const tbody = document.getElementById('staff-table-body');
-                tbody.innerHTML = '';
-                snapshot.forEach(doc => {
-                    const u = doc.data();
-                    tbody.innerHTML += `
-                        <tr>
-                            <td><strong>${u.name}</strong><br><small>${u.email}</small></td>
-                            <td><span class="badge" style="background:rgba(255,255,255,0.1)">${u.role.toUpperCase()}</span></td>
-                            <td><button class="btn btn-ghost" style="padding:5px 10px; font-size:10px;" onclick="window.deleteUser('${doc.id}')">Kaldır</button></td>
-                        </tr>
-                    `;
-                });
-            });
-        }
-
-        function loadProjects(uid) {
-             console.log("Projeler yükleniyor, UID:", uid);
-             const q = query(collection(db, 'projects'), where('ownerId', '==', uid));
-             onSnapshot(q, (snapshot) => {
-                 console.log("Proje verisi geldi, Adet:", snapshot.size);
-                 const container = document.getElementById('project-list');
-                 if (!container) return;
-                 container.innerHTML = '';
-                 snapshot.forEach(doc => {
-                     const p = doc.data();
-                     container.innerHTML += `<span class="badge" style="background:var(--accent); color:#000; padding:10px 15px; font-size:0.9rem;">${p.name}</span>`;
-                 });
-             });
-        }
-
         document.getElementById('btn-add-project').onclick = async () => {
             const name = document.getElementById('new-project-name').value.trim();
-            if(!name) return;
-            await addDoc(collection(db, 'projects'), {
-                name,
-                ownerId: window.adminUser.uid,
-                createdAt: serverTimestamp()
-            });
-            document.getElementById('new-project-name').value = '';
+            if(!name || !window.adminUser) return;
+            try {
+                await addDoc(collection(db, 'projects'), {
+                    name, ownerId: window.adminUser.uid, createdAt: serverTimestamp()
+                });
+                document.getElementById('new-project-name').value = '';
+            } catch (err) { alert('Proje eklenemedi: ' + err.message); }
         };
 
         window.deleteUser = async (id) => {
-            if(confirm('Bu personeli ekipten kaldırmak istediğinize emin misiniz?')) {
-                try {
-                    await deleteDoc(doc(db, 'users', id));
-                    alert('Personel başarıyla kaldırıldı.');
-                } catch(err) {
-                    alert('Silme sırasında bir hata oluştu: ' + err.message);
-                }
+            if(confirm('Kaldırmak istediğinize emin misiniz?')) {
+                try { await deleteDoc(doc(db, 'users', id)); } catch(err) { alert('Hata: ' + err.message); }
             }
         }
     </script>
