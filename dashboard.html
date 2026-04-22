@@ -178,6 +178,17 @@
                         <span style="display: inline-block; padding: 8px 16px; background: rgba(139, 92, 246, 0.1); color: #8b5cf6; border-radius: 8px; font-weight: 600; font-size: 0.9rem;" id="trenchcalc-action-text">Uygulamayı Aç →</span>
                     </a>
 
+                    <!-- SahaBOSS Modülü -->
+                    <div class="app-card" id="sahaboss-card">
+                        <div class="app-icon">🏗️</div>
+                        <h3>SahaBOSS — Saha Yönetimi <span class="status-badge" id="sahaboss-badge">AKTİF</span></h3>
+                        <p>Hiyerarşik görev atama, canlı GPS takibi ve fotoğraflı günlük raporlama ile sahanızı dijitalden yönetin.</p>
+                        <div style="display: flex; gap: 10px; margin-top: 10px;">
+                            <a href="app-sahaboss.html" class="nav-item" style="padding: 8px 12px; background: rgba(245, 158, 11, 0.1); color: var(--accent); border-radius: 8px; font-weight: 600; font-size: 0.8rem; border: 1px solid var(--accent);">Saha Paneli (Admin) →</a>
+                            <a href="worker-sahaboss.html" class="nav-item" style="padding: 8px 12px; background: rgba(56, 189, 248, 0.1); color: #38bdf8; border-radius: 8px; font-weight: 600; font-size: 0.8rem; border: 1px solid #38bdf8;">İşçi Portalı →</a>
+                        </div>
+                    </div>
+
                     <!-- Makenik V6 Plancı -->
                     <a href="app-makenik.html" class="app-card" id="makenik-card">
                         <div class="app-icon">⚙️</div>
@@ -231,7 +242,7 @@
                 // Tüm kartları döngüyle kilitliyoruz
                 const cardIds = [
                     'kablo-card', 'mobilizasyon-card', 'tracker-card', 
-                    'trenchcalc-card', 'makenik-card', 'omnisync-card'
+                    'trenchcalc-card', 'makenik-card', 'omnisync-card', 'sahaboss-card'
                 ];
                 
                 cardIds.forEach(id => {
