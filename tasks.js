@@ -1,3 +1,6 @@
+// SAHABOSS TEŞHİS SİSTEMİ - V1.1
+alert("SahaBOSS: Teşhis Sistemi Yayında!\n\nEğer bu yazıyı görüyorsanız kodlar başarıyla güncellenmiştir.");
+
 import { db, storage } from './firebase-app.js';
 import { 
     collection, query, where, onSnapshot, doc, updateDoc, 
@@ -15,11 +18,17 @@ let currentTasks = [];
 let subordinates = [];
 
 export function initTasks() {
+    console.log("initTasks TETİKLENDİ");
     const u = window.userData;
-    if (!u) { console.error("Kullanıcı verisi eksik!"); return; }
+    if (!u) { 
+        alert("KRİTİK HATA: Kullanıcı verisi (userData) yüklenemedi!");
+        return; 
+    }
 
     let q;
     const role = (u.role || '').toLowerCase();
+    
+    console.log("Kullanıcı Rolü:", role, "UID:", window.user.uid);
 
     // GÖREVLERİ YÜKLE
     if (['isci', 'forman'].includes(role)) {
@@ -33,29 +42,27 @@ export function initTasks() {
         tasks.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
         currentTasks = tasks;
         renderTasks();
-        updateStats();
     }, (err) => {
-        console.error("GÖREV YÜKLEME HATASI:", err);
+        alert("GÖREV ÇEKME VERİTABANI HATASI: " + err.message);
     });
 
-    // EKİBİ VE PROJELERİ YÜKLE (TEŞHİS MODU)
     loadSubordinates();
     loadProjectsForManager();
 }
 
 async function loadSubordinates() {
-    console.log("Ekip aranıyor... UID:", window.user.uid);
+    console.log("Ekip verisi sorgulanıyor...");
     const q = query(collection(db, 'users'), where('managedBy', '==', window.user.uid));
     
     onSnapshot(q, (snapshot) => {
-        console.log("EKİP VERİSİ GELDİ! Adet:", snapshot.size);
+        console.log("PERSONEL VERİSİ GELDİ:", snapshot.size);
         subordinates = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 
         const select = document.getElementById('nt-assignee');
         if (select) {
             select.innerHTML = '<option value="">— Personel Seçin —</option>';
             if (subordinates.length === 0) {
-                select.innerHTML = '<option value="">(Ekipte Kimse Yok!)</option>';
+                select.innerHTML = '<option value="">(EKİPTE KİMSE BULUNAMADI!)</option>';
             }
             subordinates.forEach(s => {
                 const roleLabel = (s.role || 'isci').toUpperCase();
@@ -63,21 +70,20 @@ async function loadSubordinates() {
             });
         }
     }, (err) => {
-        alert("EKİP ÇEKME HATASI: " + err.message);
-        console.error("Ekip Çekme Hatası:", err);
+        alert("EKİP VERİSİ ÇEKİLEMEDİ: " + err.message);
     });
 }
 
 async function loadProjectsForManager() {
-    console.log("Projeler aranıyor... OwnerUID:", window.user.uid);
+    console.log("Projeler sorgulanıyor...");
     const q = query(collection(db, 'projects'), where('ownerId', '==', window.user.uid));
     onSnapshot(q, (snapshot) => {
-        console.log("PROJE VERİSİ GELDİ! Adet:", snapshot.size);
+        console.log("PROJE VERİSİ GELDİ:", snapshot.size);
         const select = document.getElementById('nt-project');
         if (select) {
             select.innerHTML = '<option value="">— Proje Seçin —</option>';
             if (snapshot.size === 0) {
-                select.innerHTML = '<option value="">(Proje Bulunamadı!)</option>';
+                select.innerHTML = '<option value="">(SAHADA HİÇ PROJE YOK!)</option>';
             }
             snapshot.forEach(doc => {
                 const p = doc.data();
@@ -85,36 +91,21 @@ async function loadProjectsForManager() {
             });
         }
     }, (err) => {
-        alert("PROJE ÇEKME HATASI: " + err.message);
-        console.error("Proje Çekme Hatası:", err);
+        alert("PROJE VERİSİ ÇEKİLEMEDİ: " + err.message);
     });
 }
 
 function renderTasks() {
     if (currentTasks.length === 0) {
-        tasksContainer.innerHTML = '<p class="text-center" style="color:var(--text-muted); padding:40px;">Henüz görev atanmamış.</p>';
+        tasksContainer.innerHTML = '<p class="text-center" style="color:var(--text-muted); padding:40px;">Hata yok, ancak henüz görev atanmamış.</p>';
         return;
     }
     tasksContainer.innerHTML = currentTasks.map(t => `
         <div class="task-item" onclick="openTaskDetail('${t.id}')">
             <div class="task-header"><span class="task-title">${t.title}</span></div>
-            <div class="task-meta"><span class="task-status status-${t.status || 'pending'}">${getStatusLabel(t.status)}</span></div>
+            <div class="task-meta"><span class="task-status">${t.status}</span></div>
         </div>
     `).join('');
-}
-
-function getStatusLabel(s) {
-    const labels = {'pending': 'Beklemede', 'ongoing': 'Devam Ediyor', 'completed': 'Onay Bekliyor', 'approved': 'Onaylandı', 'returned': 'İade Edildi'};
-    return labels[s] || s;
-}
-
-function updateStats() {
-    const pending = currentTasks.filter(t => t.status === 'pending').length;
-    const done = currentTasks.filter(t => t.status === 'approved').length;
-    const statP = document.getElementById('stat-pending');
-    if(statP) statP.textContent = pending;
-    const statD = document.getElementById('stat-done');
-    if(statD) statD.textContent = done;
 }
 
 window.openNewTaskModal = () => document.getElementById('modal-new-task').classList.remove('hidden');
@@ -122,40 +113,27 @@ window.closeNewTaskModal = () => document.getElementById('modal-new-task').class
 
 document.getElementById('btn-save-new-task').onclick = async () => {
     const title = document.getElementById('nt-title').value.trim();
-    const desc = document.getElementById('nt-desc').value.trim();
-    const priority = document.getElementById('nt-priority').value;
     const assigneeId = document.getElementById('nt-assignee').value;
-    const selectedProjectId = document.getElementById('nt-project')?.value;
+    const projId = document.getElementById('nt-project').value;
 
-    if (!title || !assigneeId || !selectedProjectId) {
-        alert('Lütfen PROJE, BAŞLIK ve PERSONEL alanlarını doldurun.');
+    if (!title || !assigneeId || !projId) {
+        alert('Lütfen PROJE, PERSONEL ve BAŞLIK seçin!');
         return;
     }
 
-    const assignee = subordinates.find(s => s.id === assigneeId);
     const btn = document.getElementById('btn-save-new-task');
     btn.disabled = true;
-
     try {
         await addDoc(collection(db, 'tasks'), {
-            title, description: desc, priority,
+            title, 
             assignedTo: assigneeId,
-            assignedToName: assignee ? (assignee.displayName || assignee.name) : 'Personel',
             assignedBy: window.user.uid,
-            assignedByName: window.userData.displayName || window.userData.name || 'Yönetici',
-            projectId: selectedProjectId,
+            projectId: projId,
             status: 'pending',
             createdAt: serverTimestamp()
         });
-        alert('Görev başarıyla atandı!');
+        alert('GÖREV BAŞARIYLA KAYDEDİLDİ!');
         window.closeNewTaskModal();
-    } catch (err) { alert('Hata: ' + err.message); }
+    } catch (err) { alert('Kaydetme hatası: ' + err.message); }
     finally { btn.disabled = false; }
-};
-
-window.openTaskDetail = (id) => {
-    const t = currentTasks.find(x => x.id === id);
-    if (!t) return;
-    detailOverlay.classList.remove('hidden');
-    detailContent.innerHTML = `<div class="card"><h2>${t.title}</h2><p>${t.description || ''}</p></div>`;
 };
