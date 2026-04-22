@@ -9,7 +9,7 @@
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-    <link rel="stylesheet" href="css/sahaboss/sahaboss.css">
+    <link rel="stylesheet" href="sahaboss.css">
     <style>
         .btn-back-dash { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 20px; display: flex; align-items: center; }
         /* İşçi için bazı alanları gizle */
@@ -136,10 +136,10 @@
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-auth.js";
         import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
         
-        import { initTasks } from './js/sahaboss/tasks.js';
-        import { initLocation } from './js/sahaboss/location.js';
-        import { initMap } from './js/sahaboss/maps.js';
-        import { initNotifications } from './js/sahaboss/notifications.js';
+        import { initTasks } from './tasks.js';
+        import { initLocation } from './location.js';
+        import { initMap } from './maps.js';
+        import { initNotifications } from './notifications.js';
 
         window.user = null;
         window.userData = null;

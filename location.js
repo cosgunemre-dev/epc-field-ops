@@ -1,4 +1,4 @@
-import { db } from '../../firebase-app.js';
+import { db } from './firebase-app.js';
 import { 
     collection, addDoc, serverTimestamp 
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";

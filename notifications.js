@@ -1,4 +1,4 @@
-import { db } from '../../firebase-app.js';
+import { db } from './firebase-app.js';
 import { 
     collection, query, where, onSnapshot, orderBy, limit, doc, updateDoc, writeBatch 
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
