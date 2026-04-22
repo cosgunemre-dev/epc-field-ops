@@ -26,7 +26,6 @@
         .page { display: none; }
         .page.active { display: block; }
 
-        /* Loader */
         #loader { position: fixed; inset: 0; background: #0f172a; z-index: 999; display: flex; align-items: center; justify-content: center; }
         .spin { width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.1); border-top-color: #f59e0b; border-radius: 50%; animation: s 1s linear infinite; }
         @keyframes s { to { transform: rotate(360deg); } }
@@ -43,49 +42,44 @@
         </header>
 
         <main class="main-content">
-            <!-- ÖZET -->
             <section id="page-dashboard" class="page active">
                 <div class="card">
                     <h3>Hoş Geldin!</h3>
-                    <p style="color: #94a3b8; font-size: 0.8rem;">Sana atanan işleri "Görevlerim" sekmesinden takip edebilirsin.</p>
+                    <p style="color: #94a3b8; font-size: 0.8rem;">İşlerini "Görevlerim" sekmesinden takip edebilirsin.</p>
                 </div>
             </section>
 
-            <!-- GÖREVLER -->
             <section id="page-tasks" class="page">
-                <h3>Sana Atanan İşler</h3>
+                <h3>Görevlerim</h3>
                 <div id="tasks-container">
-                    <p style="text-align: center; color: #94a3b8;">Yükleniyor...</p>
+                    <p style="text-align: center; color: #94a3b8;">Görevler yükleniyor...</p>
                 </div>
             </section>
 
-            <!-- HARİTA -->
             <section id="page-map" class="page">
-                <h3>Saha Haritası</h3>
+                <h3>Harita</h3>
                 <div id="map-container" style="height: 300px; background: #000; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #333;">
-                    HARİTA MODÜLÜ AKTİF
+                    Harita Modülü Hazır
                 </div>
             </section>
 
-            <!-- PROFİL -->
             <section id="page-profile" class="page">
                 <div class="card text-center">
                     <h3 id="p-name">...</h3>
                     <p style="color: #94a3b8; font-size: 0.8rem;">Saha Personeli</p>
                 </div>
-                <!-- PREMİUM İÇİN GERİ DÖNÜŞ BUTONU -->
                 <div id="premium-back-section" class="hidden">
                     <button class="btn btn-primary" style="margin-bottom: 10px;" onclick="window.location.href='dashboard.html'"><i class='bx bx-home'></i> Dashboard'a Geri Dön</button>
-                    <p style="font-size: 0.7rem; color: #94a3b8; margin-bottom: 20px;">Premium üye olduğunuz için diğer araçlara erişebilirsiniz.</p>
+                    <p style="font-size: 0.7rem; color: #94a3b8; margin-bottom: 20px;">Premium üye olduğunuz için her yere erişebilirsiniz.</p>
                 </div>
-                <button class="btn btn-ghost" id="btn-refresh">Uygulamayı Yenile</button>
+                <button class="btn btn-ghost" id="btn-refresh">Yenile</button>
                 <button class="btn btn-danger" style="margin-top: 10px;" id="btn-logout">Oturumu Kapat</button>
             </section>
         </main>
 
         <nav class="tab-bar">
             <div class="tab-item active" data-nav="dashboard"><i class='bx bxs-dashboard'></i><span>Özet</span></div>
-            <div class="tab-item" data-nav="tasks"><i class='bx bx-list-ul'></i><span>İşlerim</span></div>
+            <div class="tab-item" data-nav="tasks"><i class='bx bx-list-ul'></i><span>Görevler</span></div>
             <div class="tab-item" data-nav="map"><i class='bx bx-map-alt'></i><span>Harita</span></div>
             <div class="tab-item" data-nav="profile"><i class='bx bx-user-circle'></i><span>Profil</span></div>
         </nav>
@@ -94,32 +88,34 @@
     <script type="module">
         import { auth, db, signOut } from './firebase-app.js';
         import { protectPage } from './auth-guard-central.js';
-        import { initTasks } from './tasks.js?v=100';
+        import { initTasks } from './tasks.js?v=111';
 
-        protectPage().then(async ({ authorized, data }) => {
+        // BALYOZ TIMEOUT: 5 sn sonra ne olursa olsun halkayı kapat
+        setTimeout(() => {
             const loader = document.getElementById('loader');
             if (loader) loader.style.display = 'none';
+        }, 5000);
 
+        protectPage().then(async ({ authorized, data }) => {
+            document.getElementById('loader').style.display = 'none';
             if (!authorized) return;
 
             window.user = auth.currentUser;
             window.userData = data;
 
-            document.getElementById('display-name').textContent = data.displayName || data.name || 'Personel';
-            document.getElementById('p-name').textContent = data.displayName || data.name || 'Personel';
+            document.getElementById('display-name').textContent = data.displayName || data.name || 'Saha Elemanı';
+            document.getElementById('p-name').textContent = data.displayName || data.name || 'Saha Elemanı';
 
-            // Premium ise dashboard butonunu göster
             if (data.isPremium) {
                 document.getElementById('premium-back-section').classList.remove('hidden');
             }
 
-            initApp();
-        });
-
-        function initApp() {
             initNavigation();
-            initTasks(); // Görevleri yükle
-        }
+            initTasks();
+        }).catch(err => {
+            console.error("Giriş Hatası:", err);
+            document.getElementById('loader').style.display = 'none';
+        });
 
         function initNavigation() {
             const tabs = document.querySelectorAll('.tab-item');
@@ -135,9 +131,7 @@
             });
         }
 
-        document.getElementById('btn-logout').onclick = () => {
-            signOut(auth).then(() => window.location.href = 'login.html');
-        };
+        document.getElementById('btn-logout').onclick = () => signOut(auth).then(() => window.location.href = 'login.html');
         document.getElementById('btn-refresh').onclick = () => window.location.reload();
     </script>
 </body>
