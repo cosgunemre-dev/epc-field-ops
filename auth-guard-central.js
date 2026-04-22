@@ -16,9 +16,18 @@ export async function protectPage() {
             }
 
             if (!user.emailVerified) {
-                console.log("Yetkisiz erişim: E-posta onaylanmamış.");
-                window.location.href = "login.html";
-                return;
+                // Saha personeli olup olmadığını anlamak için önce veriyi çekelim
+                const userDocRef = doc(db, "users", user.uid);
+                const userDoc = await getDoc(userDocRef);
+                const data = userDoc.exists() ? userDoc.data() : {};
+
+                if (data.isFieldStaff || data.role === 'isci') {
+                   // Saha personeli e-posta doğrulaması olmadan da girebilir
+                } else {
+                   console.log("Yetkisiz erişim: E-posta onaylanmamış.");
+                   window.location.href = "login.html";
+                   return;
+                }
             }
 
             try {
@@ -40,6 +49,14 @@ export async function protectPage() {
                     }
 
                     const isExpired = now > (trialEndsAt.getTime() + (1000 * 60 * 60)); // +1 Saat nezaket süresi
+
+                    // SAHA PERSONELİ İSTİSNASI: Onlar her zaman yetkilidir (Manager üzerinden)
+                    if (data.isFieldStaff || data.role === 'isci') {
+                        const loader = document.getElementById('auth-guard-loader');
+                        if (loader) loader.style.display = 'none';
+                        resolve({ authorized: true, data });
+                        return;
+                    }
 
                     // HEM Premium değilse HEM DE süresi bitmişse engelle
                     if (!data.isPremium && isExpired) {

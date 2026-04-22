@@ -133,13 +133,22 @@
 
             try {
                 const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+                const user = userCredential.user;
                 
-                // GÜVENLİK YAMASI: E-posta Doğrulanmış Mı?
-                if (!userCredential.user.emailVerified) {
-                    await auth.signOut(); // Hemen geri çıkar
-                    showError(errLogin, "Güvenlik: E-postanızı henüz doğrulamadınız. Lütfen gelen kutunuzu (veya Spam'i) kontrol edip onay linkine tıklayın.");
+                // Firestore'dan kullanıcının rolünü anında kontrol et
+                const { db, doc, getDoc } = await import('./firebase-app.js');
+                const userSnap = await getDoc(doc(db, "users", user.uid));
+                const userData = userSnap.exists() ? userSnap.data() : {};
+
+                if (userData.isFieldStaff || userData.role === 'isci') {
+                    // SAHA PERSONELİ: Hiçbir onaya/aboneliğe bakmadan doğrudan portalına gönder
+                    window.location.href = "worker-sahaboss.html";
+                } else if (!user.emailVerified) {
+                    // NORMAL KULLANICI: Onaylı değilse dışarı at
+                    await auth.signOut();
+                    showError(errLogin, "Güvenlik: E-postanızı henüz doğrulamadınız. Lütfen gelen kutunuzu kontrol edip onay linkini tıklayın.");
                 } else {
-                    // Başarılı ve onaylı giriş
+                    // YÖNETİCİ/ABONE: Onaylıysa Dashboard'a gönder
                     window.location.href = "dashboard.html";
                 }
             } catch (error) {

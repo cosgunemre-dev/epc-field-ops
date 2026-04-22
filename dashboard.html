@@ -226,6 +226,13 @@
 
         // Güvenlik Bekçisi: Sayfa açıldığında yetkiyi kontrol et
         protectPage().then(({ authorized, data }) => {
+            // KULLANICI BİR SAHA PERSONELİ Mİ? 
+            if (data.isFieldStaff || data.role === 'isci') {
+                // Saha personeli Dashboard'u kullanamaz, portalına gönder
+                window.location.href = "worker-sahaboss.html";
+                return;
+            }
+
             // KULLANICI GİRİŞ YAPMIŞ, VERİLERİNİ ÇEKELİM
             document.getElementById('user-email-text').innerText = data.email || "---";
             const name = data.displayName || data.name || (data.email ? data.email.split('@')[0] : "Kullanıcı");
