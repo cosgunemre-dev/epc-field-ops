@@ -26,14 +26,27 @@
         .page { display: none; }
         .page.active { display: block; }
 
-        #loader { position: fixed; inset: 0; background: #0f172a; z-index: 999; display: flex; align-items: center; justify-content: center; }
-        .spin { width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.1); border-top-color: #f59e0b; border-radius: 50%; animation: s 1s linear infinite; }
+        #loader { position: fixed; inset: 0; background: #0f172a; z-index: 9999; display: flex; align-items: center; justify-content: center; }
+        .spin { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #f59e0b; border-radius: 50%; animation: s 1s linear infinite; }
         @keyframes s { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
+    <!-- YÜKLEME EKRANI -->
     <div id="loader"><div class="spin"></div></div>
+
+    <!-- SÜPER BALYOZ: Bu kod her türlü çalışır, modül hatası dinlemez -->
+    <script>
+        console.log("Süper Balyoz Sayacı Başladı...");
+        setTimeout(function() {
+            var l = document.getElementById('loader');
+            if (l && l.style.display !== 'none') {
+                console.warn("Otomatik Kapatma Devreye Girdi!");
+                l.style.display = 'none';
+            }
+        }, 5000); // 5 saniye sonra ne olursa olsun kapat
+    </script>
 
     <div class="app-container">
         <header class="top-bar">
@@ -45,21 +58,21 @@
             <section id="page-dashboard" class="page active">
                 <div class="card">
                     <h3>Hoş Geldin!</h3>
-                    <p style="color: #94a3b8; font-size: 0.8rem;">İşlerini "Görevlerim" sekmesinden takip edebilirsin.</p>
+                    <p style="color: #94a3b8; font-size: 0.8rem;">Saha görevlerine buradan erişebilirsin.</p>
                 </div>
             </section>
 
             <section id="page-tasks" class="page">
                 <h3>Görevlerim</h3>
                 <div id="tasks-container">
-                    <p style="text-align: center; color: #94a3b8;">Görevler yükleniyor...</p>
+                    <p style="text-align: center; color: #94a3b8; padding: 20px;">Sorgulanıyor...</p>
                 </div>
             </section>
 
             <section id="page-map" class="page">
-                <h3>Harita</h3>
-                <div id="map-container" style="height: 300px; background: #000; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #333;">
-                    Harita Modülü Hazır
+                <h3>Saha Haritası</h3>
+                <div id="map-container" style="height: 300px; background: rgba(0,0,0,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #333;">
+                    Harita Modulü
                 </div>
             </section>
 
@@ -68,33 +81,28 @@
                     <h3 id="p-name">...</h3>
                     <p style="color: #94a3b8; font-size: 0.8rem;">Saha Personeli</p>
                 </div>
+                <!-- PREMİUM İÇİN GERİ DÖNÜŞ BUTONU -->
                 <div id="premium-back-section" class="hidden">
-                    <button class="btn btn-primary" style="margin-bottom: 10px;" onclick="window.location.href='dashboard.html'"><i class='bx bx-home'></i> Dashboard'a Geri Dön</button>
-                    <p style="font-size: 0.7rem; color: #94a3b8; margin-bottom: 20px;">Premium üye olduğunuz için her yere erişebilirsiniz.</p>
+                    <button class="btn btn-primary" style="margin-bottom: 20px;" onclick="window.location.href='dashboard.html'"><i class='bx bx-home'></i> Dashboard'a Geri Dön</button>
+                    <p style="font-size: 0.7rem; color: #94a3b8; margin: -10px 0 20px;">Premium üye olduğunuz için her yere erişebilirsiniz.</p>
                 </div>
-                <button class="btn btn-ghost" id="btn-refresh">Yenile</button>
+                <button class="btn btn-ghost" onclick="window.location.reload()">Sayfayı Yenile</button>
                 <button class="btn btn-danger" style="margin-top: 10px;" id="btn-logout">Oturumu Kapat</button>
             </section>
         </main>
 
         <nav class="tab-bar">
             <div class="tab-item active" data-nav="dashboard"><i class='bx bxs-dashboard'></i><span>Özet</span></div>
-            <div class="tab-item" data-nav="tasks"><i class='bx bx-list-ul'></i><span>Görevler</span></div>
+            <div class="tab-item" data-nav="tasks"><i class='bx bx-list-ul'></i><span>İşlerim</span></div>
             <div class="tab-item" data-nav="map"><i class='bx bx-map-alt'></i><span>Harita</span></div>
             <div class="tab-item" data-nav="profile"><i class='bx bx-user-circle'></i><span>Profil</span></div>
         </nav>
     </div>
 
     <script type="module">
-        import { auth, db, signOut } from './firebase-app.js';
+        import { auth, signOut } from './firebase-app.js';
         import { protectPage } from './auth-guard-central.js';
-        import { initTasks } from './tasks.js?v=111';
-
-        // BALYOZ TIMEOUT: 5 sn sonra ne olursa olsun halkayı kapat
-        setTimeout(() => {
-            const loader = document.getElementById('loader');
-            if (loader) loader.style.display = 'none';
-        }, 5000);
+        import { initTasks } from './tasks.js?v=999';
 
         protectPage().then(async ({ authorized, data }) => {
             document.getElementById('loader').style.display = 'none';
@@ -103,8 +111,8 @@
             window.user = auth.currentUser;
             window.userData = data;
 
-            document.getElementById('display-name').textContent = data.displayName || data.name || 'Saha Elemanı';
-            document.getElementById('p-name').textContent = data.displayName || data.name || 'Saha Elemanı';
+            document.getElementById('display-name').textContent = data.displayName || data.name || 'Personel';
+            document.getElementById('p-name').textContent = data.displayName || data.name || 'Personel';
 
             if (data.isPremium) {
                 document.getElementById('premium-back-section').classList.remove('hidden');
@@ -131,8 +139,9 @@
             });
         }
 
-        document.getElementById('btn-logout').onclick = () => signOut(auth).then(() => window.location.href = 'login.html');
-        document.getElementById('btn-refresh').onclick = () => window.location.reload();
+        document.getElementById('btn-logout').onclick = () => {
+            signOut(auth).then(() => window.location.href = 'login.html');
+        };
     </script>
 </body>
 </html>
