@@ -5,176 +5,120 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#1e293b">
     <title>SahaBOSS — İşçi Portalı</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👷</text></svg>">
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="sahaboss.css">
     <style>
-        .btn-back-dash { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 20px; display: flex; align-items: center; }
-        /* İşçi için bazı alanları gizle */
-        #fab-add-task { display: none !important; }
+        body { font-family: 'Outfit', sans-serif; background: #0f172a; color: #fff; margin: 0; padding: 0; }
+        .app-container { min-height: 100vh; display: flex; flex-direction: column; }
+        .top-bar { padding: 15px 20px; background: #1e293b; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .main-content { flex: 1; padding: 20px; overflow-y: auto; }
+        .tab-bar { position: sticky; bottom: 0; background: #1e293b; display: flex; justify-content: space-around; padding: 12px; border-top: 1px solid rgba(255,255,255,0.1); }
+        .tab-item { text-align: center; color: #94a3b8; font-size: 0.7rem; cursor: pointer; }
+        .tab-item.active { color: #f59e0b; }
+        .tab-item i { font-size: 20px; display: block; margin-bottom: 4px; }
+        .card { background: #1e293b; border-radius: 12px; padding: 15px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.05); }
+        .btn { padding: 10px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; display: block; width: 100%; text-align: center; text-decoration: none; }
+        .btn-primary { background: #f59e0b; color: #000; }
+        .btn-danger { background: #ef4444; color: #fff; }
+        .btn-ghost { background: rgba(255,255,255,0.1); color: #fff; }
+        .hidden { display: none !important; }
+        .page { display: none; }
+        .page.active { display: block; }
+
+        /* Loader */
+        #loader { position: fixed; inset: 0; background: #0f172a; z-index: 999; display: flex; align-items: center; justify-content: center; }
+        .spin { width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.1); border-top-color: #f59e0b; border-radius: 50%; animation: s 1s linear infinite; }
+        @keyframes s { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
+    <div id="loader"><div class="spin"></div></div>
+
     <div class="app-container">
-        <!-- TOP BAR -->
         <header class="top-bar">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <button class="btn-back-dash" onclick="window.location.href='dashboard.html'"><i class='bx bx-arrow-back'></i></button>
-                <h1>SahaBOSS</h1>
-            </div>
-            <div class="user-info">
-                <div class="notif-bell" id="btn-notif" style="position: relative; margin-right: 15px; cursor: pointer;">
-                    <i class='bx bx-bell' style="font-size: 22px;"></i>
-                    <span id="notif-badge" class="hidden" style="position: absolute; top: -5px; right: -5px; background: var(--danger); color: #fff; font-size: 9px; padding: 2px 5px; border-radius: 50%; font-weight: 800;">0</span>
-                </div>
-                <span id="user-role-badge" class="task-priority priority-normal">PERSONEL</span>
-                <span id="display-name">...</span>
-                <button class="btn-logout" id="btn-logout" title="Çıkış"><i class='bx bx-log-out'></i></button>
-            </div>
+            <h1 style="font-size: 1.2rem; margin: 0;">SahaBOSS</h1>
+            <div id="display-name" style="font-size: 0.8rem; color: #94a3b8;">...</div>
         </header>
 
-        <!-- NOTIFICATION OVERLAY -->
-        <div id="notif-overlay" class="hidden" style="position: fixed; top: 60px; right: 10px; width: 280px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 12px; z-index: 500; box-shadow: 0 10px 25px rgba(0,0,0,0.5); overflow: hidden;">
-            <div style="padding: 12px; border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 700; display: flex; justify-content: space-between;">
-                <span>Bildirimler</span>
-                <button style="background:none; border:none; color:var(--primary); font-size:11px; cursor:pointer;" id="btn-mark-read">Hepsini Oku</button>
-            </div>
-            <div id="notif-list" style="max-height: 300px; overflow-y: auto;">
-                <p style="padding: 20px; font-size: 12px; color: var(--text-muted); text-align: center;">Bildirim yok.</p>
-            </div>
-        </div>
-
-        <main class="main-content" id="router-view">
-            <!-- DASHBOARD PAGE (SUMMARY) -->
+        <main class="main-content">
+            <!-- ÖZET -->
             <section id="page-dashboard" class="page active">
                 <div class="card">
-                    <div class="card-title"><i class='bx bx-check-circle'></i> Bugünkü Görevlerin</div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <div class="task-item" style="text-align: center;">
-                            <div style="font-size: 24px; font-weight: 800; color: var(--primary);" id="stat-pending">0</div>
-                            <div style="font-size: 11px; color: var(--text-muted);">YAPILACAK</div>
-                        </div>
-                        <div class="task-item" style="text-align: center;">
-                            <div style="font-size: 24px; font-weight: 800; color: var(--success);" id="stat-done">0</div>
-                            <div style="font-size: 11px; color: var(--text-muted);">TAMAMLANAN</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="ongoing-task-section" class="hidden">
-                    <div class="card-title" style="color: var(--info);"><i class='bx bx-play-circle'></i> Şu Anki İşin</div>
-                    <div id="ongoing-task-card"></div>
-                </div>
-
-                <div class="card">
-                    <div class="card-title"><i class='bx bx-broadcast'></i> Konum Paylaşımı</div>
-                    <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">Çalışma süresince konumunu paylaşman gerekmektedir.</p>
-                    <div style="display: flex; align-items: center; justify-content: space-between;">
-                        <div style="font-size: 13px;">Bağlantı: <span id="gps-status" style="color: var(--danger);">KAPALI</span></div>
-                        <label class="switch">
-                            <input type="checkbox" id="gps-toggle">
-                            <span class="slider round"></span>
-                        </label>
-                    </div>
+                    <h3>Hoş Geldin!</h3>
+                    <p style="color: #94a3b8; font-size: 0.8rem;">Sana atanan işleri "Görevlerim" sekmesinden takip edebilirsin.</p>
                 </div>
             </section>
 
-            <!-- TASKS PAGE -->
+            <!-- GÖREVLER -->
             <section id="page-tasks" class="page">
-                <div class="card-title"><i class='bx bx-list-ul'></i> Sana Atanan İşler</div>
+                <h3>Sana Atanan İşler</h3>
                 <div id="tasks-container">
-                    <p class="text-center" style="color:var(--text-muted); padding:40px;">Yükleniyor...</p>
+                    <p style="text-align: center; color: #94a3b8;">Yükleniyor...</p>
                 </div>
             </section>
 
-            <!-- MAP PAGE -->
+            <!-- HARİTA -->
             <section id="page-map" class="page">
-                <div class="card-title"><i class='bx bx-map-pin'></i> Saha Haritası ve Görev Yerin</div>
-                <div id="map-container"></div>
+                <h3>Saha Haritası</h3>
+                <div id="map-container" style="height: 300px; background: #000; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #333;">
+                    HARİTA MODÜLÜ AKTİF
+                </div>
             </section>
 
-            <!-- PROFILE PAGE -->
+            <!-- PROFİL -->
             <section id="page-profile" class="page">
                 <div class="card text-center">
-                    <div style="width: 80px; height: 80px; background: linear-gradient(135deg, var(--success), var(--info)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 800; color: #fff; margin: 0 auto 16px;" id="profile-initial">?</div>
-                    <h3 id="profile-name">...</h3>
-                    <div style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">SAHA PERSONELİ</div>
+                    <h3 id="p-name">...</h3>
+                    <p style="color: #94a3b8; font-size: 0.8rem;">Saha Personeli</p>
                 </div>
-                <div class="card">
-                    <button class="btn btn-ghost btn-block" onclick="window.location.reload()"><i class='bx bx-refresh'></i> Uygulamayı Yenile</button>
-                    <button class="btn btn-danger btn-block mt-20" id="btn-logout-alt"><i class='bx bx-log-out'></i> Çıkış Yap</button>
+                <!-- PREMİUM İÇİN GERİ DÖNÜŞ BUTONU -->
+                <div id="premium-back-section" class="hidden">
+                    <button class="btn btn-primary" style="margin-bottom: 10px;" onclick="window.location.href='dashboard.html'"><i class='bx bx-home'></i> Dashboard'a Geri Dön</button>
+                    <p style="font-size: 0.7rem; color: #94a3b8; margin-bottom: 20px;">Premium üye olduğunuz için diğer araçlara erişebilirsiniz.</p>
                 </div>
+                <button class="btn btn-ghost" id="btn-refresh">Uygulamayı Yenile</button>
+                <button class="btn btn-danger" style="margin-top: 10px;" id="btn-logout">Oturumu Kapat</button>
             </section>
-
-            <!-- TASK DETAIL OVERLAY -->
-            <div id="task-detail-overlay" class="hidden" style="position: fixed; inset: 0; background: var(--bg); z-index: 200; display: flex; flex-direction: column;">
-                <div class="top-bar">
-                    <button class="btn-logout" id="btn-close-task"><i class='bx bx-chevron-left' style="font-size: 28px;"></i>Geri</button>
-                    <h2 style="font-size: 16px;">Görev Detayı</h2>
-                    <div style="width: 40px;"></div>
-                </div>
-                <div class="main-content" id="task-detail-content"></div>
-            </div>
         </main>
 
-        <!-- TAB BAR -->
         <nav class="tab-bar">
             <div class="tab-item active" data-nav="dashboard"><i class='bx bxs-dashboard'></i><span>Özet</span></div>
-            <div class="tab-item" data-nav="tasks"><i class='bx bx-list-ul'></i><span>Görevin</span></div>
+            <div class="tab-item" data-nav="tasks"><i class='bx bx-list-ul'></i><span>İşlerim</span></div>
             <div class="tab-item" data-nav="map"><i class='bx bx-map-alt'></i><span>Harita</span></div>
             <div class="tab-item" data-nav="profile"><i class='bx bx-user-circle'></i><span>Profil</span></div>
         </nav>
     </div>
 
-    <!-- SCRIPTS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script type="module">
         import { auth, db, signOut } from './firebase-app.js';
-        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-auth.js";
-        import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
-        
-        import { initTasks } from './tasks.js';
-        import { initLocation } from './location.js';
-        import { initMap } from './maps.js';
-        import { initNotifications } from './notifications.js';
+        import { protectPage } from './auth-guard-central.js';
+        import { initTasks } from './tasks.js?v=100';
 
-        window.user = null;
-        window.userData = null;
+        protectPage().then(async ({ authorized, data }) => {
+            const loader = document.getElementById('loader');
+            if (loader) loader.style.display = 'none';
 
-        // İŞÇİ GİRİŞİ: auth-guard-central mail onayı falan istediğinden işçi için direkt onAuthStateChanged kullanıyoruz
-        onAuthStateChanged(auth, async (u) => {
-            if (!u) {
-                window.location.href = 'login.html';
-                return;
+            if (!authorized) return;
+
+            window.user = auth.currentUser;
+            window.userData = data;
+
+            document.getElementById('display-name').textContent = data.displayName || data.name || 'Personel';
+            document.getElementById('p-name').textContent = data.displayName || data.name || 'Personel';
+
+            // Premium ise dashboard butonunu göster
+            if (data.isPremium) {
+                document.getElementById('premium-back-section').classList.remove('hidden');
             }
-            const snap = await getDoc(doc(db, 'users', u.uid));
-            if (!snap.exists()) {
-                alert('Kullanıcı bulunamadı.');
-                signOut(auth);
-                return;
-            }
-            window.user = u;
-            window.userData = snap.data();
-            
-            // Eğer rolü yoksa 'isci' olarak kabul et
-            if (!window.userData.role) window.userData.role = 'isci';
 
             initApp();
         });
 
-        async function initApp() {
-            document.getElementById('display-name').textContent = window.userData.displayName || window.userData.name;
-            document.getElementById('profile-name').textContent = window.userData.displayName || window.userData.name;
-            document.getElementById('profile-initial').textContent = (window.userData.displayName || window.userData.name)[0];
-
+        function initApp() {
             initNavigation();
-            initTasks();
-            initLocation();
-            initMap();
-            initNotifications();
+            initTasks(); // Görevleri yükle
         }
 
         function initNavigation() {
@@ -187,14 +131,14 @@
                     tab.classList.add('active');
                     pages.forEach(p => p.classList.remove('active'));
                     document.getElementById('page-' + target).classList.add('active');
-                    if (target === 'map' && window.map) window.map.invalidateSize();
                 });
             });
         }
 
-        document.getElementById('btn-logout').onclick = () => signOut(auth).then(() => window.location.href='login.html');
-        document.getElementById('btn-logout-alt').onclick = () => signOut(auth).then(() => window.location.href='login.html');
-        document.getElementById('btn-close-task').onclick = () => document.getElementById('task-detail-overlay').classList.add('hidden');
+        document.getElementById('btn-logout').onclick = () => {
+            signOut(auth).then(() => window.location.href = 'login.html');
+        };
+        document.getElementById('btn-refresh').onclick = () => window.location.reload();
     </script>
 </body>
 </html>

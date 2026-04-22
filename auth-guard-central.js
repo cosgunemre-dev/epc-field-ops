@@ -41,7 +41,9 @@ export async function protectPage() {
                     const data = userDoc.data();
                     
                     // İşçi/Saha Personeli ise ve ana dashboard'a girmeye çalışıyorsa yönlendir
-                    if ((data.isFieldStaff || data.role === 'isci' || data.role === 'forman') && window.location.pathname.includes('dashboard.html')) {
+                    // KRİTİK: Eğer kullanıcı PREMİUM ise yönlendirme yapma, ana dashboard'da kalabilsin.
+                    const isStaff = data.isFieldStaff || data.role === 'isci' || data.role === 'forman';
+                    if (isStaff && !data.isPremium && window.location.pathname.includes('dashboard.html')) {
                         window.location.href = "worker-sahaboss.html";
                         return;
                     }
