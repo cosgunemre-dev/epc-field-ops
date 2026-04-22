@@ -1,4 +1,6 @@
-import { auth, onAuthStateChanged, db, doc, getDoc } from './firebase-app.js';
+import { auth, db } from './firebase-app.js';
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-auth.js";
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
 
 /**
  * Güvenlik Duvarı - EPC Field Ops Merkezi Yetkilendirme Sistemi
