@@ -106,7 +106,7 @@
         import { auth, db, storage } from './firebase-app.js';
         import { protectPage } from './auth-guard-central.js';
         import { 
-            collection, query, where, getDocs, addDoc, setDoc, doc, onSnapshot, serverTimestamp 
+            collection, query, where, getDocs, addDoc, setDoc, doc, onSnapshot, serverTimestamp, deleteDoc 
         } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
         
         // ÖNEMLİ: Kendi oturumumuzu bozmadan yeni kullanıcı açmak için ikincil bir firebase app kuruyoruz
@@ -226,10 +226,12 @@
 
         window.deleteUser = async (id) => {
             if(confirm('Bu personeli ekipten kaldırmak istediğinize emin misiniz?')) {
-                // Not: Auth'dan silmek profesyonel çözüm için Backend gerektirir. 
-                // Şimdilik Firestore yetkisini siliyoruz.
-                // await deleteDoc(doc(db, 'users', id));
-                alert('Silme işlemi için yönetici ile irtibata geçin (Şu an sadece deaktif edilebilir).');
+                try {
+                    await deleteDoc(doc(db, 'users', id));
+                    alert('Personel başarıyla kaldırıldı.');
+                } catch(err) {
+                    alert('Silme sırasında bir hata oluştu: ' + err.message);
+                }
             }
         }
     </script>

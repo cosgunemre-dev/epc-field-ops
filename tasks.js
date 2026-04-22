@@ -359,29 +359,32 @@ document.getElementById('btn-save-new-task').onclick = async () => {
     btn.textContent = 'Atanıyor...';
 
     try {
+        console.log("Görev Atama Başlatıldı:", { title, assigneeId, selectedProjectId });
+        
         await addDoc(collection(db, 'tasks'), {
             title,
             description: desc,
             priority,
             assignedTo: assigneeId,
-            assignedToName: assignee ? assignee.name : 'Unknown',
+            assignedToName: assignee ? (assignee.displayName || assignee.name) : 'Saha Personeli',
             assignedBy: window.user.uid,
-            assignedByName: window.userData.name,
+            assignedByName: window.userData.displayName || window.userData.name || 'Yönetici',
             projectId: selectedProjectId,
             status: 'pending',
             createdAt: serverTimestamp()
         });
 
         // BİLDİRİM: Personale haber ver
-        await addNotificationRecord(assigneeId, 'Yeni Görev!', `${window.userData.name} size yeni bir görev atadı: ${title}`);
+        await addNotificationRecord(assigneeId, 'Yeni Görev!', `${window.userData.name || 'Yönetici'} size yeni bir görev atadı: ${title}`);
 
-        alert('Görev başarıyla atandı.');
+        alert('Görev başarıyla atandı!');
         window.closeNewTaskModal();
         // Formu temizle
         document.getElementById('nt-title').value = '';
         document.getElementById('nt-desc').value = '';
     } catch (err) {
-        alert('Görev kaydedilemedi: ' + err.message);
+        console.error("Görev Kayıt Hatası:", err);
+        alert('Görev KAYDEDİLEMEDİ: ' + err.message + '\n\nİpucu: Firestore kurallarını veya proje bağlantısını kontrol edin.');
     } finally {
         btn.disabled = false;
         btn.textContent = 'Görev Ata';
