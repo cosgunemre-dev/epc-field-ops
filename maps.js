@@ -1,146 +1,114 @@
 import { db } from './firebase-app.js';
 import { 
-    collection, query, onSnapshot, where, orderBy, limit 
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    collection, query, where, onSnapshot, getDocs, orderBy, limit, Timestamp 
+} from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
 
-let map = null;
-let userMarkers = {};
-let taskMarkers = {};
-
-// Katmanlar
-let baseMaps = {};
+let map;
+let markers = {};
+let routeLines = [];
 
 export function initMap() {
-    const mapEl = document.getElementById('map-container');
-    if (!mapEl) return;
+    console.log("Harita Sistemi Yükleniyor...");
+    const mapDiv = document.getElementById('map-container');
+    if (!mapDiv) return;
 
-    // Normal Harita (OpenStreetMap)
-    const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // Haritayı başlat (Default: Türkiye merkez)
+    map = L.map('map-container').setView([39.9334, 32.8597], 6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap'
-    });
+    }).addTo(map);
 
-    // Uydu Görüntüsü (Esri World Imagery)
-    const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EBP, and the GIS User Community'
-    });
-
-    map = L.map('map-container', {
-        center: [38.4192, 27.1287],
-        zoom: 13,
-        layers: [osm] // Varsayılan katman
-    });
     window.map = map;
 
-    baseMaps = {
-        "Normal Harita": osm,
-        "Uydu Görüntüsü": satellite
-    };
-
-    // Katman Kontrolü (Sağ Üstte)
-    L.control.layers(baseMaps).addTo(map);
-
-    // Saha Ekibi Konumlarını Dinle
-    if (['sef', 'mudur', 'koordinator', 'baskan', 'admin'].includes((window.userData.role || '').toLowerCase())) {
-        listenToTeamLocations();
-    }
-
-    // Görev Konumlarını Dinle
-    listenToTaskLocations();
+    // EKİBİ GERÇEK ZAMANLI TAKİP ET
+    loadTeamLocations();
     
-    // Kendi konumuna odaklan
-    navigator.geolocation.getCurrentPosition(pos => {
-        const { latitude, longitude } = pos.coords;
-        map.setView([latitude, longitude], 15);
-        addMyMarker(latitude, longitude);
-    });
+    // PROJELERİ GÖSTER
+    loadProjectsOnMap();
 }
 
-function addMyMarker(lat, lng) {
-    L.circleMarker([lat, lng], {
-        radius: 8,
-        fillColor: "var(--info)",
-        color: "#fff",
-        weight: 2,
-        opacity: 1,
-        fillOpacity: 0.8
-    }).addTo(map).bindPopup('Siz');
-}
-
-function getHelmetColor(role) {
-    role = (role || '').toLowerCase();
-    if (['admin', 'baskan', 'koordinator'].includes(role)) return '#ffffff'; // Beyaz (Yönetim)
-    if (['mudur', 'sef', 'muhendis'].includes(role)) return '#38bdf8'; // Mavi (Teknik)
-    return '#fbbf24'; // Sarı (Saha)
-}
-
-function listenToTeamLocations() {
-    const q = query(collection(db, 'users'), where('projectId', '==', window.userData.projectId));
-    
-    onSnapshot(q, (snapshot) => {
-        snapshot.docs.forEach(userDoc => {
-            const userData = userDoc.data();
-            const userId = userDoc.id;
-            if (userId === window.user.uid) return;
-
-            // Her kullanıcının son 20 konum logunu çek
-            const posQuery = query(
-                collection(db, 'locations', userId, 'logs'),
-                limit(20)
-            );
-
-            onSnapshot(posQuery, (posSnapshot) => {
-                if (posSnapshot.empty) return;
-
-                // JS Tarafında sırala
-                const logs = posSnapshot.docs.map(d => ({ ...d.data() }));
-                logs.sort((a, b) => (a.timestamp?.toMillis() || 0) - (b.timestamp?.toMillis() || 0));
-
-                const points = logs.map(l => [l.lat, l.lng]);
-                const lastPos = points[points.length - 1];
-
-                // 1. Marker'ı Güncelle (Kask)
-                const hColor = getHelmetColor(userData.role);
-                if (userMarkers[userId]) {
-                    userMarkers[userId].setLatLng(lastPos);
-                } else {
-                    const helmetIcon = L.divIcon({
-                        className: 'custom-div-icon',
-                        html: `<div style="background:${hColor}; width:30px; height:30px; border-radius:50%; border:3px solid #1e293b; display:flex; align-items:center; justify-content:center; font-size:16px; box-shadow:0 0 10px rgba(0,0,0,0.5);">👷</div>`,
-                        iconSize: [30, 30],
-                        iconAnchor: [15, 15]
-                    });
-                    userMarkers[userId] = L.marker(lastPos, { icon: helmetIcon }).addTo(map)
-                        .bindPopup(`<strong>${userData.name}</strong><br>${(userData.role || '').toUpperCase()}`);
-                }
-            }, (error) => {
-                // Konum logları için dizin hatası alınırsa sadece sessizce geç
-            });
-        });
-    });
-}
-
-function listenToTaskLocations() {
-    const q = query(collection(db, 'tasks'), where('projectId', '==', window.userData.projectId));
+async function loadTeamLocations() {
+    const q = query(collection(db, 'users'), where('managedBy', '==', window.user.uid));
     
     onSnapshot(q, (snapshot) => {
         snapshot.docs.forEach(doc => {
             const data = doc.data();
-            if (data.location && data.location.lat && data.location.lng) {
-                if (taskMarkers[doc.id]) map.removeLayer(taskMarkers[doc.id]);
-                
-                const taskColor = data.priority === 'urgent' ? 'var(--danger)' : 'var(--primary)';
-                const taskIcon = L.divIcon({
-                    className: 'task-marker',
-                    html: `<div style="background:${taskColor}; width:12px; height:12px; border-radius:2px; border:2px solid #fff; transform:rotate(45deg);"></div>`,
-                    iconSize: [12, 12]
-                });
+            const uid = doc.id;
 
-                const marker = L.marker([data.location.lat, data.location.lng], { icon: taskIcon })
-                    .addTo(map)
-                    .bindPopup(`<strong>${data.title}</strong><br>Durum: ${data.status}`);
+            if (data.lastLocation) {
+                const { lat, lng } = data.lastLocation;
                 
-                taskMarkers[doc.id] = marker;
+                // Eskisini sil veya güncelle
+                if (markers[uid]) {
+                    markers[uid].setLatLng([lat, lng]);
+                } else {
+                    const icon = L.divIcon({
+                        className: 'custom-div-icon',
+                        html: `<div style="background:#f59e0b; color:#000; border:2px solid #fff; border-radius:50%; width:30px; height:30px; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:10px; box-shadow:0 2px 5px rgba(0,0,0,0.5);">${(data.name || 'P')[0]}</div>`,
+                        iconSize: [30, 30],
+                        iconAnchor: [15, 15]
+                    });
+
+                    markers[uid] = L.marker([lat, lng], {icon: icon})
+                        .addTo(map)
+                        .bindPopup(`
+                            <div style="font-family: 'Outfit', sans-serif;">
+                                <b style="color:#000;">${data.name || data.displayName}</b><br>
+                                <small style="color:#666;">Son Görülme: ${data.lastSeen ? new Date(data.lastSeen.toMillis()).toLocaleTimeString() : '---'}</small><br>
+                                <button onclick="window.showUserRoute('${uid}')" style="margin-top:10px; background:#1e293b; color:#fff; border:none; padding:5px 10px; border-radius:5px; cursor:pointer; width:100%; font-size:11px;">1 Haftalık Rotayı Çiz</button>
+                            </div>
+                        `);
+                }
             }
         });
+    });
+}
+
+// BİR PERSONELİN 1 HAFTALIK ROTASINI ÇİZ
+window.showUserRoute = async (uid) => {
+    // Önceki rotaları temizle
+    routeLines.forEach(line => map.removeLayer(line));
+    routeLines = [];
+
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+    const q = query(
+        collection(db, 'users', uid, 'locationHistory'),
+        where('timestamp', '>=', Timestamp.fromDate(oneWeekAgo)),
+        orderBy('timestamp', 'asc')
+    );
+
+    try {
+        const snap = await getDocs(q);
+        const path = snap.docs.map(d => [d.data().lat, d.data().lng]);
+
+        if (path.length > 0) {
+            const polyline = L.polyline(path, {color: '#f59e0b', weight: 4, opacity: 0.7, dashArray: '5, 10'}).addTo(map);
+            routeLines.push(polyline);
+            map.fitBounds(polyline.getBounds());
+            alert(`${path.length} noktadan oluşan 1 haftalık rota çizildi.`);
+        } else {
+            alert("Bu personel için seçili tarihlerde rota verisi bulunamadı.");
+        }
+    } catch (err) {
+        console.error("Rota çizme hatası:", err);
+        alert("Rota verisi çekilirken bir hata oluştu (İndeks oluşturuluyor olabilir).");
+    }
+}
+
+async function loadProjectsOnMap() {
+    const q = query(collection(db, 'projects'), where('ownerId', '==', window.user.uid));
+    const snap = await getDocs(q);
+    snap.forEach(doc => {
+        const p = doc.data();
+        if (p.center) { // Eğer proje konumu varsa
+            L.circle([p.center.lat, p.center.lng], {
+                color: '#38bdf8',
+                fillColor: '#38bdf8',
+                fillOpacity: 0.2,
+                radius: 500
+            }).addTo(map).bindPopup(`Proje: ${p.name}`);
+        }
     });
 }

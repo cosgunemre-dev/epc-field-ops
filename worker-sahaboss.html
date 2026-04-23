@@ -25,10 +25,7 @@
         .hidden { display: none !important; }
         .page { display: none; }
         .page.active { display: block; }
-
-        /* Görev Detay Paneli (Saha Formu) */
         #task-detail-overlay { position: fixed; inset: 0; background: #0f172a; z-index: 1000; display: flex; flex-direction: column; overflow-y: auto; }
-        
         #loader { position: fixed; inset: 0; background: #0f172a; z-index: 10000; display: flex; align-items: center; justify-content: center; }
         .spin { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #f59e0b; border-radius: 50%; animation: s 1s linear infinite; }
         @keyframes s { to { transform: rotate(360deg); } }
@@ -46,11 +43,25 @@
 
         <main class="main-content">
             <section id="page-dashboard" class="page active">
-                <div class="card"><h3>Hoş Geldin!</h3><p style="color:#94a3b8; font-size:0.8rem;">İşlerini alttaki "Görevin" sekmesinden takip et.</p></div>
+                <div class="card"><h3>Hoş Geldin!</h3><p style="color:#94a3b8; font-size:0.8rem;">Saha görevlerine ve diğer programlara buradan erişebilirsin.</p></div>
+                
+                <!-- OTOMATİK TAKİP BİLGİ KARTI -->
+                <div class="card" style="border-left: 4px solid #10b981;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-weight: 800; font-size: 0.85rem; color: #10b981;">GÜVENLİ TAKİP AKTİF</div>
+                            <p style="font-size: 0.7rem; color: #94a3b8; margin-top: 4px;">Konumunuz 10 dk aralıklarla yöneticiyle paylaşılır.</p>
+                        </div>
+                        <i class='bx bxs-check-shield' style="font-size: 24px; color: #10b981;"></i>
+                    </div>
+                </div>
+
                 <div class="card"><button class="btn btn-primary" onclick="window.location.href='dashboard.html'"><i class='bx bx-home'></i> Ana Dashboard'a Dön</button></div>
             </section>
+            
             <section id="page-tasks" class="page"><h3>Görevlerim</h3><div id="tasks-container"><p class="text-center">Yükleniyor...</p></div></section>
             <section id="page-map" class="page"><h3>İş Haritası</h3><div class="card">Haritaya ihtiyaç duyduğunda konuma tıkla.</div></section>
+            
             <section id="page-profile" class="page">
                 <div class="card text-center"><h3 id="p-name">...</h3><p style="color:#94a3b8; font-size:0.8rem;">Saha Ekibi</p></div>
                 <button class="btn btn-danger" onclick="location.href='login.html'">Güvenli Çıkış</button>
@@ -65,7 +76,7 @@
         </nav>
     </div>
 
-    <!-- GÖREV DETAY (SAHA FORMU) PENCERESİ -->
+    <!-- GÖREV DETAY PENCERESİ -->
     <div id="task-detail-overlay" class="hidden">
         <div class="top-bar">
             <button class="btn-ghost" style="width: auto;" onclick="document.getElementById('task-detail-overlay').classList.add('hidden')"><i class='bx bx-chevron-left'></i> Geri</button>
@@ -82,13 +93,15 @@
             document.querySelectorAll('.tab-item').forEach(function(t) { t.classList.remove('active'); });
             document.getElementById('page-' + pageId).classList.add('active');
             el.classList.add('active');
+            if (pageId === 'map' && window.map) window.map.invalidateSize();
         }
     </script>
 
     <script type="module">
         import { auth, db } from './firebase-app.js';
         import { protectPage } from './auth-guard-central.js';
-        import { initTasks } from './tasks.js?v=99999';
+        import { initTasks } from './tasks.js?v=111';
+        import { initLocation } from './location.js?v=111';
 
         protectPage().then(async ({ authorized, data }) => {
             document.getElementById('loader').style.display = 'none';
@@ -96,7 +109,9 @@
             window.user = auth.currentUser;
             window.userData = data;
             document.getElementById('p-name').textContent = data.name || 'Personel';
+            
             initTasks();
+            initLocation(); // TAKİP SİSTEMİNİ BAŞLAT
         });
     </script>
 </body>

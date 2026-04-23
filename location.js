@@ -1,83 +1,68 @@
 import { db } from './firebase-app.js';
 import { 
-    collection, addDoc, serverTimestamp 
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    doc, updateDoc, collection, addDoc, serverTimestamp 
+} from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
 
 let trackingInterval = null;
-const gpsStatus = document.getElementById('gps-status');
-const gpsToggle = document.getElementById('gps-toggle');
 
 export function initLocation() {
-    // Önceki tercihi hatırla (localStorage)
-    const isTracking = localStorage.getItem('sahaBoss_gps_enabled') === 'true';
-    gpsToggle.checked = isTracking;
+    console.log("SahaBOSS Akıllı Takip Sistemi Başlatıldı.");
+    
+    // Uygulama açılır açılmaz ilk konumu gönder
+    sendLocation(true);
 
-    if (isTracking) {
-        startTracking();
+    // Her 10 dakikada bir (600.000 ms) sessizce güncelle
+    if (trackingInterval) clearInterval(trackingInterval);
+    trackingInterval = setInterval(() => {
+        sendLocation(false);
+    }, 600000); 
+
+    // Kullanıcıya bir durum mesajı (Opsiyonel)
+    const gpsStatus = document.getElementById('gps-status');
+    if (gpsStatus) {
+        gpsStatus.textContent = 'OTOMATİK TAKİP AKTİF';
+        gpsStatus.style.color = '#10b981';
     }
-
-    gpsToggle.addEventListener('change', (e) => {
-        if (e.target.checked) {
-            startTracking();
-            localStorage.setItem('sahaBoss_gps_enabled', 'true');
-        } else {
-            stopTracking();
-            localStorage.setItem('sahaBoss_gps_enabled', 'false');
-        }
-    });
 }
 
-function startTracking() {
+async function sendLocation(isInitial = false) {
     if (!navigator.geolocation) {
-        alert('Cihazınız GPS desteklemiyor.');
-        gpsToggle.checked = false;
+        console.warn('GPS Desteklenmiyor.');
         return;
     }
 
-    gpsStatus.textContent = 'AKTİF';
-    gpsStatus.style.color = 'var(--success)';
-
-    // İlk konumu hemen al
-    sendLocation();
-
-    // Dakikada bir tekrarla (60000 ms)
-    trackingInterval = setInterval(sendLocation, 60000);
-}
-
-function stopTracking() {
-    if (trackingInterval) {
-        clearInterval(trackingInterval);
-        trackingInterval = null;
-    }
-    gpsStatus.textContent = 'KAPALI';
-    gpsStatus.style.color = 'var(--danger)';
-}
-
-async function sendLocation() {
     navigator.geolocation.getCurrentPosition(async (pos) => {
-        const { latitude, longitude, accuracy, heading, speed } = pos.coords;
-        
+        const { latitude, longitude, accuracy, speed } = pos.coords;
+        const uid = window.user?.uid;
+        if (!uid) return;
+
         try {
-            // Logs koleksiyonuna yaz
-            await addDoc(collection(db, 'locations', window.user.uid, 'logs'), {
+            // 1. ANLIK KONUM (Yöneticinin canlı görmesi için)
+            await updateDoc(doc(db, 'users', uid), {
+                lastLocation: { lat: latitude, lng: longitude },
+                lastSeen: serverTimestamp(),
+                isOnline: true
+            });
+
+            // 2. ROTA GEÇMİŞİ (Breadcrumbs - 1 haftalık hafıza için)
+            // Sadece ana güncellemelerde veya ilk açılışta rotaya ekle
+            await addDoc(collection(db, 'users', uid, 'locationHistory'), {
                 lat: latitude,
                 lng: longitude,
-                accuracy: accuracy,
-                heading: heading,
-                speed: speed,
+                acc: accuracy || 0,
+                spd: speed || 0,
                 timestamp: serverTimestamp()
             });
 
-            // Ayrıca harita için "lastLocation" bilgisini kullanıcı dokümanına yazabiliriz
-            // (Optimize etmek için sadece canlı konumu tutan ayrı bir koleksiyon da olabilir)
+            console.log(`Konum güncellendi: ${latitude}, ${longitude} (${isInitial ? 'İlk' : 'Periyodik'})`);
         } catch (err) {
-            console.error('Konum gönderilemedi:', err);
+            console.error('Konum yazma hatası:', err);
         }
     }, (err) => {
-        console.warn('GPS Hatası:', err.message);
+        console.warn('GPS Alınamadı:', err.message);
     }, {
         enableHighAccuracy: true,
-        timeout: 10000,
+        timeout: 15000,
         maximumAge: 0
     });
 }
