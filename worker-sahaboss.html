@@ -3,115 +3,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="#1e293b">
-    <title>SahaBOSS — İşçi Portalı</title>
+    <title>SahaBOSS — Personel Paneli</title>
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="sahaboss.css">
     <style>
         body { font-family: 'Outfit', sans-serif; background: #0f172a; color: #fff; margin: 0; padding: 0; }
-        .app-container { min-height: 100vh; display: flex; flex-direction: column; }
-        .top-bar { padding: 15px 20px; background: #1e293b; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .main-content { flex: 1; padding: 20px; padding-bottom: 80px; overflow-y: auto; }
-        .tab-bar { position: fixed; bottom: 0; left:0; right:0; background: #1e293b; display: flex; justify-content: space-around; padding: 12px; border-top: 1px solid rgba(255,255,255,0.1); z-index: 100; }
-        .tab-item { text-align: center; color: #94a3b8; font-size: 0.7rem; cursor: pointer; flex:1; }
-        .tab-item.active { color: #f59e0b; }
-        .tab-item i { font-size: 20px; display: block; margin-bottom: 4px; }
+        .top-bar { padding: 15px 20px; background: #1e293b; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #38bdf8; position: sticky; top:0; z-index: 1000; }
+        .main-content { padding: 20px; }
         .card { background: #1e293b; border-radius: 12px; padding: 15px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.05); }
-        .btn { padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; display: block; width: 100%; text-align: center; text-decoration: none; }
-        .btn-primary { background: #f59e0b; color: #000; }
-        .btn-danger { background: #ef4444; color: #fff; }
-        .btn-ghost { background: rgba(255,255,255,0.1); color: #fff; }
-        .hidden { display: none !important; }
-        .page { display: none; }
-        .page.active { display: block; }
-        #task-detail-overlay { position: fixed; inset: 0; background: #0f172a; z-index: 1000; display: flex; flex-direction: column; overflow-y: auto; }
-        #loader { position: fixed; inset: 0; background: #0f172a; z-index: 10000; display: flex; align-items: center; justify-content: center; }
-        .spin { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #f59e0b; border-radius: 50%; animation: s 1s linear infinite; }
-        @keyframes s { to { transform: rotate(360deg); } }
+        .btn { padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; color: #000; background: #38bdf8; display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; font-family: inherit; }
+        .btn-success { background: #10b981; color: #000; }
+        input, textarea { width: 100%; padding: 10px; border-radius: 6px; background: #0f172a; border: 1px solid #334155; color: #fff; margin-top: 10px; font-family: inherit; }
+        .status-badge { font-size: 10px; padding: 3px 8px; border-radius: 4px; font-weight: bold; margin-bottom: 10px; display: inline-block; }
     </style>
 </head>
 <body>
 
-    <div id="loader"><div class="spin"></div></div>
+    <header class="top-bar">
+        <h1 style="font-size: 1rem; margin:0; color:#38bdf8;">SahaBOSS Takip</h1>
+        <div id="worker-name" style="font-size: 0.8rem; color:#94a3b8;">Yükleniyor...</div>
+    </header>
 
-    <div class="app-container">
-        <header class="top-bar">
-            <h1 style="font-size: 1.2rem; margin: 0;">SahaBOSS</h1>
-            <button class="btn btn-ghost" style="padding: 5px 10px; font-size: 0.7rem; width: auto;" onclick="window.location.href='dashboard.html'"><i class='bx bx-log-out'></i> Dashboard</button>
-        </header>
-
-        <main class="main-content">
-            <section id="page-dashboard" class="page active">
-                <div class="card"><h3>Hoş Geldin!</h3><p style="color:#94a3b8; font-size:0.8rem;">Saha görevlerine ve diğer programlara buradan erişebilirsin.</p></div>
-                
-                <!-- OTOMATİK TAKİP BİLGİ KARTI -->
-                <div class="card" style="border-left: 4px solid #10b981;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <div style="font-weight: 800; font-size: 0.85rem; color: #10b981;">GÜVENLİ TAKİP AKTİF</div>
-                            <p style="font-size: 0.7rem; color: #94a3b8; margin-top: 4px;">Konumunuz 10 dk aralıklarla yöneticiyle paylaşılır.</p>
-                        </div>
-                        <i class='bx bxs-check-shield' style="font-size: 24px; color: #10b981;"></i>
-                    </div>
-                </div>
-
-                <div class="card"><button class="btn btn-primary" onclick="window.location.href='dashboard.html'"><i class='bx bx-home'></i> Ana Dashboard'a Dön</button></div>
-            </section>
-            
-            <section id="page-tasks" class="page"><h3>Görevlerim</h3><div id="tasks-container"><p class="text-center">Yükleniyor...</p></div></section>
-            <section id="page-map" class="page"><h3>İş Haritası</h3><div class="card">Haritaya ihtiyaç duyduğunda konuma tıkla.</div></section>
-            
-            <section id="page-profile" class="page">
-                <div class="card text-center"><h3 id="p-name">...</h3><p style="color:#94a3b8; font-size:0.8rem;">Saha Ekibi</p></div>
-                <button class="btn btn-danger" onclick="location.href='login.html'">Güvenli Çıkış</button>
-            </section>
-        </main>
-
-        <nav class="tab-bar">
-            <div class="tab-item active" onclick="showPage('dashboard', this)"><i class='bx bxs-dashboard'></i><span>Özet</span></div>
-            <div class="tab-item" onclick="showPage('tasks', this)"><i class='bx bx-list-ul'></i><span>Görevin</span></div>
-            <div class="tab-item" onclick="showPage('map', this)"><i class='bx bx-map-alt'></i><span>Harita</span></div>
-            <div class="tab-item" onclick="showPage('profile', this)"><i class='bx bx-user-circle'></i><span>Profil</span></div>
-        </nav>
-    </div>
-
-    <!-- GÖREV DETAY PENCERESİ -->
-    <div id="task-detail-overlay" class="hidden">
-        <div class="top-bar">
-            <button class="btn-ghost" style="width: auto;" onclick="document.getElementById('task-detail-overlay').classList.add('hidden')"><i class='bx bx-chevron-left'></i> Geri</button>
-            <h3>Saha Raporu</h3>
-            <div style="width: 40px;"></div>
+    <main class="main-content">
+        <div class="card" style="background: linear-gradient(135deg, #0369a1, #0c4a6e); border:none;">
+            <h3 style="margin:0;">Aktif Görevlerin</h3>
+            <p style="font-size: 0.8rem; opacity: 0.8;">Sana atanan işleri buradan tamamla.</p>
         </div>
-        <div id="task-detail-content" style="padding: 20px;"></div>
-    </div>
 
-    <script>
-        setTimeout(function() { var l = document.getElementById('loader'); if (l) l.style.display = 'none'; }, 5000);
-        function showPage(pageId, el) {
-            document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
-            document.querySelectorAll('.tab-item').forEach(function(t) { t.classList.remove('active'); });
-            document.getElementById('page-' + pageId).classList.add('active');
-            el.classList.add('active');
-            if (pageId === 'map' && window.map) window.map.invalidateSize();
-        }
-    </script>
+        <div id="worker-tasks-container">
+            <p style="text-align:center; color:#94a3b8;">Görevler aranıyor...</p>
+        </div>
+    </main>
 
     <script type="module">
-        import { auth, db } from './firebase-app.js';
+        import { auth, db, storage } from './firebase-app.js';
+        import { collection, query, where, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
+        import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-storage.js";
         import { protectPage } from './auth-guard-central.js';
-        import { initTasks } from './tasks.js?v=111';
-        import { initLocation } from './location.js?v=111';
 
-        protectPage().then(async ({ authorized, data }) => {
-            document.getElementById('loader').style.display = 'none';
-            if (!authorized) return;
-            window.user = auth.currentUser;
-            window.userData = data;
-            document.getElementById('p-name').textContent = data.name || 'Personel';
-            
-            initTasks();
-            initLocation(); // TAKİP SİSTEMİNİ BAŞLAT
+        protectPage().then(({authorized, data}) => {
+            if(!authorized) return;
+            const worker = auth.currentUser;
+            document.getElementById('worker-name').textContent = data.name || data.displayName || 'Personel';
+
+            // GÖREVLERİ YÜKLE
+            const q = query(collection(db, 'tasks'), where('assignedTo', '==', worker.uid));
+            onSnapshot(q, (snapshot) => {
+                let html = '';
+                snapshot.forEach(docSnap => {
+                    const t = docSnap.data();
+                    const id = docSnap.id;
+                    
+                    if (t.status === 'done') return; // Tamamlananları gösterme
+
+                    const isSubmitted = t.status === 'submitted';
+                    const statusText = isSubmitted ? 'ONAY BEKLİYOR' : 'HAZIR / BEKLEMEDE';
+                    const statusColor = isSubmitted ? '#38bdf8' : '#f59e0b';
+
+                    html += `
+                        <div class="card" style="border-left: 4px solid ${statusColor}">
+                            <div class="status-badge" style="background:${statusColor}; color:#000;">${statusText}</div>
+                            <h4 style="margin:0;">${t.title}</h4>
+                            <p style="font-size: 0.8rem; color:#94a3b8; margin:8px 0;">${t.description}</p>
+                            
+                            ${!isSubmitted ? `
+                                <div style="margin-top:15px; border-top:1px solid rgba(255,255,255,0.05); padding-top:10px;">
+                                    <label style="font-size:0.7rem; color:#38bdf8; font-weight:bold;">İŞ NOTU EKLE</label>
+                                    <textarea id="note-${id}" placeholder="İşle ilgili notunu yaz..."></textarea>
+                                    
+                                    <label style="font-size:0.7rem; color:#38bdf8; font-weight:bold; display:block; margin-top:10px;">FOTOĞRAF YÜKLE (Opsiyonel)</label>
+                                    <input type="file" id="file-${id}" accept="image/*" style="font-size:10px;">
+                                    
+                                    <button onclick="window.submitForApproval('${id}')" id="btn-${id}" class="btn-success btn" style="margin-top:15px;">
+                                        <i class='bx bx-send'></i> BOSS ONAYINA GÖNDER
+                                    </button>
+                                </div>
+                            ` : `<p style="font-size:0.75rem; color:#10b981; font-weight:bold; margin-top:10px;">🕒 Görev BOSS onayına gönderildi. Bekleyiniz.</p>`}
+                        </div>
+                    `;
+                });
+                document.getElementById('worker-tasks-container').innerHTML = html || '<p style="text-align:center; color:#94a3b8;">Şu an atanmış yeni görevin yok.</p>';
+            });
+
+            // ONAYA GÖNDERME FONKSİYONU
+            window.submitForApproval = async (taskId) => {
+                const note = document.getElementById(`note-${taskId}`).value;
+                const fileInput = document.getElementById(`file-${taskId}`);
+                const btn = document.getElementById(`btn-${taskId}`);
+                
+                if(!note) return alert("Lütfen iş ile ilgili kısa bir not girin!");
+                
+                btn.disabled = true;
+                btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Gönderiliyor...";
+
+                try {
+                    let photoURL = "";
+                    if(fileInput.files[0]) {
+                        const file = fileInput.files[0];
+                        const storageRef = ref(storage, `task_photos/${taskId}_${Date.now()}`);
+                        const snapshot = await uploadBytes(storageRef, file);
+                        photoURL = await getDownloadURL(snapshot.ref);
+                    }
+
+                    await updateDoc(doc(db, 'tasks', taskId), {
+                        status: 'submitted',
+                        workerNote: note,
+                        photoURL: photoURL,
+                        submittedAt: new Date()
+                    });
+
+                    alert("✅ İş başarıyla merkeze gönderildi. BOSS onayı bekleniyor.");
+                } catch(e) {
+                    alert("Hata: " + e.message);
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = "BOSS ONAYINA GÖNDER";
+                }
+            };
         });
     </script>
 </body>
