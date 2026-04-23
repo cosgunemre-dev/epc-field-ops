@@ -4,41 +4,33 @@ import {
     updateDoc, doc 
 } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
 
-// BUTONU KESİN ÇALIŞTIRAN GLOBAL FONKSİYON
 window.openNewTaskModal = () => {
     const modal = document.getElementById('modal-new-task');
-    if (modal) {
-        modal.classList.remove('hidden');
-        console.log("SahaBOSS: Yeni İş Modalı Açıldı.");
-    } else {
-        console.error("SahaBOSS: 'modal-new-task' bulunamadı!");
-    }
+    if (modal) modal.classList.remove('hidden');
 };
 
 export function initTasks() {
-    console.log("SahaBOSS Görev Modülü v550 Hazır.");
+    console.log("SahaBOSS: Kimin ne yaptığını bilen modül devrede.");
     
     // GÖNDER / KAYDET BUTONU
     const btnSave = document.getElementById('btn-save-task');
     if (btnSave) {
         btnSave.onclick = async () => {
             const title = document.getElementById('task-title').value;
-            const assigneeId = document.getElementById('task-assignee').value;
+            const assigneeSelect = document.getElementById('task-assignee');
+            const assigneeId = assigneeSelect.value;
+            const assigneeName = assigneeSelect.options[assigneeSelect.selectedIndex].text; // İSMİ YAKALA
             const desc = document.getElementById('task-desc').value;
 
-            if (!title || !assigneeId) {
-                alert("Müdürüm, lütfen İş Başlığını ve Personeli boş bırakma!");
-                return;
-            }
+            if (!title || !assigneeId) return alert("Başlık ve Personel seçimi zorunludur!");
 
             btnSave.disabled = true;
-            btnSave.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> İletiliyor...";
-
             try {
                 await addDoc(collection(db, 'tasks'), {
                     title: title,
-                    description: desc,
+                    description: desc || '',
                     assignedTo: assigneeId,
+                    assigneeName: assigneeName, // İSMİ KAYDET
                     assignedBy: auth.currentUser.uid,
                     status: 'pending',
                     createdAt: serverTimestamp(),
@@ -46,20 +38,12 @@ export function initTasks() {
                     workerNote: '',
                     photoURL: ''
                 });
-
-                alert("✅ Görev Personelin Cebine Düştü!");
-                
-                // Formu temizle ve kapat
+                alert(`✅ Görev ${assigneeName} personeline atandı!`);
                 document.getElementById('task-title').value = '';
                 document.getElementById('task-desc').value = '';
                 document.getElementById('modal-new-task').classList.add('hidden');
-                
-            } catch (err) {
-                alert("Hata: " + err.message);
-            } finally {
-                btnSave.disabled = false;
-                btnSave.innerHTML = "İŞİ GÖNDER";
-            }
+            } catch (err) { alert(err.message); }
+            finally { btnSave.disabled = false; }
         };
     }
 
@@ -96,11 +80,15 @@ function loadAdminTasks() {
 
             html += `
                 <div class="card" style="border-left: 5px solid ${statusColor};">
-                    <div style="font-size: 0.65rem; color:#94a3b8; margin-bottom:10px;">📅 Açılış: ${startStr}</div>
+                    <div style="font-size: 0.65rem; color:#94a3b8; margin-bottom:10px; display:flex; justify-content:space-between;">
+                        <span>📅 Açılış: ${startStr}</span>
+                        <span style="color:#f59e0b; font-weight:bold;">👷 Sorumlu: ${task.assigneeName || 'Atanmış Personel'}</span>
+                    </div>
                     <div style="display:flex; justify-content:space-between; align-items:start;">
                         <div>
-                            <h4 style="margin:0;">${task.title}</h4>
-                            <p style="font-size:0.85rem; color:#cbd5e1; margin:8px 0;">${task.description}</p>
+                            <h4 style="margin:0; font-size:1.15rem;">${task.title}</h4>
+                            <p style="font-size:0.85rem; color:#cbd5e1; margin:6px 0;">${task.description || ''}</p>
+                            
                             ${task.workerNote ? `<div style="background:rgba(255,255,255,0.03); padding:8px; border-radius:6px; font-size:0.8rem; border:1px dashed #334155; margin-top:10px;"><b>Saha Notu:</b> ${task.workerNote}</div>` : ''}
                             ${task.photoURL ? `<a href="${task.photoURL}" target="_blank"><img src="${task.photoURL}" style="width:100px; border-radius:8px; margin-top:10px; border:2px solid #38bdf8;"></a>` : ''}
                         </div>
@@ -112,12 +100,12 @@ function loadAdminTasks() {
                 </div>
             `;
         });
-        container.innerHTML = html || '<p style="color:#94a3b8; text-align:center;">Henüz iş yok.</p>';
+        container.innerHTML = html || '<p style="color:#94a3b8; text-align:center;">İş havuzu yükleniyor...</p>';
     });
 }
 
 window.approveTask = async (id) => {
-    if (confirm("Bu işi onaylayıp kapatıyor musunuz?")) {
+    if (confirm("Bu işi onaylayarak kapatıyor musunuz?")) {
         await updateDoc(doc(db, 'tasks', id), { 
             status: 'done',
             completedAt: serverTimestamp()
