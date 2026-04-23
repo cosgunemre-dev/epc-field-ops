@@ -86,9 +86,28 @@
             </section>
 
             <!-- MAP PAGE -->
-            <section id="page-map" class="page">
-                <div class="card-title"><i class='bx bx-map-pin'></i> Canlı Saha Haritası</div>
-                <div id="map-container"></div>
+            <section id="page-map" class="page" style="padding:0; height: calc(100vh - 150px); display: flex;">
+                <!-- SOL PANEL: KATMAN YÖNETİMİ -->
+                <div id="map-sidebar" style="width: 280px; background: #1e293b; border-right: 1px solid rgba(255,255,255,0.1); padding: 15px; overflow-y: auto;">
+                    <h3 style="font-size: 1rem; margin-bottom: 20px; color: #f59e0b;"><i class='bx bx-layer'></i> Katman Paneli</h3>
+                    
+                    <!-- Yeni Katman Yükle -->
+                    <div class="card" style="padding: 10px; background: rgba(0,0,0,0.2);">
+                        <label style="font-size: 0.75rem; font-weight: bold; display: block; margin-bottom: 8px;">KML / KMZ YÜKLE</label>
+                        <input type="file" id="input-layer-file" accept=".kml,.kmz" style="font-size: 0.7rem; width: 100%;">
+                        <button class="btn btn-primary" id="btn-upload-layer" style="margin-top: 10px; font-size: 0.75rem; padding: 5px;">Yükle ve Ekle</button>
+                    </div>
+
+                    <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+
+                    <!-- Katman Listesi -->
+                    <div id="layer-list">
+                        <p style="font-size: 0.7rem; color: #94a3b8; text-align: center;">Yüklü katman yok.</p>
+                    </div>
+                </div>
+
+                <!-- SAĞ PANEL: HARİTA -->
+                <div id="map-container" style="flex: 1; height: 100%;"></div>
             </section>
 
             <!-- PROFILE / REPORTS PAGE -->
@@ -170,9 +189,10 @@
         
         import { initTasks } from './tasks.js?v=99';
         import { initLocation } from './location.js';
-        import { initMap } from './maps.js?v=99';
+        import { initMap } from './maps.js?v=115';
         import { initReports } from './reports.js';
         import { initNotifications } from './notifications.js';
+        import { initLayers } from './layers.js?v=111';
 
         window.user = null;
         window.userData = null;
