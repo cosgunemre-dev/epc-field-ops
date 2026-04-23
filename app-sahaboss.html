@@ -86,7 +86,16 @@
             </section>
 
             <!-- MAP PAGE -->
-            <section id="page-map" class="page" style="padding:0; height: calc(100vh - 150px); display: flex;">
+            <style>
+                /* Harita sayfası aktifken özel düzeni devreye sok */
+                #page-map.active { 
+                    display: flex !important; 
+                    padding: 0; 
+                    height: calc(100vh - 130px); 
+                }
+            </style>
+
+            <section id="page-map" class="page">
                 <!-- SOL PANEL: KATMAN YÖNETİMİ -->
                 <div id="map-sidebar" style="width: 280px; background: #1e293b; border-right: 1px solid rgba(255,255,255,0.1); padding: 15px; overflow-y: auto;">
                     <h3 style="font-size: 1rem; margin-bottom: 20px; color: #f59e0b;"><i class='bx bx-layer'></i> Katman Paneli</h3>
