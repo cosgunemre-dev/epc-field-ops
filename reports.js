@@ -1,116 +1,93 @@
-import { db } from './firebase-app.js';
-import { 
-    collection, query, getDocs, where 
-} from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
+import { db, auth } from './firebase-app.js';
+import { collection, query, where, getDocs, Timestamp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
 
 export function initReports() {
-    const btnOpen = document.getElementById('btn-open-reports');
-    const modal = document.getElementById('modal-reports');
-    const btnGen = document.getElementById('btn-gen-pdf');
-
-    if (btnOpen) {
-        btnOpen.onclick = () => modal.classList.remove('hidden');
-    }
-
-    if (btnGen) {
-        btnGen.onclick = () => generateDailyPDF();
-    }
-
-    window.closeReportsModal = () => {
-        if (modal) modal.classList.add('hidden');
-    };
-}
-
-async function getBase64ImageFromURL(url) {
-    return new Promise((resolve) => {
-        const img = new Image();
-        img.setAttribute('crossOrigin', 'anonymous');
-        img.onload = () => {
-            const canvas = document.createElement("canvas");
-            canvas.width = img.width;
-            canvas.height = img.height;
-            const ctx = canvas.getContext("2d");
-            ctx.drawImage(img, 0, 0);
-            const dataURL = canvas.toDataURL("image/jpeg", 0.5);
-            resolve(dataURL);
-        };
-        img.onerror = () => resolve(null);
-        img.src = url;
-    });
-}
-
-async function generateDailyPDF() {
-    const { jsPDF } = window.jspdf;
-    if (!jsPDF) { alert("PDF Kütüphanesi henüz yüklenmedi, lütfen sayfayı yenileyip tekrar deneyin."); return; }
+    console.log("SahaBOSS Raporlama Modülü Aktif.");
     
-    const doc = new jsPDF();
-    const btn = document.getElementById('btn-gen-pdf');
-    btn.disabled = true;
-    btn.textContent = 'Veriler Hazırlanıyor...';
+    const btnGen = document.getElementById('btn-gen-pdf');
+    if (btnGen) {
+        btnGen.onclick = async () => {
+            const startDate = document.getElementById('report-start-date').value;
+            const endDate = document.getElementById('report-end-date').value;
 
-    try {
-        // MÜDÜRÜM: ProjeID olmasa bile yöneticinin kendi atadığı tüm işleri getiriyoruz
-        const q = query(collection(db, 'tasks'), where('assignedBy', '==', window.user.uid));
-        const snap = await getDocs(q);
-        const tasks = snap.docs.map(d => ({id: d.id, ...d.data()}));
+            if (!startDate || !endDate) return alert("Lütfen tarih aralığını seçin!");
 
-        if (tasks.length === 0) {
-            alert("Raporlanacak görev bulunamadı.");
-            return;
-        }
+            btnGen.disabled = true;
+            btnGen.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Hazırlanıyor...";
 
-        // Tasarım Ayarları
-        doc.setFontSize(22);
-        doc.setTextColor(245, 158, 11);
-        doc.text("SahaBOSS Fotoğraflı Rapor", 14, 20);
-        
-        doc.setFontSize(10);
-        doc.setTextColor(100);
-        doc.text(`Firma: ${window.userData?.name || 'SahaBOSS Ekibi'} | Üretim Tarihi: ${new Date().toLocaleDateString('tr-TR')}`, 14, 30);
+            try {
+                // Tarihleri Firebase formatına çevir (Günün başı ve sonu)
+                const startTS = Timestamp.fromDate(new Date(startDate + "T00:00:00"));
+                const endTS = Timestamp.fromDate(new Date(endDate + "T23:59:59"));
 
-        const tableBody = [];
-        for (const [index, t] of tasks.entries()) {
-            let imgBase64 = null;
-            // tasks.js'de "photoURLs" olarak kaydediyoruz, burada ona bakmalıyız
-            const photos = t.photoURLs || t.photos || [];
-            if (photos.length > 0) {
-                imgBase64 = await getBase64ImageFromURL(photos[0]);
-            }
+                const q = query(
+                    collection(db, 'tasks'), 
+                    where('assignedBy', '==', auth.currentUser.uid),
+                    where('createdAt', '>=', startTS),
+                    where('createdAt', '<=', endTS)
+                );
 
-            tableBody.push({
-                index: index + 1,
-                title: t.title,
-                assignee: t.assignedToName || '-',
-                status: (t.status || 'BELİRSİZ').toUpperCase(),
-                date: t.completedAt ? new Date(t.completedAt.seconds * 1000).toLocaleDateString('tr-TR') : '-',
-                img: imgBase64
-            });
-        }
-
-        doc.autoTable({
-            startY: 40,
-            head: [['#', 'Görev Adı', 'Sorumlu', 'Durum', 'Tarih', 'Kanıt Foto']],
-            body: tableBody.map(row => [row.index, row.title, row.assignee, row.status, row.date, '']),
-            columnStyles: { 5: { cellWidth: 35, minCellHeight: 28 } },
-            headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontSize: 10 },
-            styles: { fontSize: 9, valign: 'middle' },
-            didDrawCell: (data) => {
-                if (data.column.index === 5 && data.cell.section === 'body') {
-                    const rowData = tableBody[data.row.index];
-                    if (rowData && rowData.img) {
-                        doc.addImage(rowData.img, 'JPEG', data.cell.x + 2, data.cell.y + 2, 31, 24);
-                    }
+                const snap = await getDocs(q);
+                if (snap.empty) {
+                    alert("Seçili tarih aralığında bir görev kaydı bulunamadı!");
+                    return;
                 }
+
+                generatePDF(snap.docs, startDate, endDate);
+
+            } catch (err) {
+                console.error("Rapor Hatası:", err);
+                alert("Rapor oluşturulamadı: " + err.message);
+            } finally {
+                btnGen.disabled = false;
+                btnGen.innerHTML = "PDF RAPORU OLUŞTUR";
             }
-        });
-
-        doc.save(`SahaBOSS_Rapor_${Date.now()}.pdf`);
-
-    } catch (err) {
-        console.error("PDF Hatası:", err);
-        alert("Rapor hatası: " + err.message);
-    } finally {
-        btn.disabled = false;
-        btn.textContent = 'PDF Oluştur';
+        };
     }
+}
+
+async function generatePDF(docs, start, end) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // LOGO VE BAŞLIK
+    doc.setFontSize(22);
+    doc.setTextColor(245, 158, 11); // SahaBOSS Turuncusu
+    doc.text("SahaBOSS SAHA OPERASYON RAPORU", 105, 20, { align: "center" });
+
+    doc.setFontSize(12);
+    doc.setTextColor(100);
+    doc.text(`Rapor Aralığı: ${start} - ${end}`, 105, 30, { align: "center" });
+    doc.text(`Düzenleyen: ${auth.currentUser.email}`, 105, 38, { align: "center" });
+
+    doc.setDrawColor(200);
+    doc.line(20, 45, 190, 45);
+
+    // TABLO VERİSİ HAZIRLA
+    const tableData = [];
+    docs.forEach((d, index) => {
+        const t = d.data();
+        const startStr = t.createdAt ? new Date(t.createdAt.seconds * 1000).toLocaleDateString('tr-TR') : '-';
+        const endStr = t.completedAt ? new Date(t.completedAt.seconds * 1000).toLocaleDateString('tr-TR') : 'Devam Ediyor';
+        const stText = t.status === 'done' ? 'TAMAMLANDI' : (t.status === 'submitted' ? 'ONAY BEKLİYOR' : 'BEKLEMEDE');
+
+        tableData.push([
+            index + 1,
+            t.title,
+            startStr,
+            endStr,
+            stText
+        ]);
+    });
+
+    // TABLE OLUŞTUR
+    doc.autoTable({
+        startY: 50,
+        head: [['#', 'GÖREV ADI', 'AÇILIŞ', 'KAPANIŞ', 'DURUM']],
+        body: tableData,
+        headStyles: { fillColor: [30, 41, 59] },
+        styles: { fontSize: 9, font: "helvetica" }
+    });
+
+    doc.save(`SahaBOSS_Rapor_${start}_${end}.pdf`);
 }

@@ -12,132 +12,110 @@
         body { font-family: 'Outfit', sans-serif; background: #0f172a; color: #fff; margin: 0; padding: 0; overflow-x: hidden; }
         .top-bar { padding: 12px 20px; background: #1e293b; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f59e0b; position: sticky; top:0; z-index: 1100; }
         .tab-bar { background: #111827; display: flex; justify-content: space-around; padding: 5px; border-bottom: 1px solid rgba(255,255,255,0.1); position: sticky; top:52px; z-index: 1050; }
-        .nav-item { text-align: center; color: #94a3b8; font-size: 0.75rem; cursor: pointer; flex:1; padding: 12px; background: none; border:none; transition: 0.3s; color: #fff !important; }
+        .nav-item { text-align: center; color: #fff !important; font-size: 0.75rem; cursor: pointer; flex:1; padding: 12px; background: none; border:none; transition: 0.3s; font-family: inherit; }
         .nav-item.active { color: #f59e0b !important; border-bottom: 3px solid #f59e0b; background: rgba(245,158,11,0.05); }
         .nav-item i { font-size: 24px; display: block; margin-bottom: 3px; }
-
         .main-content { padding: 20px; min-height: calc(100vh - 120px); }
         .page { display: none; max-width: 1200px; margin: 0 auto; }
         .page.active { display: block; }
-
         .card { background: #1e293b; border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.05); }
-        .btn { padding: 12px 20px; border-radius: 8px; border: none; font-weight: 800; cursor: pointer; color: #000; background: #f59e0b; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-family: inherit; }
+        .btn { padding: 12px 25px; border-radius: 10px; border: none; font-weight: 800; cursor: pointer; color: #000; background: #f59e0b; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-family: inherit; }
         .btn-ghost { background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); }
-        
-        /* HARİTA SABİTLEME */
         .map-section { display: flex; height: 650px; background: #1e293b; border-radius: 16px; overflow: hidden; border: 2px solid rgba(255,255,255,0.1); }
         #map-sidebar { width: 280px; padding: 15px; background: #111827; border-right: 1px solid rgba(255,255,255,0.1); overflow-y: auto; }
-        #map-container { flex: 1; height: 100% !important; min-height: 400px; background: #242f3e; z-index: 1; }
-
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(8px); }
+        #map-container { flex: 1; height: 100%; background: #242f3e; z-index: 1; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(8px); }
         .hidden { display: none !important; }
-        
         input, select, textarea { width: 100%; padding: 12px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; margin-bottom: 15px; font-family: inherit; }
-        
+        label { display: block; font-size: 0.8rem; color: #94a3b8; font-weight: 600; margin-bottom: 5px; }
         #loader { position: fixed; inset: 0; background: #0f172a; z-index: 5000; display: flex; align-items: center; justify-content: center; }
         .spin { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top-color: #f59e0b; border-radius: 50%; animation: s 1s linear infinite; }
         @keyframes s { to { transform: rotate(360deg); } }
     </style>
+    <!-- GEREKLİ KÜTÜPHANELER -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
-    <script src="https://api.mapbox.com/mapbox.js/plugins/leaflet-omnivore/v0.3.1/leaflet-omnivore.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
-
     <div id="loader"><div class="spin"></div></div>
+    <header class="top-bar">
+        <h1 style="font-size: 1.3rem; margin: 0; font-weight: 800; color: #f59e0b;">SahaBOSS</h1>
+        <div id="display-name" style="font-size: 0.8rem; color: #94a3b8;">Yönetici</div>
+    </header>
 
-    <div class="app-container">
-        <header class="top-bar">
-            <h1 style="font-size: 1.3rem; margin: 0; font-weight: 800; color: #f59e0b; text-transform: uppercase; letter-spacing: 1px;">SahaBOSS</h1>
-            <div id="display-name" style="font-size: 0.8rem; font-weight: 600; color: #94a3b8;">Yönetici Paneli</div>
-        </header>
+    <nav class="tab-bar">
+        <button class="nav-item active" onclick="showPage('dashboard', this)" data-nav="dashboard"><i class='bx bxs-dashboard'></i>Özet</button>
+        <button class="nav-item" onclick="showPage('tasks', this)" data-nav="tasks"><i class='bx bx-list-check'></i>İşler</button>
+        <button class="nav-item" onclick="showPage('map', this)" data-nav="map"><i class='bx bxs-map-pin'></i>Harita</button>
+        <button class="nav-item" onclick="window.showReports()"><i class='bx bxs-file-pdf'></i>Raporlar</button>
+        <button class="nav-item" onclick="showPage('profile', this)" data-nav="profile"><i class='bx bxs-group'></i>Ekip</button>
+    </nav>
 
-        <nav class="tab-bar">
-            <button class="nav-item active" onclick="showPage('dashboard', this)" data-nav="dashboard"><i class='bx bxs-dashboard'></i>Özet</button>
-            <button class="nav-item" onclick="showPage('tasks', this)" data-nav="tasks"><i class='bx bx-list-check'></i>İşler</button>
-            <button class="nav-item" onclick="showPage('map', this)" data-nav="map"><i class='bx bxs-map-pin'></i>Harita</button>
-            <button class="nav-item" onclick="window.showReports()"><i class='bx bxs-file-pdf'></i>Raporlar</button>
-            <button class="nav-item" onclick="showPage('profile', this)" data-nav="profile"><i class='bx bxs-group'></i>Ekip</button>
-        </nav>
+    <main class="main-content">
+        <!-- ÖZET -->
+        <section id="page-dashboard" class="page active">
+            <div class="card" style="background: linear-gradient(135deg, #1e293b, #0f172a); border-left: 5px solid #f59e0b;">
+                <h2 style="margin:0;">Hoş Geldin, <span id="welcome-name">Yöneticim</span></h2>
+                <div id="staff-live-container" style="color:#10b981; font-size:0.8rem; margin-top:8px; font-weight:bold;"></div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
+                <button class="btn" style="height: 65px;" onclick="window.openNewTaskModal()"><i class='bx bx-plus-circle'></i> YENİ İŞ ATA</button>
+                <button class="btn" style="height: 65px; background: #10b981;" onclick="document.getElementById('modal-add-staff').classList.remove('hidden')"><i class='bx bx-user-plus'></i> EKİBE KAT</button>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="card" style="text-align:center;"><h4 style="margin:0; color:#94a3b8; font-size:0.7rem;">BEKLEYEN İŞ</h4><div id="count-pending" style="font-size:2.2rem; font-weight:800; color:#f59e0b;">0</div></div>
+                <div class="card" style="text-align:center;"><h4 style="margin:0; color:#94a3b8; font-size:0.7rem;">TAMAMLANAN</h4><div id="count-done" style="font-size:2.2rem; font-weight:800; color:#10b981;">0</div></div>
+            </div>
+        </section>
 
-        <main class="main-content">
-            <!-- ÖZET -->
-            <section id="page-dashboard" class="page active">
-                <div class="card" style="background: linear-gradient(135deg, #1e293b, #0f172a); border-left: 5px solid #f59e0b;">
-                    <h2 style="margin:0;">Hoş Geldin, <span id="welcome-name">...</span></h2>
-                    <p style="color: #94a3b8; font-size: 0.9rem; margin-top:5px;">Saha operasyonları anlık olarak takip ediliyor.</p>
+        <section id="page-tasks" class="page">
+            <h2 style="margin-bottom:15px;">🔍 İş Emri Kayıtları</h2>
+            <div id="tasks-container"></div>
+        </section>
+
+        <section id="page-map" class="page">
+            <div class="map-section">
+                <div id="map-sidebar">
+                    <h4 style="color:#f59e0b; margin-top:0;">📂 Projeler</h4>
+                    <input type="file" id="input-layer-file" accept=".kml,.kmz" style="font-size: 10px;">
+                    <button class="btn" style="width:100%; font-size: 11px; padding: 10px;" onclick="handleLayerUpload()">Projeyi Yükle</button>
+                    <div id="layer-list" style="margin-top:15px;"></div>
                 </div>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
-                    <button class="btn" style="height: 65px;" onclick="window.openNewTaskModal()"><i class='bx bx-plus-circle'></i> YENİ İŞ ATA</button>
-                    <button class="btn" style="height: 65px; background: #10b981;" onclick="document.getElementById('modal-add-staff').classList.remove('hidden')"><i class='bx bx-user-plus'></i> EKİBE KAT</button>
-                </div>
+                <div id="map-container"></div>
+            </div>
+        </section>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-                    <div class="card" style="text-align:center;"><h4 style="margin:0; color:#94a3b8;">BEKLEYEN İŞ</h4><div id="count-pending" style="font-size:2rem; font-weight:800; color:#f59e0b;">0</div></div>
-                    <div class="card" style="text-align:center;"><h4 style="margin:0; color:#94a3b8;">TAMAMLANAN</h4><div id="count-done" style="font-size:2rem; font-weight:800; color:#10b981;">0</div></div>
-                </div>
+        <section id="page-profile" class="page">
+            <div class="card">
+                <h2>Ekip Listesi</h2>
+                <div id="team-list"></div>
+                <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin: 30px 0;">
+                <button class="btn" style="background:#ef4444; color:#fff; width:100%;" onclick="window.location.href='login.html'">ÇIKIŞ YAP</button>
+            </div>
+        </section>
+    </main>
 
-                <div class="card">
-                    <h3>📡 Saha Canlı Durum</h3>
-                    <div id="staff-live-container" style="color:#94a3b8; font-size:0.85rem;">Personel konumları harita üzerinde aktif.</div>
-                </div>
-            </section>
-
-            <!-- İŞLER -->
-            <section id="page-tasks" class="page">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                    <h2 style="margin:0;">Görev Havuzu</h2>
-                    <button class="btn" style="padding: 8px 15px; font-size: 0.8rem;" onclick="window.openNewTaskModal()">+ Kayıt</button>
-                </div>
-                <div id="tasks-container"></div>
-            </section>
-
-            <!-- HARİTA -->
-            <section id="page-map" class="page">
-                <div class="map-section">
-                    <div id="map-sidebar">
-                        <h4 style="color:#f59e0b; margin-top:0;">📂 Katmanlar</h4>
-                        <div class="card" style="padding: 12px; background: rgba(255,255,255,0.03); margin-bottom: 12px;">
-                            <label style="font-size: 0.65rem;">KML / KMZ YÜKLE</label>
-                            <input type="file" id="input-layer-file" accept=".kml,.kmz" style="font-size: 10px; margin-top:5px;">
-                            <button class="btn" style="width:100%; font-size: 11px; padding: 8px;" onclick="handleLayerUpload()">Projeyi Ser</button>
-                        </div>
-                        <div id="layer-list"></div>
-                    </div>
-                    <div id="map-container"></div>
-                </div>
-            </section>
-
-            <!-- EKİP LİSTESİ -->
-            <section id="page-profile" class="page">
-                <div class="card">
-                    <h2>Ekip Yönetimi</h2>
-                    <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 25px;">Saha personellerinizin takibi ve listesi.</p>
-                    <div id="team-list"></div>
-                    <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin: 30px 0;">
-                    <button class="btn btn-danger" style="width:100%;" onclick="window.location.href='login.html'">GÜVENLİ ÇIKIŞ</button>
-                </div>
-            </section>
-        </main>
-    </div>
-
-    <!-- MODALLAR -->
+    <!-- MODAL: RAPOR PANELİ -->
     <div id="modal-reports" class="modal-overlay hidden">
         <div class="card" style="width: 100%; max-width: 450px; text-align:center;">
             <i class='bx bxs-file-pdf' style="font-size: 4rem; color:#f59e0b;"></i>
-            <h3>Saha BOSS Raporları</h3>
-            <p style="color: #94a3b8; font-size: 0.9rem;">Özet PDF raporunu şimdi alabilirsiniz.</p>
-            <button class="btn" id="btn-gen-pdf" style="width: 100%; margin-top: 25px; height: 55px; font-size:1.1rem;">PDF RAPORU İNDİR</button>
-            <button class="btn btn-ghost" style="width: 100%; margin-top: 15px;" onclick="window.closeReportsModal()">KAPAT</button>
+            <h3>Profesyonel Saha Raporu</h3>
+            <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom:20px;">Raporlanacak tarih aralığını seçin:</p>
+            <div style="text-align:left; display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <div><label>BŞL. TARİHİ</label><input type="date" id="report-start-date"></div>
+                <div><label>BTŞ. TARİHİ</label><input type="date" id="report-end-date"></div>
+            </div>
+            <button class="btn" id="btn-gen-pdf" style="width: 100%; margin-top: 10px; height:60px;">PDF RAPORU OLUŞTUR</button>
+            <button class="btn btn-ghost" style="width: 100%; margin-top: 10px;" onclick="window.closeReportsModal()">KAPAT</button>
         </div>
     </div>
 
     <div id="modal-add-staff" class="modal-overlay hidden">
         <div class="card" style="width: 100%; max-width: 400px;">
             <h3>Ekibe Personel Kat</h3>
-            <p style="font-size: 0.8rem; color: #94a3b8;">Kayıtlı e-posta adresini girin.</p>
             <input type="email" id="invite-email" placeholder="personel@epcfieldops.com">
             <div style="display:flex; gap:10px;">
                 <button class="btn" id="btn-invite-staff" style="flex:2;">EKLE</button>
@@ -147,17 +125,17 @@
     </div>
 
     <div id="modal-new-task" class="modal-overlay hidden">
-        <div class="card" style="width: 100%; max-width: 500px;">
-            <h3>Yeni Görev Ataması</h3>
+        <div class="card" style="width: 100%; max-width: 550px;">
+            <h3>Yeni İş Emri Oluştur</h3>
             <label>İŞ BAŞLIĞI</label>
             <input type="text" id="task-title" placeholder="...">
-            <label>GÖREVLİ</label>
+            <label>GÖREVLİ PERSONEL</label>
             <select id="task-assignee"><option value="">Yükleniyor...</option></select>
-            <label>DETAY</label>
+            <label>İŞ DETAYI</label>
             <textarea id="task-desc" rows="4"></textarea>
             <div style="display:flex; gap:10px;">
-                <button class="btn" id="btn-save-task" style="flex:2;">GÖNDER</button>
-                <button class="btn btn-ghost" onclick="document.getElementById('modal-new-task').classList.add('hidden')">KAPAT</button>
+                <button class="btn" id="btn-save-task" style="flex:2;">İŞİ GÖNDER</button>
+                <button class="btn btn-ghost" onclick="document.getElementById('modal-new-task').classList.add('hidden')">İPTAL</button>
             </div>
         </div>
     </div>
@@ -168,23 +146,23 @@
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             document.getElementById('page-' + pageId).classList.add('active');
             if (el) el.classList.add('active');
-            if (pageId === 'map' && window.map) {
-                setTimeout(() => {
-                    window.map.invalidateSize();
-                }, 500);
-            }
+            if (pageId === 'map' && window.map) setTimeout(() => window.map.invalidateSize(), 500);
         }
-        window.showReports = () => document.getElementById('modal-reports').classList.remove('hidden');
+        window.showReports = () => {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('report-start-date').value = today;
+            document.getElementById('report-end-date').value = today;
+            document.getElementById('modal-reports').classList.remove('hidden');
+        };
         window.closeReportsModal = () => document.getElementById('modal-reports').classList.add('hidden');
     </script>
-
     <script type="module">
         import { auth, db } from './firebase-app.js';
         import { protectPage } from './auth-guard-central.js';
-        import { initTasks } from './tasks.js?v=500';
-        import { initMap } from './maps.js?v=500';
-        import { initReports } from './reports.js?v=500';
-        import { initLayers } from './layers.js?v=500';
+        import { initTasks } from './tasks.js?v=530';
+        import { initMap } from './maps.js?v=530';
+        import { initReports } from './reports.js?v=530';
+        import { initLayers } from './layers.js?v=530';
         import { collection, query, where, onSnapshot, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
 
         protectPage().then(({ authorized, data }) => {
@@ -207,15 +185,15 @@
                 snapshot.forEach(d => {
                     const s = d.data();
                     const name = s.name || s.displayName || s.email;
-                    html += `<div class="card" style="padding:12px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05);">
-                        <div><div style="font-weight:bold;">${name}</div><div style="font-size:0.7rem; color:#94a3b8;">${s.email}</div></div>
-                        <button onclick="window.confirmRemoval('${d.id}', '${name}')" class="btn btn-ghost" style="color:#ef4444; font-size:0.7rem; padding: 5px 10px;">SİL</button>
+                    html += `<div class="card" style="padding:15px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05);">
+                        <div><div style="font-weight:bold;">${name}</div><div style="font-size:0.75rem; color:#94a3b8;">${s.email}</div></div>
+                        <button onclick="window.confirmRemoval('${d.id}', '${name}')" class="btn btn-ghost" style="color:#ef4444; font-size:0.7rem;">ÇIKAR</button>
                     </div>`;
                     assigneeSelect.innerHTML += `<option value="${d.id}">${name}</option>`;
                     if(s.lastLocation) liveNames.push(name);
                 });
-                teamList.innerHTML = html || '<p style="color:#94a3b8; font-size:0.8rem; text-align:center;">Henüz personel yok.</p>';
-                if(liveNames.length > 0) staffLive.innerHTML = `Takip Edilen: <b style="color:#10b981;">${liveNames.join(', ')}</b>`;
+                teamList.innerHTML = html || '<p style="text-align:center; color:#94a3b8;">Henüz personel yok.</p>';
+                if(liveNames.length > 0) staffLive.innerHTML = `📡 Aktif Takip: ${liveNames.join(', ')}`;
             });
 
             document.getElementById('btn-invite-staff').onclick = async () => {
