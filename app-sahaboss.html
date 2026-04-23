@@ -3,255 +3,180 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="#1e293b">
-    <title>SahaBOSS — Saha Yönetimi (Admin)</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏗️</text></svg>">
+    <title>SahaBOSS — Yönetici Paneli</title>
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="sahaboss.css">
-    <!-- PDF Kütüphaneleri -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <style>
-        /* EPC Dashboard Uyumu için üst barda ufak bir geri dön butonu */
-        .btn-back-dash { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 20px; display: flex; align-items: center; }
+        body { font-family: 'Outfit', sans-serif; background: #0f172a; color: #fff; margin: 0; padding: 0; overflow: hidden; }
+        .app-container { height: 100vh; display: flex; flex-direction: column; }
+        
+        /* ÜST BAŞLIK */
+        .top-bar { padding: 10px 20px; background: #1e293b; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        
+        /* ÜST NAVİGASYON (YENİ YERİ) */
+        .tab-bar { background: #111827; display: flex; justify-content: space-around; padding: 5px; border-bottom: 1px solid rgba(255,255,255,0.1); z-index: 100; }
+        .nav-item { text-align: center; color: #94a3b8; font-size: 0.7rem; cursor: pointer; flex:1; padding: 8px; transition: 0.3s; background: none; border:none; outline: none; }
+        .nav-item.active { color: #f59e0b; background: rgba(245, 158, 11, 0.05); border-bottom: 2px solid #f59e0b; }
+        .nav-item i { font-size: 20px; display: block; margin-bottom: 2px; }
+
+        .main-content { flex: 1; overflow-y: auto; position: relative; }
+        .page { display: none; padding: 20px; }
+        .page.active { display: block; }
+        .card { background: #1e293b; border-radius: 12px; padding: 15px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.05); }
+        .btn { padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; color: #000; background: #f59e0b; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-ghost { background: rgba(255,255,255,0.05); color: #fff; padding: 8px 15px; }
+        .hidden { display: none !important; }
+
+        /* HARİTA ÖZEL DÜZENİ */
+        #page-map.active { display: flex !important; padding: 0; height: 100%; width: 100%; position: absolute; inset:0; }
+        #map-sidebar { width: 260px; background: #111827; border-right: 1px solid rgba(255,255,255,0.1); padding: 15px; overflow-y: auto; z-index: 10; }
+        #map-container { flex: 1; height: 100%; width: 100%; position: relative; }
+
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+
+        #loader { position: fixed; inset: 0; background: #0f172a; z-index: 10000; display: flex; align-items: center; justify-content: center; }
+        .spin { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top-color: #f59e0b; border-radius: 50%; animation: s 1s linear infinite; }
+        @keyframes s { to { transform: rotate(360deg); } }
     </style>
+
+    <!-- HARİTA DESTEK KÜTÜPHANELERİ -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
+    <script src="https://api.mapbox.com/mapbox.js/plugins/leaflet-omnivore/v0.3.1/leaflet-omnivore.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
 
+    <div id="loader"><div class="spin"></div></div>
+
     <div class="app-container">
-        <!-- TOP BAR -->
         <header class="top-bar">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <button class="btn-back-dash" onclick="window.location.href='dashboard.html'"><i class='bx bx-arrow-back'></i></button>
-                <h1>SahaBOSS</h1>
-            </div>
-            <div class="user-info">
-                <div class="notif-bell" id="btn-notif" style="position: relative; margin-right: 15px; cursor: pointer;">
-                    <i class='bx bx-bell' style="font-size: 22px;"></i>
-                    <span id="notif-badge" class="hidden" style="position: absolute; top: -5px; right: -5px; background: var(--danger); color: #fff; font-size: 9px; padding: 2px 5px; border-radius: 50%; font-weight: 800;">0</span>
-                </div>
-                <span id="user-role-badge" class="task-priority priority-normal">YÖNETİCİ</span>
-                <span id="display-name">...</span>
-                <button class="btn-logout" id="btn-logout" title="Çıkış"><i class='bx bx-log-out'></i></button>
+            <h1 style="font-size: 1.1rem; margin: 0; font-weight: 800; color: #f59e0b;">SahaBOSS</h1>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div id="display-name" style="font-size: 0.75rem; color: #94a3b8;">Yükleniyor...</div>
+                <button class="btn btn-ghost" style="font-size: 0.7rem;" onclick="window.location.href='dashboard.html'"><i class='bx bx-home'></i></button>
             </div>
         </header>
 
-        <!-- NOTIFICATION OVERLAY -->
-        <div id="notif-overlay" class="hidden" style="position: fixed; top: 60px; right: 10px; width: 280px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 12px; z-index: 500; box-shadow: 0 10px 25px rgba(0,0,0,0.5); overflow: hidden;">
-            <div style="padding: 12px; border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 700; display: flex; justify-content: space-between;">
-                <span>Bildirimler</span>
-                <button style="background:none; border:none; color:var(--primary); font-size:11px; cursor:pointer;" id="btn-mark-read">Hepsini Oku</button>
-            </div>
-            <div id="notif-list" style="max-height: 300px; overflow-y: auto;">
-                <p style="padding: 20px; font-size: 12px; color: var(--text-muted); text-align: center;">Bildirim yok.</p>
-            </div>
-        </div>
+        <!-- ÜST NAVİGASYON -->
+        <nav class="tab-bar">
+            <button class="nav-item active" onclick="showPage('dashboard', this)" data-nav="dashboard"><i class='bx bxs-grid-alt'></i> Özet</button>
+            <button class="nav-item" onclick="showPage('tasks', this)" data-nav="tasks"><i class='bx bx-task'></i> İşler</button>
+            <button class="nav-item" onclick="showPage('map', this)" data-nav="map"><i class='bx bx-map-alt'></i> Harita</button>
+            <button class="nav-item" id="btn-open-reports"><i class='bx bxs-file-pdf'></i> Rapor</button>
+            <button class="nav-item" onclick="showPage('profile', this)" data-nav="profile"><i class='bx bx-user-circle'></i> Profil</button>
+        </nav>
 
-        <main class="main-content" id="router-view">
-            <!-- DASHBOARD PAGE -->
+        <main class="main-content">
+            <!-- ÖZET SAYFASI -->
             <section id="page-dashboard" class="page active">
-                <div class="card">
-                    <div class="card-title"><i class='bx bxs-dashboard'></i> Saha Özeti</div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <div class="task-item" style="text-align: center;">
-                            <div style="font-size: 24px; font-weight: 800; color: var(--primary);" id="stat-pending">0</div>
-                            <div style="font-size: 11px; color: var(--text-muted);">BEKLEYEN</div>
-                        </div>
-                        <div class="task-item" style="text-align: center;">
-                            <div style="font-size: 24px; font-weight: 800; color: var(--success);" id="stat-done">0</div>
-                            <div style="font-size: 11px; color: var(--text-muted);">TAMAMLANAN</div>
-                        </div>
-                    </div>
+                <div class="card" style="background: linear-gradient(135deg, #1e293b, #0f172a);">
+                    <h3 style="margin:0;">Hoş Geldin, <span id="welcome-name">...</span></h3>
+                    <p style="color: #94a3b8; font-size: 0.8rem; margin-top:5px;">Saha operasyonların kontrolün altında.</p>
                 </div>
-                <div class="card">
-                    <div class="card-title"><i class='bx bx-broadcast'></i> GPS Takibi (Kendi)</div>
-                    <div style="display: flex; align-items: center; justify-content: space-between;">
-                        <div style="font-size: 13px;">Konum Paylaşımı: <span id="gps-status" style="color: var(--danger);">KAPALI</span></div>
-                        <label class="switch">
-                            <input type="checkbox" id="gps-toggle">
-                            <span class="slider round"></span>
-                        </label>
-                    </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <button class="card btn" style="display:block; text-align:center; height: auto;" onclick="window.openNewTaskModal()">
+                        <i class='bx bx-plus-circle' style="font-size: 1.5rem;"></i><br>İş Ata
+                    </button>
+                    <button class="card btn" style="display:block; text-align:center; height: auto; background: #38bdf8;" onclick="showPage('map', document.querySelector('[data-nav=map]'))">
+                        <i class='bx bx-map-pin' style="font-size: 1.5rem;"></i><br>Haritayı Aç
+                    </button>
                 </div>
             </section>
 
-            <!-- TASKS PAGE -->
+            <!-- İŞLER SAYFASI -->
             <section id="page-tasks" class="page">
-                <div class="card-title"><i class='bx bx-list-ul'></i> Görev Listesi</div>
-                <div id="tasks-container">
-                    <p class="text-center" style="color:var(--text-muted); padding:40px;">Yükleniyor...</p>
-                </div>
+                <h3>Saha Görevleri</h3>
+                <div id="tasks-container"><p style="text-align:center; color:#94a3b8;">Yükleniyor...</p></div>
             </section>
 
-            <!-- MAP PAGE -->
-            <style>
-                /* Harita sayfası aktifken özel düzeni devreye sok */
-                #page-map.active { 
-                    display: flex !important; 
-                    padding: 0; 
-                    height: calc(100vh - 130px); 
-                }
-            </style>
-
+            <!-- HARİTA SAYFASI -->
             <section id="page-map" class="page">
-                <!-- SOL PANEL: KATMAN YÖNETİMİ -->
-                <div id="map-sidebar" style="width: 280px; background: #1e293b; border-right: 1px solid rgba(255,255,255,0.1); padding: 15px; overflow-y: auto;">
-                    <h3 style="font-size: 1rem; margin-bottom: 20px; color: #f59e0b;"><i class='bx bx-layer'></i> Katman Paneli</h3>
-                    
-                    <!-- Yeni Katman Yükle -->
-                    <div class="card" style="padding: 10px; background: rgba(0,0,0,0.2);">
-                        <label style="font-size: 0.75rem; font-weight: bold; display: block; margin-bottom: 8px;">KML / KMZ YÜKLE</label>
-                        <input type="file" id="input-layer-file" accept=".kml,.kmz" style="font-size: 0.7rem; width: 100%;">
-                        <button class="btn btn-primary" id="btn-upload-layer" style="margin-top: 10px; font-size: 0.75rem; padding: 5px;" onclick="handleLayerUpload()">Yükle ve Ekle</button>
+                <div id="map-sidebar">
+                    <h4 style="margin-top:0; color:#f59e0b;">🏘️ Sınır Dosyaları</h4>
+                    <div class="card" style="padding: 10px; background: rgba(255,255,255,0.02);">
+                        <input type="file" id="input-layer-file" accept=".kml,.kmz" style="font-size: 10px; width: 100%;">
+                        <button class="btn" style="width:100%; padding: 6px; font-size: 11px; margin-top:10px;" onclick="handleLayerUpload()">Projeyi Ekle</button>
                     </div>
-
-                    <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
-
-                    <!-- Katman Listesi -->
-                    <div id="layer-list">
-                        <p style="font-size: 0.7rem; color: #94a3b8; text-align: center;">Yüklü katman yok.</p>
-                    </div>
+                    <div id="layer-list" style="margin-top: 15px;"></div>
                 </div>
-
-                <!-- SAĞ PANEL: HARİTA -->
-                <div id="map-container" style="flex: 1; height: 100%;"></div>
+                <div id="map-container"></div>
             </section>
 
-            <!-- PROFILE / REPORTS PAGE -->
+            <!-- PROFİL SAYFASI -->
             <section id="page-profile" class="page">
                 <div class="card text-center">
-                    <div style="width: 80px; height: 80px; background: linear-gradient(135deg, var(--primary), var(--primary-dk)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 800; color: #000; margin: 0 auto 16px;" id="profile-initial">?</div>
-                    <h3 id="profile-name">...</h3>
-                    <div id="profile-role" style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">SAHA YÖNETİCİSİ</div>
+                    <div style="background: #f59e0b; width: 60px; height:60px; border-radius:50%; margin: 0 auto 10px; color:#000; font-size: 24px; display:flex; align-items:center; justify-content:center; font-weight:800;">e</div>
+                    <h3 id="p-name">...</h3>
+                    <p style="color: #94a3b8; font-size: 0.8rem;">Yönetici Hesabı</p>
                 </div>
-                <div class="card">
-                    <button class="btn btn-primary btn-block" id="btn-open-reports"><i class='bx bx-file-blank'></i> Raporlar ve Dökümanlar</button>
-                    <button class="btn btn-ghost btn-block mt-20" onclick="window.location.href='admin-sahaboss.html'"><i class='bx bx-cog'></i> Ekip ve Proje Yönetimi</button>
-                    <button class="btn btn-danger btn-block mt-20" id="btn-logout-alt"><i class='bx bx-log-out'></i> Çıkış Yap</button>
-                </div>
+                <button class="btn" style="background:#ef4444; color:#fff; width:100%;" onclick="window.location.href='login.html'"><i class='bx bx-log-out'></i> Güvenli Çıkış</button>
             </section>
-
-            <!-- TASK DETAIL OVERLAY -->
-            <div id="task-detail-overlay" class="hidden" style="position: fixed; inset: 0; background: var(--bg); z-index: 200; display: flex; flex-direction: column;">
-                <div class="top-bar">
-                    <button class="btn-logout" id="btn-close-task"><i class='bx bx-chevron-left' style="font-size: 28px;"></i>Geri</button>
-                    <h2 style="font-size: 16px;">Görev Detayı</h2>
-                    <div style="width: 40px;"></div>
-                </div>
-                <div class="main-content" id="task-detail-content"></div>
-            </div>
         </main>
-
-        <!-- TAB BAR -->
-        <nav class="tab-bar">
-            <div class="tab-item active" data-nav="dashboard"><i class='bx bxs-dashboard'></i><span>Özet</span></div>
-            <div class="tab-item" data-nav="tasks"><i class='bx bx-list-ul'></i><span>İşler</span></div>
-            <div class="tab-item" data-nav="map"><i class='bx bx-map-alt'></i><span>Harita</span></div>
-            <div class="tab-item" data-nav="profile"><i class='bx bx-user-circle'></i><span>Profil</span></div>
-        </nav>
     </div>
 
-    <!-- FAB: NEW TASK -->
-    <button id="fab-add-task" class="fab" onclick="window.openNewTaskModal()">
-        <i class='bx bx-plus'></i>
-    </button>
-
-    <!-- MODAL: YENİ GÖREV -->
-    <div id="modal-new-task" class="modal-overlay hidden">
-        <div class="modal">
-            <div class="modal-head"><h3>Yeni Görev Ata</h3><button class="btn-logout" onclick="window.closeNewTaskModal()"><i class='bx bx-x'></i></button></div>
-            <div class="modal-body">
-                <div class="fg"><label>İlgili Proje *</label><select id="nt-project"><option value="">— Proje Seçin —</option></select></div>
-                <div class="fg"><label>Görev Başlığı *</label><input type="text" id="nt-title" placeholder="Örn: Saha Temizliği"></div>
-                <div class="fg"><label>Açıklama</label><textarea id="nt-desc" style="height: 80px;" placeholder="Hangi bölgede ne yapılacak?"></textarea></div>
-                <div class="fg"><label>Öncelik</label><select id="nt-priority"><option value="normal">Normal</option><option value="urgent">ACİL</option></select></div>
-                <div class="fg"><label>Personel Ata *</label><select id="nt-assignee"><option value="">— Personel Seçin —</option></select></div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-ghost btn-block" onclick="window.closeNewTaskModal()">İptal</button>
-                <button class="btn btn-primary btn-block" id="btn-save-new-task">Görev Ata</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL: RAPORLAR -->
+    <!-- RAPOR MODALI -->
     <div id="modal-reports" class="modal-overlay hidden">
-        <div class="modal">
-            <div class="modal-head"><h3>Döküman ve Raporlar</h3><button class="btn-logout" onclick="window.closeReportsModal()"><i class='bx bx-x'></i></button></div>
-            <div class="modal-body">
-                <div class="card" style="border-left: 4px solid var(--primary);">
-                    <div style="font-weight: 700;">Günlük Özet Raporu (PDF)</div>
-                    <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">Fotoğraflı ve imzalı günlük iş dökümü.</p>
-                    <button class="btn btn-primary btn-block" id="btn-gen-pdf"><i class='bx bxs-file-pdf'></i> PDF Oluştur</button>
-                </div>
+        <div class="card" style="width: 100%; max-width: 400px;">
+            <h3>Döküman ve Raporlar</h3>
+            <p style="font-size: 0.8rem; color: #94a3b8;">Günün özet raporunu PDF olarak alabilirsiniz.</p>
+            <button class="btn" id="btn-gen-pdf" style="width: 100%; margin-top: 20px;">PDF Oluştur ve İndir</button>
+            <button class="btn btn-ghost" style="width: 100%; margin-top: 10px;" onclick="window.closeReportsModal()">Kapat</button>
+        </div>
+    </div>
+
+    <!-- YENİ GÖREV MODALI -->
+    <div id="modal-new-task" class="modal-overlay hidden">
+        <div class="card" style="width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto;">
+            <h3>Yeni İş Ataması</h3>
+            <div id="task-form-content"></div>
+            <div style="margin-top:20px; display:flex; gap:10px;">
+                <button class="btn" id="btn-save-task" style="flex:1;">Görevi Gönder</button>
+                <button class="btn btn-ghost" onclick="document.getElementById('modal-new-task').classList.add('hidden')">İptal</button>
             </div>
         </div>
     </div>
 
-    <!-- SCRIPTS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        function showPage(pageId, el) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('page-' + pageId).classList.add('active');
+            el.classList.add('active');
+            if (pageId === 'map' && window.map) {
+                setTimeout(() => window.map.invalidateSize(), 100);
+            }
+        }
+    </script>
+
     <script type="module">
         import { auth, db, signOut } from './firebase-app.js';
         import { protectPage } from './auth-guard-central.js';
-        
-        import { initTasks } from './tasks.js?v=99';
-        import { initLocation } from './location.js';
-        import { initMap } from './maps.js?v=200';
-        import { initReports } from './reports.js';
-        import { initNotifications } from './notifications.js';
-        import { initLayers } from './layers.js?v=200';
-Line 183:         import { initLocation } from './location.js?v=200';
+        import { initTasks } from './tasks.js?v=201';
+        import { initLocation } from './location.js?v=201';
+        import { initMap } from './maps.js?v=201';
+        import { initReports } from './reports.js?v=201';
+        import { initLayers } from './layers.js?v=201';
 
-        window.user = null;
-        window.userData = null;
-
-        // GÜVENLİK GUARD
-        protectPage().then(async ({ authorized, data }) => {
-            if (!authorized) return; // auth-guard-central zaten yönlendirmeyi yapar
+        protectPage().then(({ authorized, data }) => {
+            document.getElementById('loader').style.display = 'none';
+            if (!authorized) return;
             
             window.user = auth.currentUser;
             window.userData = data;
 
-            // Eğer userData içinde rol yoksa varsayılan 'sef' (admin) ata (SaaS kullanıcısı olduğu için)
-            if (!window.userData.role) window.userData.role = 'sef';
-            if (!window.userData.projectId) window.userData.projectId = 'default_project';
+            document.getElementById('display-name').textContent = data.name || 'Yönetici';
+            document.getElementById('welcome-name').textContent = data.name || 'Yönetici';
+            document.getElementById('p-name').textContent = data.name || '...';
 
-            initApp();
-        });
-
-        async function initApp() {
-            document.getElementById('display-name').textContent = window.userData.displayName || window.userData.name;
-            document.getElementById('profile-name').textContent = window.userData.displayName || window.userData.name;
-            document.getElementById('profile-initial').textContent = (window.userData.displayName || window.userData.name)[0];
-
-            initNavigation();
             initTasks();
-            initLocation();
             initMap();
             initReports();
-            initNotifications();
-        }
-
-        function initNavigation() {
-            const tabs = document.querySelectorAll('.tab-item');
-            const pages = document.querySelectorAll('.page');
-            tabs.forEach(tab => {
-                tab.addEventListener('click', () => {
-                    const target = tab.dataset.nav;
-                    tabs.forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
-                    pages.forEach(p => p.classList.remove('active'));
-                    document.getElementById('page-' + target).classList.add('active');
-                    if (target === 'map' && window.map) window.map.invalidateSize();
-                });
-            });
-        }
-
-        document.getElementById('btn-logout').onclick = () => signOut(auth).then(() => window.location.href='login.html');
-        document.getElementById('btn-logout-alt').onclick = () => signOut(auth).then(() => window.location.href='login.html');
-        document.getElementById('btn-close-task').onclick = () => document.getElementById('task-detail-overlay').classList.add('hidden');
+            initLayers();
+            initLocation();
+        });
     </script>
 </body>
 </html>
