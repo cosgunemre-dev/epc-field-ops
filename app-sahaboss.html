@@ -7,44 +7,40 @@
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="sahaboss.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { font-family: 'Outfit', sans-serif; background: #0f172a; color: #fff; margin: 0; padding: 0; overflow: hidden; }
-        .app-container { height: 100vh; display: flex; flex-direction: column; }
+        body { font-family: 'Outfit', sans-serif; background: #0f172a; color: #fff; margin: 0; padding: 0; overflow-y: auto; }
         
-        /* ÜST BAŞLIK */
-        .top-bar { padding: 10px 20px; background: #1e293b; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .top-bar { padding: 10px 20px; background: #1e293b; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); position: sticky; top:0; z-index: 1100; }
         
-        /* ÜST NAVİGASYON (YENİ YERİ) */
-        .tab-bar { background: #111827; display: flex; justify-content: space-around; padding: 5px; border-bottom: 1px solid rgba(255,255,255,0.1); z-index: 100; }
-        .nav-item { text-align: center; color: #94a3b8; font-size: 0.7rem; cursor: pointer; flex:1; padding: 8px; transition: 0.3s; background: none; border:none; outline: none; }
-        .nav-item.active { color: #f59e0b; background: rgba(245, 158, 11, 0.05); border-bottom: 2px solid #f59e0b; }
+        .tab-bar { background: #111827; display: flex; justify-content: space-around; padding: 5px; border-bottom: 1px solid rgba(255,255,255,0.1); position: sticky; top:52px; z-index: 1050; }
+        .nav-item { text-align: center; color: #94a3b8; font-size: 0.7rem; cursor: pointer; flex:1; padding: 10px; background: none; border:none; transition: 0.3s; }
+        .nav-item.active { color: #f59e0b; border-bottom: 2px solid #f59e0b; background: rgba(245,158,11,0.05); }
         .nav-item i { font-size: 20px; display: block; margin-bottom: 2px; }
 
-        .main-content { flex: 1; overflow-y: auto; position: relative; }
-        .page { display: none; padding: 20px; }
+        .main-content { padding: 20px; min-height: calc(100vh - 120px); }
+        .page { display: none; }
         .page.active { display: block; }
+
         .card { background: #1e293b; border-radius: 12px; padding: 15px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.05); }
         .btn { padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; color: #000; background: #f59e0b; display: inline-flex; align-items: center; gap: 8px; }
         .btn-ghost { background: rgba(255,255,255,0.05); color: #fff; padding: 8px 15px; }
-        .hidden { display: none !important; }
+        
+        /* HARİTA ÇERÇEVESİ (CARD DÜZENİ) */
+        .map-wrapper { display: flex; height: 600px; border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); background: #1e293b; }
+        #map-sidebar { width: 260px; padding: 15px; overflow-y: auto; background: #111827; }
+        #map-container { flex: 1; height: 100%; z-index: 1; }
 
-        /* HARİTA ÖZEL DÜZENİ */
-        #page-map.active { display: flex !important; padding: 0; height: 100%; width: 100%; position: absolute; inset:0; }
-        #map-sidebar { width: 260px; background: #111827; border-right: 1px solid rgba(255,255,255,0.1); padding: 15px; overflow-y: auto; z-index: 10; }
-        #map-container { flex: 1; height: 100%; width: 100%; position: relative; }
-
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
-
-        #loader { position: fixed; inset: 0; background: #0f172a; z-index: 10000; display: flex; align-items: center; justify-content: center; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        #loader { position: fixed; inset: 0; background: #0f172a; z-index: 5000; display: flex; align-items: center; justify-content: center; }
         .spin { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top-color: #f59e0b; border-radius: 50%; animation: s 1s linear infinite; }
         @keyframes s { to { transform: rotate(360deg); } }
     </style>
 
-    <!-- HARİTA DESTEK KÜTÜPHANELERİ -->
+    <!-- HARİTA DESTEK -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
     <script src="https://api.mapbox.com/mapbox.js/plugins/leaflet-omnivore/v0.3.1/leaflet-omnivore.min.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
@@ -54,88 +50,66 @@
     <div class="app-container">
         <header class="top-bar">
             <h1 style="font-size: 1.1rem; margin: 0; font-weight: 800; color: #f59e0b;">SahaBOSS</h1>
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <div id="display-name" style="font-size: 0.75rem; color: #94a3b8;">Yükleniyor...</div>
-                <button class="btn btn-ghost" style="font-size: 0.7rem;" onclick="window.location.href='dashboard.html'"><i class='bx bx-home'></i></button>
-            </div>
+            <div id="display-name" style="font-size: 0.75rem; color: #94a3b8;">Yönetici</div>
         </header>
 
-        <!-- ÜST NAVİGASYON -->
         <nav class="tab-bar">
             <button class="nav-item active" onclick="showPage('dashboard', this)" data-nav="dashboard"><i class='bx bxs-grid-alt'></i> Özet</button>
             <button class="nav-item" onclick="showPage('tasks', this)" data-nav="tasks"><i class='bx bx-task'></i> İşler</button>
             <button class="nav-item" onclick="showPage('map', this)" data-nav="map"><i class='bx bx-map-alt'></i> Harita</button>
-            <button class="nav-item" id="btn-open-reports"><i class='bx bxs-file-pdf'></i> Rapor</button>
             <button class="nav-item" onclick="showPage('profile', this)" data-nav="profile"><i class='bx bx-user-circle'></i> Profil</button>
         </nav>
 
         <main class="main-content">
-            <!-- ÖZET SAYFASI -->
+            <!-- ÖZET -->
             <section id="page-dashboard" class="page active">
                 <div class="card" style="background: linear-gradient(135deg, #1e293b, #0f172a);">
                     <h3 style="margin:0;">Hoş Geldin, <span id="welcome-name">...</span></h3>
-                    <p style="color: #94a3b8; font-size: 0.8rem; margin-top:5px;">Saha operasyonların kontrolün altında.</p>
+                    <p style="color: #94a3b8; font-size: 0.8rem;">Saha operasyonların kontrolün altında.</p>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                    <button class="card btn" style="display:block; text-align:center; height: auto;" onclick="window.openNewTaskModal()">
-                        <i class='bx bx-plus-circle' style="font-size: 1.5rem;"></i><br>İş Ata
-                    </button>
-                    <button class="card btn" style="display:block; text-align:center; height: auto; background: #38bdf8;" onclick="showPage('map', document.querySelector('[data-nav=map]'))">
-                        <i class='bx bx-map-pin' style="font-size: 1.5rem;"></i><br>Haritayı Aç
-                    </button>
+                    <button class="card btn" style="display:block; text-align:center;" onclick="window.openNewTaskModal()">İş Ata</button>
+                    <button class="card btn" style="display:block; text-align:center; background:#38bdf8;" id="btn-open-reports">Rapor Al</button>
                 </div>
             </section>
 
-            <!-- İŞLER SAYFASI -->
+            <!-- İŞLER -->
             <section id="page-tasks" class="page">
                 <h3>Saha Görevleri</h3>
-                <div id="tasks-container"><p style="text-align:center; color:#94a3b8;">Yükleniyor...</p></div>
+                <div id="tasks-container"></div>
             </section>
 
-            <!-- HARİTA SAYFASI -->
+            <!-- HARİTA (ÇERÇEVELİ DÜZEN) -->
             <section id="page-map" class="page">
-                <div id="map-sidebar">
-                    <h4 style="margin-top:0; color:#f59e0b;">🏘️ Sınır Dosyaları</h4>
-                    <div class="card" style="padding: 10px; background: rgba(255,255,255,0.02);">
-                        <input type="file" id="input-layer-file" accept=".kml,.kmz" style="font-size: 10px; width: 100%;">
-                        <button class="btn" style="width:100%; padding: 6px; font-size: 11px; margin-top:10px;" onclick="handleLayerUpload()">Projeyi Ekle</button>
+                <div class="map-wrapper">
+                    <div id="map-sidebar">
+                        <h4 style="margin-top:0; color:#f59e0b;">🏘️ Proje Sınırları</h4>
+                        <div class="card" style="padding: 10px; background: rgba(255,255,255,0.02); margin-bottom: 10px;">
+                            <input type="file" id="input-layer-file" accept=".kml,.kmz" style="font-size: 10px; width: 100%;">
+                            <button class="btn" style="width:100%; padding: 6px; font-size: 11px; margin-top:10px;" onclick="handleLayerUpload()">Katman Yükle</button>
+                        </div>
+                        <div id="layer-list"></div>
                     </div>
-                    <div id="layer-list" style="margin-top: 15px;"></div>
+                    <div id="map-container"></div>
                 </div>
-                <div id="map-container"></div>
             </section>
 
-            <!-- PROFİL SAYFASI -->
+            <!-- PROFİL -->
             <section id="page-profile" class="page">
                 <div class="card text-center">
-                    <div style="background: #f59e0b; width: 60px; height:60px; border-radius:50%; margin: 0 auto 10px; color:#000; font-size: 24px; display:flex; align-items:center; justify-content:center; font-weight:800;">e</div>
                     <h3 id="p-name">...</h3>
-                    <p style="color: #94a3b8; font-size: 0.8rem;">Yönetici Hesabı</p>
+                    <button class="btn" style="background:#ef4444; color:#fff; margin-top:20px;" onclick="window.location.href='login.html'">Çıkış Yap</button>
                 </div>
-                <button class="btn" style="background:#ef4444; color:#fff; width:100%;" onclick="window.location.href='login.html'"><i class='bx bx-log-out'></i> Güvenli Çıkış</button>
             </section>
         </main>
     </div>
 
-    <!-- RAPOR MODALI -->
+    <!-- MODALLAR -->
     <div id="modal-reports" class="modal-overlay hidden">
         <div class="card" style="width: 100%; max-width: 400px;">
             <h3>Döküman ve Raporlar</h3>
-            <p style="font-size: 0.8rem; color: #94a3b8;">Günün özet raporunu PDF olarak alabilirsiniz.</p>
-            <button class="btn" id="btn-gen-pdf" style="width: 100%; margin-top: 20px;">PDF Oluştur ve İndir</button>
+            <button class="btn" id="btn-gen-pdf" style="width: 100%; margin-top: 20px;">PDF Oluştur</button>
             <button class="btn btn-ghost" style="width: 100%; margin-top: 10px;" onclick="window.closeReportsModal()">Kapat</button>
-        </div>
-    </div>
-
-    <!-- YENİ GÖREV MODALI -->
-    <div id="modal-new-task" class="modal-overlay hidden">
-        <div class="card" style="width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto;">
-            <h3>Yeni İş Ataması</h3>
-            <div id="task-form-content"></div>
-            <div style="margin-top:20px; display:flex; gap:10px;">
-                <button class="btn" id="btn-save-task" style="flex:1;">Görevi Gönder</button>
-                <button class="btn btn-ghost" onclick="document.getElementById('modal-new-task').classList.add('hidden')">İptal</button>
-            </div>
         </div>
     </div>
 
@@ -146,24 +120,23 @@
             document.getElementById('page-' + pageId).classList.add('active');
             el.classList.add('active');
             if (pageId === 'map' && window.map) {
-                setTimeout(() => window.map.invalidateSize(), 100);
+                setTimeout(() => window.map.invalidateSize(), 300);
             }
         }
     </script>
 
     <script type="module">
-        import { auth, db, signOut } from './firebase-app.js';
+        import { auth, db } from './firebase-app.js';
         import { protectPage } from './auth-guard-central.js';
-        import { initTasks } from './tasks.js?v=201';
-        import { initLocation } from './location.js?v=201';
-        import { initMap } from './maps.js?v=201';
-        import { initReports } from './reports.js?v=201';
-        import { initLayers } from './layers.js?v=201';
+        import { initTasks } from './tasks.js?v=205';
+        import { initLocation } from './location.js?v=205';
+        import { initMap } from './maps.js?v=205';
+        import { initReports } from './reports.js?v=205';
+        import { initLayers } from './layers.js?v=205';
 
         protectPage().then(({ authorized, data }) => {
             document.getElementById('loader').style.display = 'none';
             if (!authorized) return;
-            
             window.user = auth.currentUser;
             window.userData = data;
 
@@ -171,11 +144,7 @@
             document.getElementById('welcome-name').textContent = data.name || 'Yönetici';
             document.getElementById('p-name').textContent = data.name || '...';
 
-            initTasks();
-            initMap();
-            initReports();
-            initLayers();
-            initLocation();
+            initTasks(); initMap(); initReports(); initLayers(); initLocation();
         });
     </script>
 </body>

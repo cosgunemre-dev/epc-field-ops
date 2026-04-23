@@ -1,15 +1,15 @@
-import { db } from './firebase-app.js';
+import { db, storage } from './firebase-app.js';
 import { 
     collection, query, where, onSnapshot, getDocs, orderBy, Timestamp 
 } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
+import { ref, getBytes } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-storage.js";
 
 let map;
 let markers = {};
 let routeLines = [];
-let activeLayers = {}; // Yüklü katmanları burada tutuyoruz { id: leafletLayer }
+let activeLayers = {}; 
 
 export function initMap() {
-    console.log("Harita Sistemi Yükleniyor...");
     const mapDiv = document.getElementById('map-container');
     if (!mapDiv) return;
 
@@ -21,16 +21,13 @@ export function initMap() {
     }).addTo(map);
 
     window.map = map;
-
     loadTeamLocations();
     loadProjectsOnMap();
 }
 
-// KATMAN GÖSTER / GİZLE (KML & KMZ)
 window.toggleLayer = async (id, url, type) => {
     const icon = document.getElementById(`icon-layer-${id}`);
     
-    // Eğer katman zaten açıksa: KAPAT
     if (activeLayers[id]) {
         map.removeLayer(activeLayers[id]);
         delete activeLayers[id];
@@ -38,50 +35,52 @@ window.toggleLayer = async (id, url, type) => {
         return;
     }
 
-    // Eğer katman kapalıysa: AÇ
     if (icon) icon.className = 'bx bx-loader-alt bx-spin';
 
     try {
+        // GÜVENLİ İNDİRME YÖNTEMİ (CORS Hatasını engeller)
+        const storageRef = ref(storage, url);
+        const buffer = await getBytes(storageRef);
         let leafletLayer;
 
         if (type === 'kmz') {
-            // KMZ: ZIP'i çöz ve KML'yi al
-            const response = await fetch(url);
-            const data = await response.blob();
-            const zip = await JSZip.loadAsync(data);
-            
-            // İlk bulduğun .kml dosyasını oku
+            const zip = await JSZip.loadAsync(buffer);
             const kmlFile = Object.keys(zip.files).find(f => f.endsWith('.kml'));
             const kmlText = await zip.file(kmlFile).async("string");
             
-            // KML'yi GeoJSON'a çevir ve haritaya ekle
             const parser = new DOMParser();
             const kmlDom = parser.parseFromString(kmlText, "text/xml");
             const geoJsonData = toGeoJSON.kml(kmlDom);
             
             leafletLayer = L.geoJSON(geoJsonData, {
-                style: { color: '#f59e0b', weight: 2 },
+                style: { color: '#f59e0b', weight: 3, opacity: 0.8 },
                 onEachFeature: (f, l) => { if(f.properties.name) l.bindPopup(f.properties.name); }
             }).addTo(map);
 
         } else {
-            // KML: Doğrudan omnivore ile yükle
-            leafletLayer = omnivore.kml(url, null, L.geoJSON(null, {
-                style: { color: '#f59e0b', weight: 2 },
+            // KML için text dönüşümü
+            const kmlText = new TextDecoder().decode(buffer);
+            const parser = new DOMParser();
+            const kmlDom = parser.parseFromString(kmlText, "text/xml");
+            const geoJsonData = toGeoJSON.kml(kmlDom);
+
+            leafletLayer = L.geoJSON(geoJsonData, {
+                style: { color: '#f59e0b', weight: 3, opacity: 0.8 },
                 onEachFeature: (f, l) => { if(f.properties.name) l.bindPopup(f.properties.name); }
-            })).addTo(map);
+            }).addTo(map);
         }
 
         activeLayers[id] = leafletLayer;
         if (icon) icon.className = 'bx bxs-show';
         
         // Katmana odaklan
-        leafletLayer.on('ready', () => map.fitBounds(leafletLayer.getBounds()));
-        if (type === 'kmz') map.fitBounds(leafletLayer.getBounds());
+        if (leafletLayer.getBounds().isValid()) {
+            map.fitBounds(leafletLayer.getBounds());
+        }
 
     } catch (err) {
         console.error("Katman yükleme hatası:", err);
-        alert("Katman yüklenemedi: " + err.message);
+        alert("❌ Katman açılamadı: " + err.message);
         if (icon) icon.className = 'bx bx-show';
     }
 }
@@ -93,7 +92,6 @@ window.removeLayerFromMap = (id) => {
     }
 }
 
-// EKİP TAKİBİ
 async function loadTeamLocations() {
     const q = query(collection(db, 'users'), where('managedBy', '==', window.user.uid));
     onSnapshot(q, (snapshot) => {
@@ -141,7 +139,7 @@ async function loadProjectsOnMap() {
     snap.forEach(doc => {
         const p = doc.data();
         if (p.center) {
-            L.circle([p.center.lat, p.center.lng], { color: '#38bdf8', radius: 500 }).addTo(map).bindPopup(`Proje: ${p.name}`);
+            L.circle([p.center.lat, p.center.lng], { color: '#38bdf8', radius: 500, label: p.name }).addTo(map).bindPopup(`Proje: ${p.name}`);
         }
     });
 }
