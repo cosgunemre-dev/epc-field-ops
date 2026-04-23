@@ -10,6 +10,7 @@ let routeLines = [];
 let activeLayers = {}; 
 
 export function initMap() {
+    console.log("SahaBOSS Harita Modülü Hazır.");
     const mapDiv = document.getElementById('map-container');
     if (!mapDiv) return;
 
@@ -25,6 +26,17 @@ export function initMap() {
     loadProjectsOnMap();
 }
 
+// URL'den Firebase path'ini ayıklayan yardımcı fonksiyon
+function getStoragePath(url) {
+    try {
+        if (url.includes('/o/')) {
+            const path = url.split('/o/')[1].split('?')[0];
+            return decodeURIComponent(path);
+        }
+    } catch(e) {}
+    return url;
+}
+
 window.toggleLayer = async (id, url, type) => {
     const icon = document.getElementById(`icon-layer-${id}`);
     
@@ -38,14 +50,16 @@ window.toggleLayer = async (id, url, type) => {
     if (icon) icon.className = 'bx bx-loader-alt bx-spin';
 
     try {
-        // GÜVENLİ İNDİRME YÖNTEMİ (CORS Hatasını engeller)
-        const storageRef = ref(storage, url);
+        // GÜVENLİ İNDİRME: Path üzerinden doğrudan erişim
+        const path = getStoragePath(url);
+        const storageRef = ref(storage, path);
         const buffer = await getBytes(storageRef);
         let leafletLayer;
 
         if (type === 'kmz') {
             const zip = await JSZip.loadAsync(buffer);
             const kmlFile = Object.keys(zip.files).find(f => f.endsWith('.kml'));
+            if (!kmlFile) throw new Error("KMZ içinde KML bulunamadı.");
             const kmlText = await zip.file(kmlFile).async("string");
             
             const parser = new DOMParser();
@@ -58,7 +72,6 @@ window.toggleLayer = async (id, url, type) => {
             }).addTo(map);
 
         } else {
-            // KML için text dönüşümü
             const kmlText = new TextDecoder().decode(buffer);
             const parser = new DOMParser();
             const kmlDom = parser.parseFromString(kmlText, "text/xml");
@@ -72,15 +85,11 @@ window.toggleLayer = async (id, url, type) => {
 
         activeLayers[id] = leafletLayer;
         if (icon) icon.className = 'bx bxs-show';
-        
-        // Katmana odaklan
-        if (leafletLayer.getBounds().isValid()) {
-            map.fitBounds(leafletLayer.getBounds());
-        }
+        if (leafletLayer.getBounds().isValid()) map.fitBounds(leafletLayer.getBounds());
 
     } catch (err) {
-        console.error("Katman yükleme hatası:", err);
-        alert("❌ Katman açılamadı: " + err.message);
+        console.error("Hata Detayı:", err);
+        alert("❌ Dosya Açılamadı: " + err.message);
         if (icon) icon.className = 'bx bx-show';
     }
 }
@@ -105,12 +114,12 @@ async function loadTeamLocations() {
                 } else {
                     const icon = L.divIcon({
                         className: 'custom-div-icon',
-                        html: `<div style="background:#f59e0b; color:#000; border:2px solid #fff; border-radius:50%; width:30px; height:30px; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:10px; box-shadow:0 2px 5px rgba(0,0,0,0.5);">${(data.name || 'P')[0]}</div>`,
-                        iconSize: [30, 30],
-                        iconAnchor: [15, 15]
+                        html: `<div style="background:#f59e0b; color:#000; border:2px solid #fff; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:11px; box-shadow:0 3px 6px rgba(0,0,0,0.4);">${(data.name || 'P')[0]}</div>`,
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 16]
                     });
                     markers[uid] = L.marker([lat, lng], {icon: icon}).addTo(map)
-                        .bindPopup(`<b>${data.name || data.displayName}</b><br><button onclick="window.showUserRoute('${uid}')" style="width:100%; font-size:10px;">Rota Göster</button>`);
+                        .bindPopup(`<b>${data.name || data.displayName}</b><br><button onclick="window.showUserRoute('${uid}')" style="width:100%; font-size:10px; margin-top:5px;">Rotayı Gör</button>`);
                 }
             }
         });
@@ -126,9 +135,12 @@ window.showUserRoute = async (uid) => {
         const snap = await getDocs(q);
         const path = snap.docs.map(d => [d.data().lat, d.data().lng]);
         if (path.length > 0) {
-            const polyline = L.polyline(path, {color: '#f59e0b', weight: 4, dashArray: '5, 10'}).addTo(map);
+            const polyline = L.polyline(path, {color: '#f59e0b', weight: 5, dashArray: '10, 10'}).addTo(map);
             routeLines.push(polyline);
             map.fitBounds(polyline.getBounds());
+            alert(`Personelin 1 haftalık rotası (${path.length} nokta) haritaya işlendi.`);
+        } else {
+            alert("Bu personel için kayıtlı rota bulunamadı.");
         }
     } catch (err) { console.error(err); }
 }
@@ -139,7 +151,7 @@ async function loadProjectsOnMap() {
     snap.forEach(doc => {
         const p = doc.data();
         if (p.center) {
-            L.circle([p.center.lat, p.center.lng], { color: '#38bdf8', radius: 500, label: p.name }).addTo(map).bindPopup(`Proje: ${p.name}`);
+            L.circle([p.center.lat, p.center.lng], { color: '#38bdf8', fillColor:'#38bdf8', opacity:0.8, radius: 500 }).addTo(map).bindPopup(`Proje: ${p.name}`);
         }
     });
 }
