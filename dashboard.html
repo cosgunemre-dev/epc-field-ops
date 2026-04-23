@@ -203,6 +203,14 @@
                         <p>Elektrik topolojisini interaktif olarak belirleyin, test sonuçlarını cihaz bazlı girin ve devreye alma raporlarınızı otomatik oluşturun.</p>
                         <span style="display: inline-block; padding: 8px 16px; background: rgba(59, 130, 246, 0.1); color: #3b82f6; border-radius: 8px; font-weight: 600; font-size: 0.9rem;" id="omnisync-action-text">Uygulamayı Aç →</span>
                     </a>
+
+                    <!-- SolarMech CCTV Pro -->
+                    <a href="app-cctv.html" class="app-card" id="cctv-card">
+                        <div class="app-icon">📹</div>
+                        <h3>SolarMech CCTV Pro <span class="status-badge" id="cctv-badge">AKTİF</span></h3>
+                        <p>Saha güvenliğinde kör noktaları sıfırlayın. Minimum kamera sayısı ile maksimum kapsama sağlayan yerleşim optimizasyonu.</p>
+                        <span style="display: inline-block; padding: 8px 16px; background: rgba(245, 158, 11, 0.1); color: #f59e0b; border-radius: 8px; font-weight: 600; font-size: 0.9rem;" id="cctv-action-text">Uygulamayı Aç →</span>
+                    </a>
                 </div>
             </div>
 
@@ -248,7 +256,7 @@
                 // Tüm kartları döngüyle kilitliyoruz
                 const cardIds = [
                     'kablo-card', 'mobilizasyon-card', 'tracker-card', 
-                    'trenchcalc-card', 'makenik-card', 'omnisync-card', 'sahaboss-card'
+                    'trenchcalc-card', 'makenik-card', 'omnisync-card', 'sahaboss-card', 'cctv-card'
                 ];
                 
                 cardIds.forEach(id => {

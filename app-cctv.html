@@ -1,0 +1,2029 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SolarMech CCTV & Aydınlatma KDS</title>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --bg-panel: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --primary: #3b82f6;
+            --success: #10b981;
+            --danger: #ef4444;
+            --solar: #f59e0b;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+        body { display: flex; flex-direction: column; height: 100vh; background-color: var(--bg-dark); color: var(--text-main); overflow: hidden; }
+
+        /* Header */
+        header { height: 60px; background: var(--bg-panel); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; }
+        .logo { font-size: 18px; font-weight: bold; color: var(--solar); display: flex; align-items: center; gap: 8px; }
+        .tools { display: flex; gap: 10px; }
+        .btn { padding: 8px 15px; border-radius: 5px; border: none; cursor: pointer; color: #fff; background: var(--border); font-weight: 500; display: inline-flex; align-items: center; gap: 5px; transition: 0.2s; }
+        .btn:hover { filter: brightness(1.2); }
+        .btn-primary { background: var(--primary); }
+        .btn-success { background: var(--success); }
+        .btn-warning { background: var(--solar); }
+        
+        /* Main Layout */
+        .workspace { display: flex; flex: 1; height: calc(100vh - 60px); }
+        
+        /* Left Panel - Library */
+        .panel-left { width: 280px; background: var(--bg-panel); border-right: 1px solid var(--border); padding: 15px; display: flex; flex-direction: column; overflow-y: auto; }
+        .panel-title { font-size: 14px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 15px; letter-spacing: 1px; }
+        
+        .library-item { background: var(--bg-dark); border: 1px dashed var(--border); padding: 12px; border-radius: 6px; margin-bottom: 10px; cursor: grab; display: flex; align-items: center; gap: 10px; transition: 0.2s; }
+        .library-item:hover { border-color: var(--primary); }
+        .color-dot { width: 16px; height: 16px; border-radius: 50%; }
+        
+        .upload-box { border: 2px dashed var(--primary); padding: 20px; text-align: center; border-radius: 8px; margin-bottom: 20px; cursor: pointer; transition: 0.2s; }
+        .upload-box:hover { background: rgba(59, 130, 246, 0.1); }
+        .upload-box i { font-size: 32px; color: var(--primary); margin-bottom: 10px; }
+        
+        /* Canvas Area */
+        .canvas-container { flex: 1; position: relative; overflow: hidden; background: #0b1120; cursor: grab; }
+        .canvas-container:active { cursor: grabbing; }
+        canvas { display: block; width: 100%; height: 100%; }
+        .canvas-overlay { position: absolute; top: 15px; left: 15px; background: rgba(30, 41, 59, 0.8); padding: 10px; border-radius: 6px; font-size: 13px; border: 1px solid var(--border); pointer-events: none;}
+        
+        /* Right Panel - Properties */
+        .panel-right { width: 320px; background: var(--bg-panel); border-left: 1px solid var(--border); padding: 15px; display: flex; flex-direction: column; overflow-y: auto; }
+        
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 5px; }
+        .form-group input, .form-group select { width: 100%; background: var(--bg-dark); border: 1px solid var(--border); color: #fff; padding: 8px; border-radius: 4px; outline: none; }
+        .form-group input:focus { border-color: var(--primary); }
+
+        .property-box { background: var(--bg-dark); padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 15px; }
+        .property-box h4 { margin-bottom: 10px; font-size: 14px; display: flex; align-items: center; justify-content: space-between;}
+        
+        .result-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 5px; }
+        .result-row:last-child { border: none; margin-bottom: 0; padding-bottom: 0; }
+        
+        input[type="file"] { display: none; }
+    </style>
+</head>
+<body>
+    <!-- SaaS GÜVENLİK KÖRÜĞÜ VE YÜKLEYİCİ -->
+    <div id="loader" style="position: fixed; inset: 0; background: #0f172a; z-index: 10000; display: flex; align-items: center; justify-content: center; flex-direction: column; color: #fff;">
+        <div style="width: 45px; height: 45px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #f59e0b; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        <p style="margin-top: 20px; font-weight: 600; letter-spacing: 1px;">GÜVENLİ BAĞLANTI KURULUYOR...</p>
+    </div>
+
+    <script type="module">
+        import { protectPage } from './auth-guard-central.js';
+        protectPage().then(({ authorized }) => {
+            if (authorized) {
+                document.getElementById('loader').style.display = 'none';
+            }
+        });
+    </script>
+
+<header>
+    <div class="logo"><i class='bx bxs-sun'></i> SolarMech KDS: Çevre Güvenlik Optimizasyonu</div>
+    <div class="tools">
+        <button class="btn btn-warning" id="btn-auto-route"><i class='bx bx-map-alt'></i> Çevre Direklerini Otomatik Diz</button>
+        <button class="btn btn-success" id="btn-calculate"><i class='bx bx-brain'></i> Otonom Bağla & Hesapla</button>
+        <button class="btn btn-primary" id="btn-verify-manual"><i class='bx bx-check-shield'></i> Manuel Çizimi Doğrula</button>
+        <button class="btn" id="btn-export"><i class='bx bxs-file-pdf'></i> Rapor (PDF)</button>
+        <button class="btn" id="btn-export-excel" style="background:#217346; color:#fff;"><i class='bx bx-table'></i> Koordinat Excel</button>
+        <span style="width:1px;height:24px;background:rgba(255,255,255,0.15);display:inline-block;margin:0 6px;vertical-align:middle;"></span>
+        <input type="text" id="project-name" placeholder="Proje Ad&#305;..." style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:6px 10px;font-size:12px;width:140px;">
+        <button class="btn" id="btn-save-project" style="background:#0f4c81;color:#fff;"><i class='bx bx-save'></i> Kaydet</button>
+        <button class="btn" id="btn-saveas-project" style="background:#1e3a5f;color:#fff;"><i class='bx bx-copy'></i> Farklı Kaydet</button>
+        <button class="btn" id="btn-new-project" style="background:#374151;color:#fff;"><i class='bx bx-file-blank'></i> Yeni Proje</button>
+        <button class="btn" id="btn-open-project" style="background:#064e3b;color:#fff;"><i class='bx bx-folder-open'></i> Proje Aç</button>
+        <input type="file" id="project-file-input" accept=".smcctv,.json" style="display:none;">
+        <span style="width:1px;height:24px;background:rgba(255,255,255,0.15);display:inline-block;margin:0 6px;vertical-align:middle;"></span>
+        <button class="btn" id="btn-clear-all" style="background:#7f1d1d; color:#fff;"><i class='bx bx-trash'></i> Temizle</button>
+    </div>
+</header>
+
+<div class="workspace">
+    <!-- Kütüphane / Sol Panel -->
+    <div class="panel-left">
+        <div class="upload-box" onclick="document.getElementById('excel-file').click();">
+            <i class='bx bx-upload'></i>
+            <p style="font-size: 14px; font-weight: 500;">Koordinat Yükle (Excel)</p>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 5px;">X, Y formatında çizim sınırları</p>
+            <input type="file" id="excel-file" accept=".xlsx, .xls">
+        </div>
+
+        <div class="panel-title">Sürükle & Bırak Kütüphanesi</div>
+        <div class="library-item" draggable="true" data-type="POLE">
+            <div class="color-dot" style="background: #fff;"></div>
+            <span>Aydınlatma / CCTV Direği</span>
+        </div>
+        <div class="library-item" draggable="true" data-type="POE">
+            <div class="color-dot" style="background: #a855f7;"></div>
+            <span>PoE Switch Panosu</span>
+        </div>
+        <div class="library-item" draggable="true" data-type="KIOSK">
+            <div class="color-dot" style="background: #f59e0b; border-radius: 2px;"></div>
+            <span>Trafo Köşkü (400V Besleme)</span>
+        </div>
+        <div class="library-item" draggable="true" data-type="ADMIN">
+            <div class="color-dot" style="background: #3b82f6; border-radius: 2px;"></div>
+            <span>İdari Bina (Ana Şebeke/VMS)</span>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <p style="font-size: 12px; color: var(--text-muted);"><i>İpucu: Öğeleri menüden tutup sürükleyerek (Drag&Drop) sahaya ekleyebilirsiniz.</i></p>
+        </div>
+    </div>
+
+    <!-- Merkez Çizim Alanı -->
+    <div class="canvas-container" id="canvas-container">
+        <div class="canvas-overlay">
+            <div id="status-info">Durum: Beklemede...</div>
+            <div id="zoom-info" style="margin-bottom:10px;">Zoom: 100%</div>
+            
+            <div class="mode-toolbar" style="display:flex; gap:5px; margin-bottom:10px; pointer-events:auto;">
+                <button class="btn btn-sm btn-primary tooltip" id="tool-move" style="padding:6px; font-size:16px;" title="Seç & Kaydır"><i class='bx bx-move'></i></button>
+                <button class="btn btn-sm btn-secondary tooltip" id="tool-draw" style="padding:6px; font-size:16px;" title="Kablo Çiz"><i class='bx bx-pencil'></i></button>
+                <button class="btn btn-sm btn-secondary tooltip" id="tool-erase" style="padding:6px; font-size:16px;" title="Öğe/Kablo Sil"><i class='bx bx-eraser'></i></button>
+            </div>
+            
+            <div id="coords-info">X: 0, Y: 0</div>
+        </div>
+        <canvas id="mapCanvas"></canvas>
+    </div>
+
+    <!-- Özellikler ve Hesaplamalar / Sağ Panel -->
+    <div class="panel-right">
+        <div class="panel-title">Proje Parametreleri</div>
+        
+        <div class="property-box">
+            <h4>Elektriksel Değerler</h4>
+            <div class="form-group">
+                <label>Nominal Besleme Gerilimi (V AC)</label>
+                <input type="number" id="param-voltage" value="400">
+            </div>
+            <div class="form-group">
+                <label>Maks. İzin Verilen Gerilim Düşümü (%)</label>
+                <input type="number" id="param-max-vd" value="5">
+            </div>
+            <div class="form-group">
+                <label>Varsayılan Direk Başı Yük (Watt)</label>
+                <input type="number" id="param-pole-load" value="150" title="1 Projektör + Kameralar">
+            </div>
+            <div class="form-group">
+                <label>PoE Panosu İlave Yükü (Watt)</label>
+                <input type="number" id="param-poe-load" value="50" title="PoE Switch Harcaması">
+            </div>
+            <div class="form-group">
+                <label>Direk Arası Mesafe (m) <span style="font-size:10px; color:var(--text-muted);">(Çevre Yayı Dağılımı)</span></label>
+                <input type="number" id="param-pole-spacing" value="50" min="10" max="200" title="Sahada iki direk arasındaki ortalama mesafe (m)">
+            </div>
+        </div>
+
+        <div class="property-box">
+            <h4>Kablo & Altyapı Seçimleri</h4>
+            <div class="form-group">
+                <label>AC Güç Kablosu Kesidi <span style="font-size:10px; color:var(--text-muted);">(Yazıp arayabilirsiniz)</span></label>
+                <input type="text" id="param-cable-type" list="cable-options" value="4x16 mm² NYY (Cu)">
+                <datalist id="cable-options">
+                    <option value="3x2.5 mm² NYY (Cu)">3 Damar Bakır</option>
+                    <option value="3x4 mm² NYY (Cu)">3 Damar Bakır</option>
+                    <option value="3x6 mm² NYY (Cu)">3 Damar Bakır</option>
+                    <option value="4x4 mm² NYY (Cu)">4 Damar Bakır</option>
+                    <option value="4x6 mm² NYY (Cu)">4 Damar Bakır</option>
+                    <option value="4x10 mm² NYY (Cu)">4 Damar Bakır</option>
+                    <option value="4x16 mm² NYY (Cu)">4 Damar Bakır</option>
+                    <option value="4x25 mm² NYY (Cu)">4 Damar Bakır</option>
+                    <option value="4x35 mm² NYY (Cu)">4 Damar Bakır</option>
+                    <option value="5x4 mm² NYY (Cu)">5 Damar Bakır</option>
+                    <option value="5x6 mm² NYY (Cu)">5 Damar Bakır</option>
+                    <option value="5x10 mm² NYY (Cu)">5 Damar Bakır</option>
+                    <option value="5x16 mm² NYY (Cu)">5 Damar Bakır</option>
+                    <option value="4x16 mm² ALVINAL (Al)">4 Damar Alüminyum</option>
+                    <option value="4x25 mm² ALVINAL (Al)">4 Damar Alüminyum</option>
+                    <option value="4x35 mm² ALVINAL (Al)">4 Damar Alüminyum</option>
+                    <option value="4x50 mm² ALVINAL (Al)">4 Damar Alüminyum</option>
+                </datalist>
+            </div>
+            <div class="form-group">
+                <label>PoE Kümeleri Arası Direk Sayısı</label>
+                <select id="param-poe-dist">
+                    <option value="3">3 Direk (Merkez + Sağ1, Sol1)</option>
+                    <option value="5" selected>5 Direk (Merkez + Sağ2, Sol2)</option>
+                    <option value="7">7 Direk (Merkez + Sağ3, Sol3)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="panel-title">Hesaplama Sonuçları</div>
+        <div class="property-box" id="result-box">
+            <div class="result-row"><span>Toplam Direk:</span> <strong id="res-poles">0 Adet</strong></div>
+            <div class="result-row"><span>PoE Pano Sayısı:</span> <strong id="res-poe">0 Adet</strong></div>
+            <div class="result-row" style="border-top: 1px dashed var(--border); padding-top:6px; margin-top:4px;">
+                <span style="color:var(--text-muted); font-size:11px;">📐 Saha Çevresi:</span> <strong id="res-perimeter" style="color:#38bdf8;">— m</strong>
+            </div>
+            <div class="result-row"><span>Güç Kablosu (AC):</span> <strong id="res-ac-cable">0 m</strong></div>
+            <div class="result-row"><span>Fiber Optik (Ring):</span> <strong id="res-fiber">0 m</strong></div>
+            <div class="result-row"><span>CAT6 (PoE Dağıtım):</span> <strong id="res-cat6">0 m</strong></div>
+            <div id="res-ratio-box" style="display:none; margin-top:8px; padding:8px; background:rgba(56,189,248,0.07); border-radius:6px; border:1px solid rgba(56,189,248,0.2); font-size:11px; color:#94a3b8;"></div>
+            <div class="result-row" style="color: var(--danger); font-weight: bold; border: none; margin-top: 10px;">
+                <span>Kritik Hata/Uyarı:</span> <span id="res-warnings">Yok</span>
+            </div>
+        </div>
+        
+        <div class="property-box" id="selected-obj-panel" style="display: none; border-color: var(--primary);">
+            <h4 style="color: var(--primary);">Seçili Nesne: <span id="sel-obj-type">-</span></h4>
+            <div class="result-row"><span>Gerçek Uzunluk:</span> <strong id="sel-obj-len">-</strong></div>
+            <div class="result-row"><span>Voltaj Düşümü (VD):</span> <strong id="sel-obj-vd">-</strong></div>
+            <button class="btn" style="width: 100%; margin-top: 10px; background: rgba(59,130,246,0.2); color: #60a5fa;" id="btn-delete-selected">Seçiliyi Sil</button>
+        </div>
+        
+    </div>
+</div>
+
+<!-- Rapor Modalı -->
+<div id="reportModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:999; padding:50px;">
+   <div style="background:var(--bg-panel); padding:30px; border-radius:10px; width:80%; margin:0 auto; max-height:80vh; overflow-y:auto; border:1px solid var(--border); position: relative;">
+       <h2 style="margin-bottom:20px; color:var(--solar); border-bottom:1px solid var(--border); padding-bottom:10px;">Tek Hat & Kablo Hesap Raporu</h2>
+       <div id="reportContent" style="font-size:14px; line-height:1.6;"></div>
+       <div style="margin-top:20px; display:flex; gap:10px; justify-content: flex-end;">
+           <button class="btn btn-primary" onclick="printReport()"><i class='bx bxs-file-pdf'></i> Yazdır / PDF Al</button>
+           <button class="btn" onclick="document.getElementById('reportModal').style.display='none'">Kapat</button>
+       </div>
+   </div>
+</div>
+
+<script>
+    // State Management
+    let state = {
+        boundaryPoints: [], // [ {x, y, z} ] // Site polygon
+        entities: [],       // [ {id, type: 'POLE'|'POE'|'KIOSK'|'ADMIN', x, y, z} ]
+        connections: [],    // [ {id, type: 'POWER'|'FIBER'|'DATA', fromId, toId, dist, drop, load} ]
+        selectedEntityId: null,
+        offsetX: 0,
+        offsetY: 0,
+        scale: 1,
+        isDragging: false,
+        dragMode: 'PAN', globalToolMode: 'MOVE', // PAN or MOVE
+        draggingEntityId: null,
+        mouseX: 0,
+        mouseY: 0,
+        lastMouseX: 0,
+        lastMouseY: 0
+    };
+
+    // DOM Elements
+    const canvas = document.getElementById('mapCanvas');
+    const ctx = canvas.getContext('2d');
+    const canvasContainer = document.getElementById('canvas-container');
+    const excelFile = document.getElementById('excel-file');
+
+    // UI Feedback elements
+    const uiStatus = document.getElementById('status-info');
+    const uiZoom = document.getElementById('zoom-info');
+    const uiCoords = document.getElementById('coords-info');
+
+    // Canvas Resize Observer
+    new ResizeObserver(() => {
+        canvas.width = canvasContainer.clientWidth;
+        canvas.height = canvasContainer.clientHeight;
+        render();
+    }).observe(canvasContainer);
+
+    // Initial setup
+    canvas.width = canvasContainer.clientWidth;
+    canvas.height = canvasContainer.clientHeight;
+    
+    // Geometry Utilities
+    const distance2D = (p1, p2) => Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+    const distance3D = (p1, p2) => {
+        let dz = (p2.z || 0) - (p1.z || 0);
+        return Math.sqrt(Math.pow(distance2D(p1, p2), 2) + Math.pow(dz, 2));
+    };
+
+    // Calculate angle turned at vertex P2 in polygon P1-P2-P3
+    const calcTurnAngleDeg = (p1, p2, p3) => {
+        let a = distance2D(p2, p3);
+        let b = distance2D(p1, p2);
+        let c = distance2D(p1, p3);
+        if (a === 0 || b === 0) return 0;
+        let cosTheta = (a*a + b*b - c*c) / (2 * a * b);
+        cosTheta = Math.max(-1, Math.min(1, cosTheta)); // clamp to avoid NaN
+        let rad = Math.PI - Math.acos(cosTheta); // turn angle
+        return rad * (180 / Math.PI);
+    };
+
+    // Find point accurately mapping canvas coords to world coords
+    const toWorld = (cx, cy) => {
+        return {
+            x: (cx - canvas.width / 2) / state.scale - state.offsetX,
+            y: (cy - canvas.height / 2) / state.scale - state.offsetY
+        };
+    };
+
+    const toCanvas = (wx, wy) => {
+        return {
+            x: (wx + state.offsetX) * state.scale + canvas.width / 2,
+            y: (wy + state.offsetY) * state.scale + canvas.height / 2
+        };
+    };
+
+    const generateId = () => Math.random().toString(36).substr(2, 9);
+
+    // Coordinate Parsing (Excel)
+    excelFile.addEventListener('change', function(e) {
+        let file = e.target.files[0];
+        if(!file) return;
+        
+        uiStatus.innerText = "Durum: Excel İşleniyor...";
+        
+        let reader = new FileReader();
+        reader.onload = function(evt) {
+            let data = new Uint8Array(evt.target.result);
+            let workbook = XLSX.read(data, {type: 'array'});
+            let firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            let json = XLSX.utils.sheet_to_json(firstSheet, {header: 1});
+            
+            let xIdx = -1;
+            let yIdx = -1;
+            let zIdx = -1;
+            
+            // Dinamik olarak x ve y sütunlarını bul (ilk 5 satırda ara)
+            for (let r = 0; r < Math.min(5, json.length); r++) {
+                let row = json[r];
+                if(!row) continue;
+                for (let c = 0; c < row.length; c++) {
+                    let cell = String(row[c]).toLowerCase().trim();
+                    if (cell === 'x') xIdx = c;
+                    if (cell === 'y') yIdx = c;
+                    if (cell === 'z') zIdx = c;
+                }
+                if(xIdx !== -1 && yIdx !== -1) break; 
+            }
+            
+            // Header bulunamazsa varsayılan sütun 0 ve 1 kabul et
+            if (xIdx === -1) xIdx = 0;
+            if (yIdx === -1) yIdx = 1;
+            
+            let points = [];
+            for (let i = 0; i < json.length; i++) {
+                let row = json[i];
+                if (!row || row.length <= Math.max(xIdx, yIdx)) continue;
+                
+                // Virgül formatını (.) formatına çevir (Avrupa/Türkiye ondalık ayracı uyumluluğu)
+                let xStr = String(row[xIdx] || "").trim().replace(',', '.');
+                let yStr = String(row[yIdx] || "").trim().replace(',', '.');
+                let zStr = zIdx !== -1 ? String(row[zIdx] || "").trim().replace(',', '.') : "0";
+                
+                let xVal = parseFloat(xStr);
+                let yVal = parseFloat(yStr);
+                let zVal = parseFloat(zStr);
+                
+                // Başlık satırı veya geçersiz değilse ekle
+                if (!isNaN(xVal) && !isNaN(yVal)) {
+                    points.push({ x: xVal, y: yVal, z: isNaN(zVal) ? 0 : zVal });
+                }
+            }
+            
+            if(points.length > 2) {
+                state.boundaryPoints = points;
+                centerCamera();
+                uiStatus.innerText = "Durum: Sınırlar Yüklendi. " + points.length + " nokta.";
+                render();
+            } else {
+                alert("Geçerli X, Y formatında veri bulunamadı. Lütfen kontrol edin.");
+                uiStatus.innerText = "Durum: Başarısız Upload";
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    });
+
+    const centerCamera = () => {
+        if(state.boundaryPoints.length === 0) return;
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        state.boundaryPoints.forEach(p => {
+            if(p.x < minX) minX = p.x;
+            if(p.y < minY) minY = p.y;
+            if(p.x > maxX) maxX = p.x;
+            if(p.y > maxY) maxY = p.y;
+        });
+        
+        // Calculate center so we can offset
+        let cx = (minX + maxX) / 2;
+        let cy = (minY + maxY) / 2;
+        state.offsetX = -cx;
+        state.offsetY = -cy;
+        
+        let w = maxX - minX;
+        let h = maxY - minY;
+        let scaleX = canvas.width / (w * 1.2);
+        let scaleY = canvas.height / (h * 1.2);
+        state.scale = Math.min(scaleX, scaleY);
+        uiZoom.innerText = "Zoom: " + Math.round(state.scale * 100) + "%";
+    };
+
+    // Rendering Engine
+    const render = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawGrid();
+
+        if (state.boundaryPoints.length > 0) {
+            drawBoundary();
+        }
+        
+        drawConnections();
+        drawEntities();
+    };
+
+    const drawGrid = () => {
+        if(state.scale < 0.1) return; // Don't draw if too zoomed out
+        ctx.strokeStyle = "rgba(255,255,255,0.03)";
+        ctx.lineWidth = 1;
+        let stepCanvas = 50 * state.scale; // 50 meters
+        let startX = (state.offsetX * state.scale + canvas.width / 2) % stepCanvas;
+        let startY = (state.offsetY * state.scale + canvas.height / 2) % stepCanvas;
+        
+        ctx.beginPath();
+        for (let x = startX; x < canvas.width; x += stepCanvas) {
+            ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height);
+        }
+        for (let y = startY; y < canvas.height; y += stepCanvas) {
+            ctx.moveTo(0, y); ctx.lineTo(canvas.width, y);
+        }
+        ctx.stroke();
+    };
+
+    const drawBoundary = () => {
+        ctx.beginPath();
+        let first = toCanvas(state.boundaryPoints[0].x, state.boundaryPoints[0].y);
+        ctx.moveTo(first.x, first.y);
+        for(let i=1; i<state.boundaryPoints.length; i++) {
+            let p = toCanvas(state.boundaryPoints[i].x, state.boundaryPoints[i].y);
+            ctx.lineTo(p.x, p.y);
+        }
+        ctx.closePath();
+        ctx.strokeStyle = "rgba(255,255,255,0.2)";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        // draw corner markers
+        ctx.fillStyle = "rgba(255,255,255,0.3)";
+        state.boundaryPoints.forEach(bp => {
+            let p = toCanvas(bp.x, bp.y);
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+            ctx.fill();
+        });
+    };
+
+    const drawConnections = () => {
+        state.connections.forEach(conn => {
+            let e1 = state.entities.find(e => e.id === conn.fromId);
+            let e2 = state.entities.find(e => e.id === conn.toId);
+            if(e1 && e2) {
+                let p1 = toCanvas(e1.x, e1.y);
+                let p2 = toCanvas(e2.x, e2.y);
+                
+                ctx.beginPath();
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+                
+                if (conn.type === 'POWER') {
+                    ctx.strokeStyle = "rgba(245, 158, 11, 0.9)"; // Solar Yellow, more opaque
+                    ctx.lineWidth = 4; // Thicker so it stands out above the boundary
+                } else if (conn.type === 'FIBER') {
+                    ctx.strokeStyle = "rgba(16, 185, 129, 0.7)"; // Success Emerald
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([8, 4]); // Dashed for fiber
+                } else if (conn.type === 'DATA') { // CAT6
+                    ctx.strokeStyle = "rgba(168, 85, 247, 0.8)"; // Purple
+                    ctx.lineWidth = 1;
+                }
+                
+                if(conn.vdIssue) { // Over voltage drop
+                    ctx.strokeStyle = "rgba(239, 68, 68, 1)"; // Red
+                    ctx.lineWidth = 3;
+                }
+                
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+        });
+    };
+
+    const drawEntities = () => {
+        state.entities.forEach(ent => {
+            let p = toCanvas(ent.x, ent.y);
+            let isSelected = (state.selectedEntityId === ent.id);
+            
+            ctx.beginPath();
+            if (ent.type === 'POLE') {
+                ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+                ctx.fillStyle = "#fff";
+            } else if (ent.type === 'POE') {
+                ctx.rect(p.x - 6, p.y - 6, 12, 12);
+                ctx.fillStyle = "#a855f7"; // purple
+            } else if (ent.type === 'KIOSK') {
+                ctx.rect(p.x - 10, p.y - 10, 20, 20);
+                ctx.fillStyle = "#f59e0b"; // yellow
+            } else if (ent.type === 'ADMIN') {
+                ctx.rect(p.x - 12, p.y - 12, 24, 24);
+                ctx.fillStyle = "#3b82f6"; // blue
+            }
+            ctx.fill();
+            
+            if (isSelected) {
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = "#10b981"; // neon green highlight
+                ctx.stroke();
+            }
+            
+            // Eğer manuel kablo çekiliyorsa geçici çizgiyi uca kadar göster
+            if (state.dragMode === 'DRAW_WIRE' && state.drawSource) {
+                ctx.beginPath();
+                let sp = toScreen(state.drawSource.x, state.drawSource.y);
+                let mp = toScreen(state.wMouseX, state.wMouseY);
+                ctx.moveTo(sp.x, sp.y);
+                ctx.lineTo(mp.x, mp.y);
+                ctx.lineWidth = 3;
+                ctx.setLineDash([5, 5]);
+                ctx.strokeStyle = "#f59e0b"; // turuncu temporary hat
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            // Etiket (Label) ve Tip Yazdırma
+            if (ent.type === 'KIOSK' || ent.type === 'ADMIN') {
+                ctx.fillStyle = "#fff";
+                ctx.font = "12px sans-serif";
+                let text = ent.label ? ent.label : ent.type;
+                ctx.fillText(text, p.x + 15, p.y - 15);
+            } else if (ent.label) {
+                // Direk etiketlerini (L1-R vb.) daha küçük yaz
+                ctx.fillStyle = "rgba(255,255,255,0.7)";
+                ctx.font = "9px sans-serif";
+                ctx.fillText(ent.label, p.x + 6, p.y + 3);
+            }
+        });
+    };
+
+    // Controls Logic
+    canvasContainer.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        let zoomAmount = e.deltaY > 0 ? 0.9 : 1.1;
+        
+        let mouseW = toWorld(e.clientX - canvasContainer.getBoundingClientRect().left, e.clientY - canvasContainer.getBoundingClientRect().top);
+        
+        state.scale *= zoomAmount;
+        
+        let newMouseW = toWorld(e.clientX - canvasContainer.getBoundingClientRect().left, e.clientY - canvasContainer.getBoundingClientRect().top);
+        
+        state.offsetX += (newMouseW.x - mouseW.x);
+        state.offsetY += (newMouseW.y - mouseW.y);
+        
+        uiZoom.innerText = "Zoom: " + Math.round(state.scale * 100) + "%";
+        render();
+    });
+
+    const getConnectionAt = (wx, wy) => {
+        let tol = 15 / state.scale;
+        for(let i=state.connections.length-1; i>=0; i--) {
+            let c = state.connections[i];
+            let e1 = state.entities.find(e=>e.id===c.fromId);
+            let e2 = state.entities.find(e=>e.id===c.toId);
+            if(e1 && e2) {
+                let l2 = Math.pow(e1.x-e2.x, 2) + Math.pow(e1.y-e2.y, 2);
+                if(l2 === 0) continue;
+                let t = ((wx - e1.x) * (e2.x - e1.x) + (wy - e1.y) * (e2.y - e1.y)) / l2;
+                t = Math.max(0, Math.min(1, t));
+                let px = e1.x + t * (e2.x - e1.x);
+                let py = e1.y + t * (e2.y - e1.y);
+                if(Math.sqrt((wx - px)**2 + (wy - py)**2) < tol) return c;
+            }
+        }
+        return null;
+    };
+
+    const getEntityAt = (wx, wy) => {
+        let tolerance = 30 / state.scale;
+        for(let i=state.entities.length-1; i>=0; i--) {
+            let ent = state.entities[i];
+            let dist = distance2D({x:wx, y:wy}, {x:ent.x, y:ent.y});
+            if (dist <= tolerance) return ent;
+        }
+        return null;
+    };
+
+    canvasContainer.addEventListener('mousedown', (e) => {
+        let rect = canvasContainer.getBoundingClientRect();
+        let cx = e.clientX - rect.left;
+        let cy = e.clientY - rect.top;
+        let wPos = toWorld(cx, cy);
+        
+        state.isDragging = true;
+        state.lastMouseX = cx;
+        state.lastMouseY = cy;
+
+        if (e.button === 0) { // Left click
+            let clickedEntity = getEntityAt(wPos.x, wPos.y);
+            
+            if (state.globalToolMode === 'ERASE') {
+                if (clickedEntity) {
+                    deleteEntity(clickedEntity.id);
+                } else {
+                    let targetConn = getConnectionAt(wPos.x, wPos.y);
+                    if(targetConn) {
+                        state.connections = state.connections.filter(c => c.id !== targetConn.id);
+                        uiStatus.innerText = "Durum: Bağlantı Silindi.";
+                    }
+                }
+            } else if (state.globalToolMode === 'DRAW') {
+                if (clickedEntity) {
+                    state.dragMode = 'DRAW_WIRE';
+                    state.drawSource = clickedEntity;
+                    uiStatus.innerText = "Durum: Kablo Çekiliyor...";
+                } else {
+                    state.dragMode = 'PAN'; // Pan if clicking background
+                }
+            } else { // MOVE mode
+                if (clickedEntity) {
+                    state.selectedEntityId = clickedEntity.id;
+                    state.dragMode = 'MOVE_ENTITY';
+                    state.draggingEntityId = clickedEntity.id;
+                    uiStatus.innerText = "Durum: Nesne Seçildi (" + clickedEntity.type + ")";
+                    updatePropertiesPanel(clickedEntity);
+                } else {
+                    state.selectedEntityId = null;
+                    state.dragMode = 'PAN';
+                    document.getElementById('selected-obj-panel').style.display = 'none';
+                }
+            }
+        }
+        render();
+    });
+
+    const setToolMode = (mode) => {
+        state.globalToolMode = mode;
+        ['tool-move', 'tool-draw', 'tool-erase'].forEach(id => {
+            document.getElementById(id).classList.remove('btn-primary');
+            document.getElementById(id).classList.add('btn-secondary');
+            if(id === 'tool-erase') document.getElementById(id).style.background = '';
+        });
+        if(mode === 'MOVE') document.getElementById('tool-move').classList.replace('btn-secondary', 'btn-primary');
+        if(mode === 'DRAW') document.getElementById('tool-draw').classList.replace('btn-secondary', 'btn-primary');
+        if(mode === 'ERASE') {
+            document.getElementById('tool-erase').classList.replace('btn-secondary', 'btn-primary');
+            document.getElementById('tool-erase').style.background = '#ef4444'; 
+        }
+        uiStatus.innerText = `Araç Değiştirildi: ${mode}`;
+    };
+
+    document.getElementById('tool-move').addEventListener('click', () => setToolMode('MOVE'));
+    document.getElementById('tool-draw').addEventListener('click', () => setToolMode('DRAW'));
+    document.getElementById('tool-erase').addEventListener('click', () => setToolMode('ERASE'));
+
+    canvasContainer.addEventListener('contextmenu', e => e.preventDefault()); // Stop right click menu
+
+    canvasContainer.addEventListener('mouseup', (e) => {
+        if(state.dragMode === 'DRAW_WIRE' && state.drawSource) {
+            let cx = e.clientX - canvasContainer.getBoundingClientRect().left;
+            let cy = e.clientY - canvasContainer.getBoundingClientRect().top;
+            let wPos = toWorld(cx, cy);
+            let targetEntity = getEntityAt(wPos.x, wPos.y);
+            
+            if (targetEntity && targetEntity.id !== state.drawSource.id) {
+                state.connections.push({
+                    id: generateId(), type: 'POWER',
+                    fromId: state.drawSource.id, toId: targetEntity.id,
+                    dist: distance3D(state.drawSource, targetEntity), vdPerc: 0, vdIssue: false
+                });
+                uiStatus.innerText = "Durum: Manuel Kablo Eklendi";
+            } else {
+                uiStatus.innerText = "Durum: Beklemede";
+            }
+        }
+        state.isDragging = false;
+        state.dragMode = 'PAN';
+        state.drawSource = null;
+        render();
+    });
+
+    canvasContainer.addEventListener('mousemove', (e) => {
+        let rect = canvasContainer.getBoundingClientRect();
+        let cx = e.clientX - rect.left;
+        let cy = e.clientY - rect.top;
+        let wPos = toWorld(cx, cy);
+        state.wMouseX = wPos.x;
+        state.wMouseY = wPos.y;
+        uiCoords.innerText = `X: ${wPos.x.toFixed(2)}, Y: ${wPos.y.toFixed(2)}`;
+
+        if (state.isDragging) {
+            let dx = cx - state.lastMouseX;
+            let dy = cy - state.lastMouseY;
+            
+            if(state.dragMode === 'PAN') {
+                state.offsetX += dx / state.scale;
+                state.offsetY += dy / state.scale;
+            } else if (state.dragMode === 'MOVE_ENTITY' && state.draggingEntityId) {
+                let ent = state.entities.find(e => e.id === state.draggingEntityId);
+                if(ent) {
+                    ent.x += dx / state.scale;
+                    ent.y += dy / state.scale;
+                }
+            }
+            
+            state.lastMouseX = cx;
+            state.lastMouseY = cy;
+            render();
+        }
+    });
+
+    canvasContainer.addEventListener('mouseup', () => {
+        state.isDragging = false;
+        state.draggingEntityId = null;
+    });
+    
+    canvasContainer.addEventListener('mouseleave', () => {
+        state.isDragging = false;
+    });
+
+    // Drag-and-drop from Library
+    const libraryItems = document.querySelectorAll('.library-item');
+    libraryItems.forEach(item => {
+        item.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', item.getAttribute('data-type'));
+        });
+    });
+
+    canvasContainer.addEventListener('dragover', e => e.preventDefault());
+
+    canvasContainer.addEventListener('drop', (e) => {
+        e.preventDefault();
+        let type = e.dataTransfer.getData('text/plain');
+        if (!type) return;
+        
+        let rect = canvasContainer.getBoundingClientRect();
+        let wPos = toWorld(e.clientX - rect.left, e.clientY - rect.top);
+        
+        let newEnt = { id: generateId(), type: type, x: wPos.x, y: wPos.y, z: 0 };
+        state.entities.push(newEnt);
+        state.selectedEntityId = newEnt.id;
+        updatePropertiesPanel(newEnt);
+        render();
+    });
+
+    const deleteEntity = (id) => {
+        state.entities = state.entities.filter(e => e.id !== id);
+        // Also delete connections
+        state.connections = state.connections.filter(c => c.fromId !== id && c.toId !== id);
+        if(state.selectedEntityId === id) {
+            state.selectedEntityId = null;
+            document.getElementById('selected-obj-panel').style.display = 'none';
+        }
+    };
+    
+    document.getElementById('btn-delete-selected').addEventListener('click', () => {
+        if(state.selectedEntityId) {
+            deleteEntity(state.selectedEntityId);
+            render();
+        }
+    });
+
+    const updatePropertiesPanel = (ent) => {
+        const panel = document.getElementById('selected-obj-panel');
+        panel.style.display = 'block';
+        document.getElementById('sel-obj-type').innerText = ent.type;
+        
+        // Find if this entity is part of a connection with an issue
+        let badLink = state.connections.find(c => (c.fromId === ent.id || c.toId === ent.id) && c.vdIssue);
+        if(badLink && badLink.vdPerc) {
+            document.getElementById('sel-obj-vd').innerHTML = `<span style="color:var(--danger)">${badLink.vdPerc.toFixed(2)}% Uyarı!</span>`;
+        } else {
+            document.getElementById('sel-obj-vd').innerText = "Normal";
+        }
+    };
+
+    // ---- ALGORITHM: Automatic Distribution ----
+    document.getElementById('btn-auto-route').addEventListener('click', () => {
+        if(state.boundaryPoints.length < 3) {
+            alert("Lütfen önce uygun bir çalışma alanı sınırı (Excel) yükleyin.");
+            return;
+        }
+        
+        uiStatus.innerText = "Durum: Algoritma Çalışıyor - Geometri Çözülüyor...";
+        
+        // Clear old auto generated items (POLES and POEs, but keep KIOSKS and ADMIN)
+        state.entities = state.entities.filter(e => e.type !== 'POLE' && e.type !== 'POE');
+        state.connections = []; // Reset connections
+        
+        const maxDist = parseFloat(document.getElementById('param-pole-spacing').value) || 50; // Kullanıcı tanımlı direk arası mesafe
+        
+        let newPoles = [];
+        let bp = state.boundaryPoints;
+        
+        // Loop over segments
+        for(let i=0; i<bp.length; i++) {
+            let p1 = bp[i];
+            let p2 = bp[(i+1) % bp.length];
+            let p0 = bp[i === 0 ? bp.length-1 : i-1]; // previous point
+            
+            // 1. Is it a sharp corner? > 30 degrees turn
+            let angle = calcTurnAngleDeg(p0, p1, p2);
+            
+            // Always place a pole at corner points or if turn > 30 
+            // Actually, we'll just place a pole at every vertex to be safe, boundary files usually represent corners.
+            newPoles.push({ id: generateId(), type: 'POLE', x: p1.x, y: p1.y, z: p1.z, isCorner: true });
+            
+            // 2. Subdivide segment if > 50m
+            let segDist = distance2D(p1, p2);
+            if(segDist > maxDist) {
+                let fragmentsCount = Math.ceil(segDist / maxDist);
+                let actualStep = segDist / fragmentsCount;
+                
+                let dx = (p2.x - p1.x) / fragmentsCount;
+                let dy = (p2.y - p1.y) / fragmentsCount;
+                let dz = ((p2.z || 0) - (p1.z || 0)) / fragmentsCount;
+                
+                for(let j=1; j<fragmentsCount; j++) {
+                    newPoles.push({
+                        id: generateId(),
+                        type: 'POLE',
+                        x: p1.x + dx * j,
+                        y: p1.y + dy * j,
+                        z: p1.z + dz * j,
+                        isCorner: false
+                    });
+                }
+            }
+        }
+        
+        state.entities.push(...newPoles);
+        
+        // Inform user they must place a Kiosk/Admin
+        let hasPowerSource = state.entities.some(e => e.type === 'KIOSK' || e.type === 'ADMIN');
+        if(!hasPowerSource) {
+            uiStatus.innerText = "Durum: Direkler çizildi. Lütfen Kütüphaneden Trafo/Bina ekleyin!";
+            document.getElementById('res-warnings').innerText = "Trafo Köşkü/İdari Bina Eksik!";
+        } else {
+            uiStatus.innerText = "Durum: Otomatik Dağıtım Tamamlandı.";
+            document.getElementById('res-warnings').innerText = "Yok";
+        }
+        
+        updateSummary();
+        render();
+    });
+
+    // ---- ALGORITHM: Gelişmiş Jenerik Radyal Güç Akış Simülasyonu ----
+    document.getElementById('btn-verify-manual').addEventListener('click', () => {
+        let volt = parseFloat(document.getElementById('param-voltage').value) || 400;
+        let poleLoad = parseFloat(document.getElementById('param-pole-load').value) || 150;
+        let poeLoadW = parseInt(document.getElementById('param-poe-load').value) || 50;
+        let maxVdPerc = parseFloat(document.getElementById('param-max-vd').value) || 5;
+        let cableSelection = document.getElementById('param-cable-type').value; 
+        
+        let rawStr = cableSelection.toLowerCase();
+        let pieces = rawStr.split('x');
+        let S = pieces.length > 1 ? parseFloat(pieces[1]) : parseFloat(pieces[0]);
+        if (isNaN(S) || S <= 0) S = 16; 
+        let kCond = rawStr.includes('al') ? 35 : 56; 
+
+        let getE = (len, w) => (100 * len * Math.abs(w)) / (kCond * S * volt * volt);
+        let getPoleW = (p) => {
+            if(p.type === 'KIOSK' || p.type === 'ADMIN') return 0;
+            return poleLoad + (p.hasPoe ? poeLoadW : 0);
+        };
+        
+        state.reports = [];
+        let hasWarning = false;
+        
+        // Sadece POWER bağlantılarını al
+        let powerLinks = state.connections.filter(c => c.type === 'POWER');
+        
+        // Komşuluk Listesi (Undirected, ki ağaç çıkarırken tek yön atayabilelim)
+        let adj = {};
+        state.entities.forEach(e => adj[e.id] = []);
+        powerLinks.forEach(lnk => {
+            adj[lnk.fromId].push(lnk.toId);
+            adj[lnk.toId].push(lnk.fromId);
+        });
+
+        let sources = state.entities.filter(e => e.type === 'KIOSK' || e.type === 'ADMIN');
+        let unvisited = new Set(state.entities.filter(e=>e.type==='POLE').map(e=>e.id));
+        let loopCt = 1;
+
+        sources.forEach(src => {
+            if(adj[src.id].length === 0) return; // Bu kaynağa hiçbir kablo bağlanmamış
+            
+            // Her kaynak için BFS veya DFS ağacı kur
+            let visited = new Set();
+            let parent = {};
+            let edges = []; // Directed from Root to Leaf
+            let postOrder = [];
+            let isLoop = false;
+            
+            let dfs = (u, p) => {
+                visited.add(u);
+                for(let v of adj[u]) {
+                    if(v === p) continue;
+                    if(visited.has(v)) { isLoop = true; continue; } // Loop detection!
+                    
+                    parent[v] = u;
+                    let cEntU = state.entities.find(e=>e.id===u);
+                    let cEntV = state.entities.find(e=>e.id===v);
+                    edges.push({from: cEntU, to: cEntV});
+                    
+                    dfs(v, u);
+                }
+                postOrder.push(u);
+            };
+            
+            dfs(src.id, null);
+            
+            if(isLoop) {
+                alert(`UYARI: ${src.label} kaynağına bağlı şebekede KISA DEVRE KAPANMASI (Loop) bulundu! Sistem radyal (dal) hesaplama gerektirir. Lütfen manuel çizdiğiniz kapalı halkayı bir yerinden kırın!`);
+                return;
+            }
+
+            // Kümülatif Yük (W) Toplama (Aşağıdan Yukarıya)
+            let cumLoad = {};
+            for(let u of postOrder) {
+                let ent = state.entities.find(e=>e.id===u);
+                cumLoad[u] = getPoleW(ent);
+                for(let v of adj[u]) {
+                    if(v === parent[u]) continue; 
+                    cumLoad[u] += cumLoad[v];
+                }
+            }
+
+            // Gerilim Düşümü (VD) Yükleme (Yukarıdan Aşağıya)
+            let vdAtNode = {};
+            vdAtNode[src.id] = 0;
+            let treeMaxVd = 0;
+            let preOrder = [...postOrder].reverse();
+            
+            for(let u of preOrder) {
+                for(let v of adj[u]) {
+                    if(v === parent[u]) continue;
+                    let eU = state.entities.find(ex=>ex.id===u);
+                    let eV = state.entities.find(ex=>ex.id===v);
+                    let dst = distance3D(eU, eV);
+                    let voltDropPerc = getE(dst, cumLoad[v]);
+                    
+                    vdAtNode[v] = vdAtNode[u] + voltDropPerc;
+                    if(vdAtNode[v] > treeMaxVd) treeMaxVd = vdAtNode[v];
+                    
+                    // Fiziksel Çizgiye VD'yi işle ki ekranda kırmızı vs parlasın
+                    let link = state.connections.find(c => c.type==='POWER' && ((c.fromId===u && c.toId===v) || (c.fromId===v && c.toId===u)));
+                    if(link) {
+                        link.vdPerc = vdAtNode[v];
+                        link.vdIssue = link.vdPerc > maxVdPerc;
+                        link.dist = dst; // Just in case it was drawn manually
+                    }
+                }
+            }
+            if(treeMaxVd > maxVdPerc) hasWarning = true;
+
+            // Oluşan Ağacı Rapora Pompala
+            // Since it's an arbitrary tree, we pack it into an 'allLinks' and use it in UI
+            let treeLinksForReport = edges.map(eg => {
+                let dst = distance3D(eg.from, eg.to);
+                return {
+                    from: eg.from, to: eg.to,
+                    dist: dst,
+                    e: vdAtNode[eg.to.id], 
+                    w: cumLoad[eg.to.id]
+                };
+            });
+            
+            state.reports.push({
+                linye: `Özel Tasarım L${loopCt}`,
+                kaynakAdı: src.label,
+                kaynakTipi: src.type,
+                tNoktası: (edges.length > 0 ? edges[0].to.label || 'Bilinmiyor' : 'Yok'),
+                lKol: 'Özel Çizilmiş Radyal (Dal) Ağaç',
+                rKol: 'Yok',
+                feedLink: treeLinksForReport.length > 0 ? treeLinksForReport[0] : null,
+                lLinks: treeLinksForReport.length > 1 ? treeLinksForReport.slice(1) : [],
+                rLinks: [],
+                toplamDirek: edges.length,
+                maxVd: treeMaxVd,
+                isSafe: treeMaxVd <= maxVdPerc
+            });
+            loopCt++;
+            
+            // Mark visited poles as verified
+            visited.forEach(vid => unvisited.delete(vid));
+        });
+
+        if(unvisited.size > 0 && powerLinks.length > 0) {
+            console.warn("Haritada hiçbir kaynağa ulaşamayan yetim kutuplar veya hatlar var!", unvisited.size);
+        }
+
+        if(hasWarning) {
+            document.getElementById('res-warnings').innerText = `Gerilim Düşümü İhlali! Kırmızı hatları kontrol et.`;
+            uiStatus.innerText = "Durum: Manuel Hesap Bitti but Hatalar Bulundu!";
+        } else {
+            document.getElementById('res-warnings').innerText = `Tüm İletimler Güvenli (< %${maxVdPerc})`;
+            document.getElementById('res-warnings').style.color = "var(--success)";
+            uiStatus.innerText = "Durum: Manuel Hesaplama Başarılı!";
+        }
+        updateSummary();
+        render();
+    });
+
+    // ---- ALGORITHM: Otomatik Jeneratör (Eski btn-calculate içeriği) ----
+    document.getElementById('btn-calculate').addEventListener('click', () => {
+        let poles = state.entities.filter(e => e.type === 'POLE');
+        let sources = state.entities.filter(e => e.type === 'KIOSK' || e.type === 'ADMIN');
+        let poeGroupSize = parseInt(document.getElementById('param-poe-dist').value); // 5
+        let volt = parseFloat(document.getElementById('param-voltage').value); // 400
+        let poleLoad = parseFloat(document.getElementById('param-pole-load').value); // 150
+        let maxVdPerc = parseFloat(document.getElementById('param-max-vd').value); // 5
+        let poleSpacing = parseFloat(document.getElementById('param-pole-spacing').value) || 50; // Kullanıcı tanımlı direk mesafesi (m)
+        let cableSelection = document.getElementById('param-cable-type').value;
+
+        
+        // Gelişmiş Kablo Kesiti Ayrıştırıcı (Örn: "4x16 mm2 Al" veya sadece "16")
+        let rawStr = cableSelection.toLowerCase();
+        let pieces = rawStr.split('x');
+        let S = pieces.length > 1 ? parseFloat(pieces[1]) : parseFloat(pieces[0]);
+        if (isNaN(S) || S <= 0) S = 16; // Kullanıcı geçersiz bir şey yazarsa default 16
+        
+        let isAl = rawStr.includes('al');
+        let kCond = isAl ? 35 : 56; 
+        
+        if (poles.length === 0) { alert("Sahnede hesaplanacak direk yok."); return; }
+        if (sources.length === 0) { alert("Lütfen güç bağlamak için sahnede en az bir Trafo(Kiosk) veya İdari Bina bulundurun."); return; }
+
+        uiStatus.innerText = "Durum: Çok Aşamalı Rotalama & Analiz İşleniyor...";
+        state.connections = []; // Clear old links
+        
+        // 1. DISTRIBUTE POE SWITCHES
+        // Remove existing pure auto POEs
+        state.entities = state.entities.filter(e => e.type !== 'POE');
+        
+        // Group poles sequentially and assign POE to the center of group
+        let totalPoles = poles.length;
+        let newPoes = [];
+        
+        for(let i=0; i<totalPoles; i += poeGroupSize) {
+            let chunk = poles.slice(i, i + poeGroupSize);
+            if(chunk.length === 0) break;
+            
+            // center pole index in chunk
+            let centerIdx = Math.floor(chunk.length / 2);
+            let centerPole = chunk[centerIdx];
+            centerPole.hasPoe = true; // Mark the LOAD mathematically on the pole
+            
+            // Generate distinct, draggable POE Panel node mathematically apart from the pole
+            let poe = {
+                id: generateId(),
+                type: 'POE',
+                label: 'POE-' + (newPoes.length + 1),
+                x: centerPole.x + 30, // visually detached
+                y: centerPole.y - 30,
+                z: centerPole.z || 0,
+                hostPoleId: centerPole.id // Link to host pole for accurate BOQ calculation
+            };
+            state.entities.push(poe);
+            newPoes.push(poe);
+
+            // Connect this POE back to the center pole for Power visually (mathematical dist = 0 or 2m for internal wiring)
+            state.connections.push({ id: generateId(), type: 'POWER', fromId: centerPole.id, toId: poe.id, dist: 2, vdPerc: 0, vdIssue: false });
+            
+            // Connect this POE to the chunk for DATA
+            chunk.forEach(p => {
+                // To keep BOQ correct, we calculate distance from the centerPole, NOT the visual POE offset
+                let d3 = distance3D(centerPole, p);
+                state.connections.push({ id: generateId(), type: 'DATA', fromId: poe.id, toId: p.id, dist: d3 });
+            });
+        }
+
+        
+        // 2. FIBER RING ROUTING
+        // Fiber optik kablo gerçekte direkler üzerinden geçer.
+        // İki PoE arasındaki mesafe = ring üzerinde ara direklerin toplam yay uzunluğu (kiriş değil!)
+        // Not: Güç algoritmasındaki 'ring' henüz oluşmadı, bu yüzden burada yerel sıralı zincir kuruyoruz.
+        if(newPoes.length > 1) {
+
+            // Direkleri en-yakın-komşu ile zincirle (aynı mantık Power bölümündeki ring ile aynı)
+            let fiberRing = [];
+            let fUnv = new Set(poles);
+            if(poles.length > 0) {
+                let fCurr = poles[0];
+                fiberRing.push(fCurr); fUnv.delete(fCurr);
+                while(fUnv.size > 0) {
+                    let fBest = null, fMinD = Infinity;
+                    fUnv.forEach(p => { let d = distance2D(fCurr, p); if(d < fMinD){ fMinD=d; fBest=p; } });
+                    fiberRing.push(fBest); fUnv.delete(fBest); fCurr = fBest;
+                }
+            }
+
+            for(let i=0; i<newPoes.length; i++) {
+                let from = newPoes[i];
+                let to   = newPoes[(i+1) % newPoes.length];
+
+                let fromPole = state.entities.find(e => e.id === from.hostPoleId);
+                let toPole   = state.entities.find(e => e.id === to.hostPoleId);
+
+                let arcDist = 0;
+                if(fromPole && toPole && fiberRing.length > 1) {
+                    let startIdx = fiberRing.indexOf(fromPole);
+                    let endIdx   = fiberRing.indexOf(toPole);
+                    if(startIdx !== -1 && endIdx !== -1 && startIdx !== endIdx) {
+                        // Her iki yönü dene, kısa olanı al (ring kapalı döngü olduğu için)
+                        let arcFwd = 0, idx = startIdx;
+                        while(idx !== endIdx) {
+                            let nextIdx = (idx + 1) % fiberRing.length;
+                            arcFwd += distance3D(fiberRing[idx], fiberRing[nextIdx]);
+                            idx = nextIdx;
+                        }
+                        let arcBwd = 0; idx = startIdx;
+                        while(idx !== endIdx) {
+                            let nextIdx = (idx - 1 + fiberRing.length) % fiberRing.length;
+                            arcBwd += distance3D(fiberRing[idx], fiberRing[nextIdx]);
+                            idx = nextIdx;
+                        }
+                        arcDist = Math.min(arcFwd, arcBwd);
+                    } else {
+                        arcDist = distance3D(fromPole, toPole); // fallback: aynı veya bulunamadı
+                    }
+                } else {
+                    arcDist = distance3D(from, to); // genel fallback
+                }
+
+                state.connections.push({ id: generateId(), type: 'FIBER', fromId: from.id, toId: to.id, dist: arcDist });
+            }
+        }
+
+        // 3. POWER ROUTING & VOLTAGE DROP (T/H-Shape Daisy Chain Algorithm)
+        let hasWarning = false;
+        
+        // Yardımcı fonksiyon: Verilen ağacı VD limitleri için test eder
+        let evalVD = (sNode, pNode, lChain, rChain) => {
+            let VSQ = 400 * 400; // 400V
+            // VD Formülü: (100 * Uzunluk(m) * Yük(W)) / (İletkenlik(k) * Kesit(S) * V^2)
+            let getE = (len, w) => (100 * len * Math.abs(w)) / (kCond * S * VSQ);
+            
+            let poeLoadW = parseInt(document.getElementById('param-poe-load').value) || 50;
+            let getPoleW = (p) => poleLoad + (p.hasPoe ? poeLoadW : 0); // Kullanıcı tanımı PoE Yükü
+
+            let wL = lChain.reduce((sum, p) => sum + getPoleW(p), 0);
+            let wR = rChain.reduce((sum, p) => sum + getPoleW(p), 0);
+            let totalW = getPoleW(pNode) + wL + wR; // Beslemenin çekeceği tam uçtan uca toplam watt
+            
+            let dFeed = distance3D(sNode, pNode);
+            let eFeed = getE(dFeed, totalW); // Trafo'dan tele(T-Noktası) kadar olan % düşüm.
+
+            // Sol kol simülasyonu
+            let eLMax = 0, eL = eFeed, curW_L = wL, pL = pNode, lLinks = [];
+            for(let n of lChain) {
+                let d = distance3D(pL, n);
+                eL += getE(d, curW_L); // Kademe düştükçe kalan kümülatif yük azalır
+                lLinks.push({from: pL, to: n, e: eL, dist: d});
+                curW_L -= getPoleW(n); pL = n;
+            }
+            eLMax = eL;
+
+            // Sağ kol simülasyonu
+            let eRMax = 0, eR = eFeed, curW_R = wR, pR = pNode, rLinks = [];
+            for(let n of rChain) {
+                let d = distance3D(pR, n);
+                eR += getE(d, curW_R);
+                rLinks.push({from: pR, to: n, e: eR, dist: d});
+                curW_R -= getPoleW(n); pR = n;
+            }
+            eRMax = eR;
+
+            let finalMax = Math.max(eFeed, eLMax, eRMax);
+            return {
+                valid: finalMax <= maxVdPerc, // Limiti aşıp aşmadığını döner
+                eMax: finalMax,
+                feedLink: {from: sNode, to: pNode, e: eFeed, dist: dFeed},
+                lLinks, rLinks
+            };
+        };
+
+        // Otomatik dizi (Ring) oluştur: Çit sırasını takip edebilmek için birbirine en yakın direkleri zincirle.
+        let ring = [];
+        let unv = new Set(poles);
+        let curr = poles[0];
+        ring.push(curr); unv.delete(curr);
+        while(unv.size > 0) {
+            let b = null, md = Infinity;
+            unv.forEach(p => { let d = distance2D(curr, p); if(d < md){ md=d; b=p; } });
+            ring.push(b); unv.delete(b); curr = b;
+        }
+
+        // Basit Numaralandırma
+        ring.forEach((p, index) => {
+            p.label = (index + 1).toString();
+        });
+
+        // --- Raporlama ve Etiketleme Hazırlığı ---
+        state.reports = [];
+        let srcCounters = { 'KIOSK': 1, 'ADMIN': 1 };
+        sources.forEach(s => {
+            if(!s.label) {
+                s.label = (s.type === 'KIOSK' ? 'TR-' : 'IDARI-') + srcCounters[s.type]++;
+            }
+        });
+
+        // 1. AŞAMA: T-EK (MERKEZ) NOKTALARINI OPTİMAL TRAFOLARA ZİMMETLE
+        // Hangi direklerden En Yakın Trafolara Ana Besleme inmesi gerektiğini "Lokal-Açgözlü" olarak belirliyoruz. (Böylece uzun kabloları engelleriz).
+        let greedyFed = new Set();
+        let anchors = []; // { source, tPole }
+        let greedyLoopCt = 0;
+        
+        while(greedyFed.size < ring.length && greedyLoopCt < 1000) {
+            let bestP = null, bestS = null, minD = Infinity;
+            // Henüz atanmamış direkler içinden, kendisine EN YAKIN olan Trafoyu bul
+            ring.forEach(p => {
+                if(greedyFed.has(p.id)) return;
+                sources.forEach(s => {
+                    let d = distance2D(p, s);
+                    if(d < minD){ minD = d; bestP = p; bestS = s; }
+                });
+            });
+
+            if(!bestP) break; 
+            
+            let idx = ring.indexOf(bestP);
+            let lIdx = idx, rIdx = idx;
+            let expL=true, expR=true;
+            let lChain=[], rChain=[];
+            
+            while(expL || expR) {
+                let nLIdx = (lIdx - 1 + ring.length) % ring.length;
+                let nRIdx = (rIdx + 1) % ring.length;
+                let cL = ring[nLIdx], cR = ring[nRIdx];
+                
+                let canL = expL && !greedyFed.has(cL.id) && cL.id !== bestP.id && !rChain.includes(cL);
+                let canR = expR && !greedyFed.has(cR.id) && cR.id !== bestP.id && !lChain.includes(cR);
+                
+                if(canL) {
+                    lChain.push(cL);
+                    if(evalVD(bestS, bestP, lChain, rChain).valid) lIdx = nLIdx; 
+                    else { lChain.pop(); expL = false; }
+                } else expL = false;
+
+                if(canR) {
+                    rChain.push(cR);
+                    if(evalVD(bestS, bestP, lChain, rChain).valid) rIdx = nRIdx; 
+                    else { rChain.pop(); expR = false; }
+                } else expR = false;
+            }
+            
+            greedyFed.add(bestP.id);
+            lChain.forEach(p => greedyFed.add(p.id));
+            rChain.forEach(p => greedyFed.add(p.id));
+            
+            anchors.push({ source: bestS, tPole: bestP });
+            greedyLoopCt++;
+        }
+
+        // 2. AŞAMA: LİNYELER ARASI YÜK DENGELEME (MIDPOINT OPTİMİZASYONU)
+        // Linyelerin biri çok kısa, diğeri çok uzun olmasın diye tam orta noktadan buluşturarak paylaştırıyoruz.
+        if (anchors.length > 1) {
+            anchors.sort((a,b) => ring.indexOf(a.tPole) - ring.indexOf(b.tPole));
+        }
+
+        anchors.forEach(a => { a.balancedL = []; a.balancedR = []; });
+
+        if (anchors.length === 1) {
+            let A = anchors[0];
+            let idxA = ring.indexOf(A.tPole);
+            let mid = Math.floor((ring.length - 1) / 2);
+            for(let k=1; k<=mid; k++) A.balancedR.push(ring[(idxA + k) % ring.length]);
+            for(let k=1; k<=ring.length - 1 - mid; k++) A.balancedL.push(ring[(idxA - k + ring.length) % ring.length]);
+        } else {
+            for(let i=0; i<anchors.length; i++) {
+                let A = anchors[i];
+                let idxA = ring.indexOf(A.tPole);
+                let B = anchors[(i+1)%anchors.length];
+                let idxB = ring.indexOf(B.tPole);
+                
+                let dist = (idxB - idxA + ring.length) % ring.length;
+                let mid = Math.floor((dist - 1) / 2); // aradaki pole sayısı ortalaması
+                
+                for(let k=1; k<=mid; k++) A.balancedR.push(ring[(idxA + k) % ring.length]);
+                let remaining = dist - 1 - mid;
+                for(let k=1; k<=remaining; k++) B.balancedL.push(ring[(idxB - k + ring.length) % ring.length]);
+            }
+        }
+
+        // 3. AŞAMA: VD LIMIT KONTROLÜ VE EKRANA ÇİZİM
+        let orphanPoles = []; // Eşit dağıtım sonucu limiti aşan ve kırpılan uç (yetim) direkler
+        let loopCt = 1;
+
+        let pushLinyeToReport = (source, tPole, lChain, rChain) => {
+            let lastValid = evalVD(source, tPole, lChain, rChain);
+            if(!lastValid.valid) hasWarning = true;
+
+            let linyeName = `L${loopCt}`;
+            let lNames = lChain.map(p => p.label).join(' ➜ ');
+            let rNames = rChain.map(p => p.label).join(' ➜ ');
+            
+            state.reports.push({
+                linye: linyeName,
+                kaynakAdı: source.label,
+                kaynakTipi: source.type,
+                tNoktası: tPole.label,
+                lKol: lNames.length > 0 ? lNames : 'Yok',
+                rKol: rNames.length > 0 ? rNames : 'Yok',
+                feedLink: lastValid.feedLink,
+                lLinks: lastValid.lLinks,
+                rLinks: lastValid.rLinks,
+                toplamDirek: 1 + lChain.length + rChain.length,
+                maxVd: lastValid.eMax,
+                isSafe: lastValid.valid
+            });
+            loopCt++;
+
+            let pushConn = lnk => {
+                state.connections.push({
+                    id: generateId(), type: 'POWER',
+                    fromId: lnk.from.id, toId: lnk.to.id,
+                    dist: lnk.dist, vdPerc: lnk.e, vdIssue: lnk.e > maxVdPerc
+                });
+                if(lnk.e > maxVdPerc) hasWarning = true;
+            };
+            
+            pushConn(lastValid.feedLink);
+            lastValid.lLinks.forEach(pushConn);
+            lastValid.rLinks.forEach(pushConn);
+        };
+
+        // Her anchor'ı voltaj düşümü (VD) için doğrula; patlıyorsa uçtan uçtan kırp ("orphan" yap)
+        anchors.forEach(a => {
+            let res = evalVD(a.source, a.tPole, a.balancedL, a.balancedR);
+            while(!res.valid && (a.balancedL.length > 0 || a.balancedR.length > 0)) {
+                if(a.balancedL.length > a.balancedR.length) {
+                    orphanPoles.push(a.balancedL.pop());
+                } else {
+                    orphanPoles.push(a.balancedR.pop());
+                }
+                res = evalVD(a.source, a.tPole, a.balancedL, a.balancedR);
+            }
+            pushLinyeToReport(a.source, a.tPole, a.balancedL, a.balancedR);
+        });
+
+        // 4. AŞAMA: KIRPILAN (VD'DEN DÜŞEN) DİREKLERE YENİ LİNYELER ÇEK (Kırmızı Uyarı Vermek Yerine)
+        while(orphanPoles.length > 0) {
+            let targetP = orphanPoles[0];
+            let bestS = null, minD = Infinity;
+            // Yeni linyeyi mecburen çekeceğiz, bari en yakın Trafodan çekelim (Maliyeti düşürelim)
+            sources.forEach(s => { let d = distance2D(targetP, s); if(d<minD){ minD=d; bestS=s; } });
+            
+            let tPole = targetP;
+            orphanPoles = orphanPoles.filter(p => p.id !== tPole.id);
+            
+            let subL = [], subR = [];
+            let rIdx = ring.indexOf(tPole);
+            let lIdx = rIdx;
+            let expL = true, expR = true;
+            
+            // Kırpılan bölgede olabildiğince yayılmaya devam et
+            while(expL || expR) {
+                let nLIdx = (lIdx - 1 + ring.length) % ring.length;
+                let nRIdx = (rIdx + 1) % ring.length;
+                let cL = ring[nLIdx], cR = ring[nRIdx];
+                
+                let canL = expL && orphanPoles.find(u => u.id === cL.id) && !subR.includes(cL);
+                let canR = expR && orphanPoles.find(u => u.id === cR.id) && !subL.includes(cR);
+                
+                if(canL) {
+                    subL.push(cL);
+                    if(evalVD(bestS, tPole, subL, subR).valid) lIdx = nLIdx; 
+                    else { subL.pop(); expL = false; }
+                } else expL = false;
+
+                if(canR) {
+                    subR.push(cR);
+                    if(evalVD(bestS, tPole, subL, subR).valid) rIdx = nRIdx; 
+                    else { subR.pop(); expR = false; }
+                } else expR = false;
+            }
+            
+            // Kullanılan direkleri yetimler havuzundan çıkar
+            subL.forEach(p => { orphanPoles = orphanPoles.filter(u => u.id !== p.id); });
+            subR.forEach(p => { orphanPoles = orphanPoles.filter(u => u.id !== p.id); });
+            
+            pushLinyeToReport(bestS, tPole, subL, subR);
+            if(loopCt > 100) break; // Sonsuz döngü güvenliği
+        }
+
+        // Feedback
+        if(hasWarning) {
+            document.getElementById('res-warnings').innerText = `Gerilim Düşümü İhlali! Kırmızı hatları kontrol et. Kesiti büyüt veya araya Kiosk ekle.`;
+            uiStatus.innerText = "Durum: Hesaplama Bitti but Hatalar Bulundu!";
+        } else {
+            document.getElementById('res-warnings').innerText = "Tüm İletimler Güvenli (< %" + maxVdPerc + ")";
+            document.getElementById('res-warnings').style.color = "var(--success)";
+            uiStatus.innerText = "Durum: Hesaplama Başarılı!";
+        }
+        
+        updateSummary();
+        render();
+    });
+
+    const updateSummary = () => {
+        let polesCount = state.entities.filter(e => e.type === 'POLE').length;
+        let poeCount = state.entities.filter(e => e.type === 'POE').length;
+        
+        let powerMetraj = 0, fiberMetraj = 0, cat6Metraj = 0;
+        state.connections.forEach(c => {
+            if(c.type === 'POWER') powerMetraj += c.dist;
+            if(c.type === 'FIBER') fiberMetraj += c.dist;
+            if(c.type === 'DATA') cat6Metraj += c.dist;
+        });
+
+        // Saha çevresi hesapla
+        let perimeterM = 0;
+        if(state.boundaryPoints && state.boundaryPoints.length > 1) {
+            let bp = state.boundaryPoints;
+            for(let i = 0; i < bp.length; i++) {
+                perimeterM += distance2D(bp[i], bp[(i+1) % bp.length]);
+            }
+        }
+
+        document.getElementById('res-poles').innerText = `${polesCount} Adet`;
+        document.getElementById('res-poe').innerText = `${poeCount} Adet`;
+        document.getElementById('res-ac-cable').innerText = `${Math.ceil(powerMetraj)} m`;
+        document.getElementById('res-fiber').innerText = `${Math.ceil(fiberMetraj)} m`;
+        document.getElementById('res-cat6').innerText = `${Math.ceil(cat6Metraj)} m`;
+
+        // Çevre satırını güncelle
+        let perimEl = document.getElementById('res-perimeter');
+        let ratioBox = document.getElementById('res-ratio-box');
+        if(perimeterM > 0) {
+            perimEl.innerText = `${Math.ceil(perimeterM).toLocaleString('tr-TR')} m`;
+            // Karşılaştırma oranları
+            let ratioAC  = powerMetraj > 0 ? (powerMetraj / perimeterM * 100).toFixed(0) : null;
+            let ratioFib = fiberMetraj > 0 ? (fiberMetraj / perimeterM * 100).toFixed(0) : null;
+            if(ratioAC !== null || ratioFib !== null) {
+                ratioBox.style.display = 'block';
+                ratioBox.innerHTML =
+                    `<div style="color:#38bdf8; font-weight:bold; margin-bottom:4px;">📊 Çevre Kıyaslama</div>` +
+                    (ratioAC  !== null ? `<div>⚡ Güç Kablosu: <strong style='color:#f59e0b;'>${Math.ceil(powerMetraj).toLocaleString('tr-TR')} m</strong> <span style='opacity:0.7;'>(Çevrenin %${ratioAC}'i)</span></div>` : '') +
+                    (ratioFib !== null ? `<div>🔵 Fiber (Ring): <strong style='color:#10b981;'>${Math.ceil(fiberMetraj).toLocaleString('tr-TR')} m</strong> <span style='opacity:0.7;'>(Çevrenin %${ratioFib}'i)</span></div>` : '');
+            }
+        } else {
+            perimEl.innerText = '— m (koordinat yükleyin)';
+            ratioBox.style.display = 'none';
+        }
+    };
+
+    // PDF Rapor Modülü
+    document.getElementById('btn-export').addEventListener('click', () => {
+        if(!state.reports || state.reports.length === 0) {
+            alert("Lütfen önce (Gerilim/Metraj Hesapla) butonuna basarak hesaplamaları yaptırın.");
+            return;
+        }
+        
+        let html = ``;
+        state.reports.forEach(r => {
+             html += `<div style="margin-bottom:15px; padding:15px; background:var(--bg-dark); border-left:4px solid ${r.isSafe ? 'var(--success)' : 'var(--danger)'}; border-radius:4px;">`;
+             html += `<h4 style="color:var(--primary); margin-bottom:5px;">${r.linye} Hattı <span style="font-size:12px; color:#fff; font-weight:normal;">(Kaynak: ${r.kaynakAdı})</span></h4>`;
+             
+             // İnce hesap detayları ve rotalar
+             html += `<div style="font-size:12.5px; color:#b0b8c4; margin-bottom:10px; background:rgba(255,255,255,0.03); padding:10px; border-radius:4px;">`;
+             html += `<strong style="color:#e2e8f0;">H-Topolojisi Rota Özeti:</strong><br>`;
+             let poleSpacingParam = parseFloat(document.getElementById('param-pole-spacing').value) || 50;
+             html += `<span style="color:#94a3b8; font-size:11px;">📐 Proje Parametresi: Direk Arası Mesafe = <strong style="color:#fbbf24;">${poleSpacingParam} m</strong></span><br>`;
+             html += `<span style="color:#fbbf24;">⚡ Ana Besleme:</span> ${r.kaynakAdı} ➜ Direk [${r.tNoktası}] <span style="opacity:0.7;">(Ana Hat VD: %${r.feedLink.e.toFixed(3)})</span><br>`;
+             if(r.lKol !== 'Yok') {
+                 html += `⬅️ <span style="color:#60a5fa;">Sol Kol:</span> Direk [${r.tNoktası}] ➜ ${r.lKol}<br>`;
+             }
+             if(r.rKol !== 'Yok') {
+                 html += `➡️ <span style="color:#60a5fa;">Sağ Kol:</span> Direk [${r.tNoktası}] ➜ ${r.rKol}<br>`;
+             }
+             html += `</div>`;
+             
+             // SLD AND STEP-BY-STEP CALCULATION TABLE
+             html += `<details style="margin-top:10px; cursor:pointer;" open>`;
+             html += `<summary style="color:var(--primary); font-weight:bold; margin-bottom:10px;">📄 Tek Hat Şeması (SLD) ve Kademe Hesapları</summary>`;
+             html += `<div style="margin-top:10px; background:#0f172a; padding:15px; border-radius:6px; overflow-x:auto; border:1px solid #334155;">`;
+             
+             // ASCII T-SPlICE
+             html += `<pre style="color:#10b981; font-size:12px; font-weight:bold; text-align:center; line-height:1.2; font-family:monospace; margin-bottom:15px;">`;
+             html += `[${r.kaynakTipi}: ${r.kaynakAdı}]\n`;
+             html += `       |\n`;
+             html += `       | (L=${r.feedLink.dist.toFixed(0)}m, Kümülatif VD= %${r.feedLink.e.toFixed(3)})\n`;
+             html += `       |\n`;
+             let poeParamW2 = parseInt(document.getElementById('param-poe-load').value) || 50;
+             let tPoeStr = r.feedLink.to.hasPoe ? ` [+PoE ${poeParamW2}W]` : ``;
+             html += `   [T-EK: DİREK ${r.tNoktası}${tPoeStr}]\n`;
+             html += `     /   \\\n`;
+             html += ` (SOL)   (SAĞ)\n`;
+             html += `</pre>`;
+             
+             let baseW = parseInt(document.getElementById('param-pole-load').value) || 100;
+             let poeParamW = parseInt(document.getElementById('param-poe-load').value) || 50;
+             html += `<table style="width:100%; border-collapse:collapse; font-size:11px; color:#cbd5e1;">`;
+             html += `<thead><tr style="border-bottom:1px solid #475569; background:rgba(255,255,255,0.05);"><th style="padding:6px; text-align:left;">Yön</th><th style="padding:6px; text-align:left;">İletim Hattı</th><th style="padding:6px; text-align:center;">Kümülatif Yük Düşümü</th><th style="padding:6px; text-align:left;">Mesafe (m)</th><th style="padding:6px; text-align:left;">Direkteki Kümülatif VD (%)</th></tr></thead><tbody>`;
+             
+             // Left branch calc table
+             if (r.lLinks && r.lLinks.length > 0) {
+                 r.lLinks.forEach(lnk => {
+                     let powW = baseW + (lnk.to.hasPoe ? poeParamW : 0);
+                     let poeB = lnk.to.hasPoe ? `<span style="background:var(--secondary); color:#fff; padding:2px 5px; border-radius:4px; font-size:9px; margin-left:5px;">+PoE (${poeParamW}W)</span>` : ``;
+                     html += `<tr style="border-bottom:1px dashed #334155;"><td style="padding:4px; color:#94a3b8;">⬅️ Sol</td><td style="padding:4px;">Direk ${lnk.from.label} ➜ Direk ${lnk.to.label} ${poeB}</td><td style="padding:4px; text-align:center; color:#fbbf24;">-${powW}W</td><td style="padding:4px;">${lnk.dist.toFixed(1)}m</td><td style="padding:4px; color:#38bdf8;">%${lnk.e.toFixed(3)}</td></tr>`;
+                 });
+             } else {
+                 html += `<tr><td colspan="5" style="padding:4px; color:#64748b;">Sol kol yok</td></tr>`;
+             }
+             
+             // Right branch calc table
+             if (r.rLinks && r.rLinks.length > 0) {
+                 r.rLinks.forEach(lnk => {
+                     let powW = baseW + (lnk.to.hasPoe ? poeParamW : 0);
+                     let poeB = lnk.to.hasPoe ? `<span style="background:var(--secondary); color:#fff; padding:2px 5px; border-radius:4px; font-size:9px; margin-left:5px;">+PoE (${poeParamW}W)</span>` : ``;
+                     html += `<tr style="border-bottom:1px dashed #334155;"><td style="padding:4px; color:#94a3b8;">➡️ Sağ</td><td style="padding:4px;">Direk ${lnk.from.label} ➜ Direk ${lnk.to.label} ${poeB}</td><td style="padding:4px; text-align:center; color:#fbbf24;">-${powW}W</td><td style="padding:4px;">${lnk.dist.toFixed(1)}m</td><td style="padding:4px; color:#38bdf8;">%${lnk.e.toFixed(3)}</td></tr>`;
+                 });
+             } else {
+                 html += `<tr><td colspan="5" style="padding:4px; color:#64748b;">Sağ kol yok</td></tr>`;
+             }
+             
+             html += `</tbody></table></div></details>`;
+
+             // ============================================================
+             // GERİLİM DÜŞÜMÜ HESAP CETVELİ (EXCEL STİLİ)
+             // ============================================================
+             let S_val = (() => {
+                 let raw = document.getElementById('param-cable-type').value.toLowerCase();
+                 let parts = raw.split('x');
+                 let s = parts.length > 1 ? parseFloat(parts[1]) : parseFloat(parts[0]);
+                 return (!isNaN(s) && s > 0) ? s : 16;
+             })();
+             let isAlVal = document.getElementById('param-cable-type').value.toLowerCase().includes('al');
+             let kVal   = isAlVal ? 35 : 56;
+             let Vnom   = parseFloat(document.getElementById('param-voltage').value) || 400;
+             let baseW2 = parseInt(document.getElementById('param-pole-load').value) || 150;
+             let poeW2  = parseInt(document.getElementById('param-poe-load').value) || 50;
+
+             // Her kol için sıralı direk dizisi oluştur: Sol ters, Trafo→T, Sağ ileri
+             // Sol kol: trafo → T-Ek → sol1 → sol2 → ...
+             // Sağ kol: trafo → T-Ek → sağ1 → sağ2 → ...
+
+             const buildArmTable = (armLabel, feedLink, armLinks) => {
+                 if(!feedLink) return '';
+
+                 // Tüm segmentleri birleştir: [feedLink, ...armLinks]
+                 let allLinks = [feedLink, ...armLinks];
+                 
+                 // Tablo başlığı rengi
+                 let armColor = armLabel === 'SOL KOL ⬅️' ? '#60a5fa' : '#f59e0b';
+                 if(armLabel === 'ANA BESLEME ⚡') armColor = '#10b981';
+
+                 let t = `<details style="margin-top:12px;" open>`;
+                 t += `<summary style="color:${armColor}; font-weight:bold; font-size:12px; cursor:pointer; margin-bottom:8px;">📊 ${armLabel} — Gerilim Düşümü Hesap Cetveli</summary>`;
+                 t += `<div style="overflow-x:auto; margin-top:8px;">`;
+
+                 // Kolon başlıkları = segment numaraları
+                 let thStyle = `style="padding:5px 8px; text-align:center; border:1px solid #334155; background:#1e293b; color:#94a3b8; font-size:10px; white-space:nowrap;"`;
+                 let tdStyle = (bg, color) => `style="padding:5px 8px; text-align:center; border:1px solid #334155; background:${bg}; color:${color}; font-size:10px;"`;
+
+                 t += `<table style="border-collapse:collapse; font-size:10px; min-width:100%;">`;
+
+                 // Row 1: Segment label
+                 t += `<tr><td ${thStyle}>Segment</td>`;
+                 allLinks.forEach((lnk, idx) => {
+                     t += `<td ${thStyle}>${idx === 0 ? 'TR→T' : `T→${lnk.to.label||('D'+(idx))}`}</td>`;
+                 });
+                 t += `</tr>`;
+
+                 // Row 2: Direk Arası Mesafe (L)
+                 t += `<tr><td ${thStyle}>Mesafe L (m)</td>`;
+                 allLinks.forEach(lnk => {
+                     t += `<td ${tdStyle('#0f172a','#e2e8f0')}>${lnk.dist.toFixed(1)}</td>`;
+                 });
+                 t += `</tr>`;
+
+                 // Row 3: Direkteki Yük (W)
+                 t += `<tr><td ${thStyle}>Direk Yükü (W)</td>`;
+                 allLinks.forEach((lnk, idx) => {
+                     let w = idx === 0 ? (baseW2 + (lnk.to && lnk.to.hasPoe ? poeW2 : 0)) : (baseW2 + (lnk.to && lnk.to.hasPoe ? poeW2 : 0));
+                     t += `<td ${tdStyle('#0f172a','#fbbf24')}>${w}</td>`;
+                 });
+                 t += `</tr>`;
+
+                 // Row 4: Linye Toplam Yük (kW) — cumulative load at that segment
+                 // Total load of all downstream poles from this segment onwards
+                 let segLoads = allLinks.map((lnk, idx) => {
+                     // load from this segment to end = sum of (baseW + poeW if applicable) for remaining poles
+                     let downstream = allLinks.slice(idx).reduce((s, lk) => {
+                         return s + baseW2 + (lk.to && lk.to.hasPoe ? poeW2 : 0);
+                     }, 0);
+                     return downstream;
+                 });
+
+                 t += `<tr><td ${thStyle}>Hat Yükü P (kW)</td>`;
+                 segLoads.forEach(w => {
+                     t += `<td ${tdStyle('#0f172a','#a78bfa')}>${(w/1000).toFixed(3)}</td>`;
+                 });
+                 t += `</tr>`;
+
+                 // Row 5: L × P (segment contribution)
+                 t += `<tr><td ${thStyle}>L × P</td>`;
+                 allLinks.forEach((lnk, idx) => {
+                     let lp = lnk.dist * (segLoads[idx] / 1000);
+                     t += `<td ${tdStyle('#0f172a','#67e8f9')}>${lp.toFixed(2)}</td>`;
+                 });
+                 t += `</tr>`;
+
+                 // Row 6: Kablo Kesiti
+                 t += `<tr><td ${thStyle}>Kablo Kesiti S (mm²)</td>`;
+                 allLinks.forEach(() => {
+                     t += `<td ${tdStyle('#0f172a','#94a3b8')}>${S_val}</td>`;
+                 });
+                 t += `</tr>`;
+
+                 // Row 7: Segment VD%  = (100 × L × P(W)) / (k × S × V²)
+                 let segVds = allLinks.map((lnk, idx) => {
+                     return (100 * lnk.dist * segLoads[idx]) / (kVal * S_val * Vnom * Vnom);
+                 });
+                 t += `<tr><td ${thStyle}>Segment VD (%)</td>`;
+                 segVds.forEach(vd => {
+                     t += `<td ${tdStyle('#0f172a','#fb923c')}>${vd.toFixed(4)}</td>`;
+                 });
+                 t += `</tr>`;
+
+                 // Row 8: Kümülatif VD% (from algorithm result)
+                 t += `<tr style="border-top:2px solid #475569;"><td ${thStyle} style="padding:5px 8px; border:1px solid #334155; background:#1e293b; color:#38bdf8; font-weight:bold;">Kümülatif VD (%)</td>`;
+                 allLinks.forEach(lnk => {
+                     let safe = lnk.e <= (parseFloat(document.getElementById('param-max-vd').value) || 5);
+                     t += `<td style="padding:5px 8px; text-align:center; border:2px solid #475569; background:${safe?'rgba(16,185,129,0.12)':'rgba(239,68,68,0.15)'}; color:${safe?'#10b981':'#ef4444'}; font-weight:bold; font-size:11px;">%${lnk.e.toFixed(3)}</td>`;
+                 });
+                 t += `</tr>`;
+
+                 t += `</table></div></details>`;
+                 return t;
+             };
+
+             // Feed only (just the trafo→T segment) — her iki kola da dahil ama önce göster
+             html += buildArmTable('SOL KOL ⬅️', r.feedLink, r.lLinks || []);
+             html += buildArmTable('SAĞ KOL ➡️', r.feedLink, r.rLinks || []);
+
+
+             html += `<p style="margin-top:15px; margin-bottom:4px;"><strong>Bağlı Direkler:</strong> Toplam ${r.toplamDirek} Adet</p>`;
+             html += `<p><strong>Hat Sonu Kümülatif Max VD:</strong> <span style="color:${r.isSafe ? 'var(--success)' : 'var(--danger)'}; font-weight:bold;">%${r.maxVd.toFixed(3)} ${r.isSafe ? '(GÜVENLİ)' : '(LİMİT AŞILDI)'}</span></p>`;
+             html += `</div>`;
+        });
+        
+        let sumHtml = `<div style="margin-bottom:20px; padding:10px; border:1px dashed var(--border); font-size:13px;">`;
+        sumHtml += `<strong>Açıklama:</strong> Sistem H/T topolojisi kullanır. Trafo merkezi en yakın direk ile bağlantı kurar, oradan T-Buat sistemiyle (Ek) sağ ve sol kollara ayrılarak zincirleme (daisy-chain) kablaj yapar.<br>`;
+        sumHtml += `Böylece 1 direkten aynı anda sağa ve sola gidiş görülmesi fiziksel olarak tek kablo değil, buat içinde paralel ayrılan L-R kollarıdır. Hesaplamalar da akım azalarak ilerleyecek şekilde buna uygun (Kol başı + Kol içi) yapılmıştır.</div>`;
+        
+        document.getElementById('reportContent').innerHTML = sumHtml + html;
+        document.getElementById('reportModal').style.display = 'block';
+    });
+
+    // ============================================================
+    // YAZDIR / PDF — Tüm raporu ayrı pencerede yaz
+    // ============================================================
+    window.printReport = () => {
+        let content = document.getElementById('reportContent').innerHTML;
+        let title   = 'SolarMech KDS — Kablo Hesap Raporu';
+        let w = window.open('', '_blank', 'width=900,height=700');
+        w.document.write(`
+<!DOCTYPE html><html lang="tr"><head>
+<meta charset="UTF-8">
+<title>${title}</title>
+<style>
+  body { font-family: 'Segoe UI', Arial, sans-serif; background:#0f172a; color:#e2e8f0; margin:20px; font-size:12px; }
+  h2 { color:#f59e0b; border-bottom:1px solid #334155; padding-bottom:8px; }
+  h4 { color:#38bdf8; margin:10px 0 4px; }
+  table { border-collapse:collapse; width:100%; margin-bottom:12px; }
+  th, td { border:1px solid #334155; padding:4px 7px; text-align:center; }
+  th { background:#1e293b; color:#94a3b8; }
+  details { margin-bottom:10px; }
+  summary { cursor:pointer; font-weight:bold; }
+  pre { font-family:monospace; font-size:11px; }
+  @media print {
+    body { background:#fff; color:#000; }
+    h2 { color:#b45309; }
+    h4 { color:#1d4ed8; }
+    th { background:#e2e8f0; color:#000; }
+    td { color:#000; }
+    details[open] summary::before { content: ""; }
+    details { display:block; }
+    details > * { display:block !important; }
+  }
+</style>
+</head><body>
+<h2>${title}</h2>
+${content}
+</body></html>`);
+        w.document.close();
+        w.focus();
+        // Kısa gecikme ile yazdırı başlat (render için zaman tanı)
+        setTimeout(() => { w.print(); }, 600);
+    };
+
+
+    // ============================================================
+    // LOCALSTORAGE: OTOMATİK KAYIT & GERİ YÜKLEME
+    // ============================================================
+    const SAVE_KEY = 'solarmech_cctv_state_v1';
+
+    const saveState = () => {
+        try {
+            let saveObj = {
+                entities: state.entities,
+                connections: state.connections,
+                boundaryPoints: state.boundaryPoints,
+                offsetX: state.offsetX,
+                offsetY: state.offsetY,
+                scale: state.scale
+            };
+            localStorage.setItem(SAVE_KEY, JSON.stringify(saveObj));
+        } catch(e) { /* quota exceeded vb. */ }
+    };
+
+    const loadState = () => {
+        try {
+            let raw = localStorage.getItem(SAVE_KEY);
+            if(!raw) return;
+            let saved = JSON.parse(raw);
+            if(saved.entities)       state.entities       = saved.entities;
+            if(saved.connections)    state.connections    = saved.connections;
+            if(saved.boundaryPoints) state.boundaryPoints = saved.boundaryPoints;
+            if(saved.offsetX !== undefined) state.offsetX = saved.offsetX;
+            if(saved.offsetY !== undefined) state.offsetY = saved.offsetY;
+            if(saved.scale   !== undefined) state.scale   = saved.scale;
+            updateSummary();
+            render();
+            uiStatus.innerText = 'Durum: Önceki çizim yüklendi (localStorage)';
+        } catch(e) { /* bozulmuş veri */ }
+    };
+
+    // Her render sonrası otomatik kaydet (debounce ile)
+    let saveTimer = null;
+    const scheduleSave = () => {
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(saveState, 800);
+    };
+    // Render fonksiyonunu wrap ederek save tetikle
+    const _origRender = render;
+    window.render = () => { _origRender(); scheduleSave(); };
+
+    // Sayfa açıldığında önceki çizimi geri yükle
+    loadState();
+
+    // ============================================================
+    // TEMİZLE BUTONU
+    // ============================================================
+    document.getElementById('btn-clear-all').addEventListener('click', () => {
+        if(!confirm('Tüm çizim, bağlantılar ve sınır noktaları silinecek. Emin misiniz?')) return;
+        state.entities       = [];
+        state.connections    = [];
+        state.boundaryPoints = [];
+        state.reports        = [];
+        state.selectedEntityId   = null;
+        state.draggingEntityId   = null;
+        localStorage.removeItem(SAVE_KEY);
+        updateSummary();
+        render();
+        uiStatus.innerText = 'Durum: Çizim tamamen temizlendi.';
+    });
+
+    // ============================================================
+    // ============================================================
+    // PROJE KAYDET / AÇ — File System Access API (Chrome/Edge)
+    // Aynı dosyaya üzerine yazma desteği
+    // ============================================================
+    let currentFileHandle = null; // Açık proje dosyası kolu
+
+    // Proje verisi paketi oluştur
+    const buildSaveObj = () => {
+        let projName = document.getElementById('project-name').value.trim() || 'SolarMech_Proje';
+        return {
+            version: '1.1',
+            projectName: projName,
+            savedAt: new Date().toISOString(),
+            params: {
+                voltage:    document.getElementById('param-voltage').value,
+                maxVd:      document.getElementById('param-max-vd').value,
+                poleLoad:   document.getElementById('param-pole-load').value,
+                poeLoad:    document.getElementById('param-poe-load').value,
+                poleSpacing:document.getElementById('param-pole-spacing').value,
+                cableType:  document.getElementById('param-cable-type').value,
+                poeDist:    document.getElementById('param-poe-dist').value
+            },
+            entities:       state.entities,
+            connections:    state.connections,
+            boundaryPoints: state.boundaryPoints,
+            offsetX: state.offsetX,
+            offsetY: state.offsetY,
+            scale:   state.scale
+        };
+    };
+
+    // Dosyaya yazan yardımcı: File System Access API → fallback download
+    const writeToHandle = async (handle, saveObj) => {
+        let json = JSON.stringify(saveObj, null, 2);
+        let writable = await handle.createWritable();
+        await writable.write(json);
+        await writable.close();
+    };
+
+    const fallbackDownload = (saveObj) => {
+        let json = JSON.stringify(saveObj, null, 2);
+        let blob = new Blob([json], { type: 'application/json' });
+        let url  = URL.createObjectURL(blob);
+        let a    = document.createElement('a');
+        a.href   = url;
+        a.download = `${saveObj.projectName}.smcctv`;
+        document.body.appendChild(a); a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    // KAYDET — Açık dosya varsa üzerine yaz, yoksa konum sor
+    document.getElementById('btn-save-project').addEventListener('click', async () => {
+        let saveObj = buildSaveObj();
+        try {
+            if (currentFileHandle) {
+                // Aynı dosyaya yaz
+                await writeToHandle(currentFileHandle, saveObj);
+                uiStatus.innerText = `✅ Kaydedildi: ${currentFileHandle.name}`;
+            } else if (window.showSaveFilePicker) {
+                // İlk kez kaydet → konum sor
+                currentFileHandle = await window.showSaveFilePicker({
+                    suggestedName: `${saveObj.projectName}.smcctv`,
+                    types: [{ description: 'SolarMech Proje', accept: { 'application/json': ['.smcctv'] } }]
+                });
+                await writeToHandle(currentFileHandle, saveObj);
+                document.getElementById('project-name').value = saveObj.projectName;
+                uiStatus.innerText = `✅ Kaydedildi: ${currentFileHandle.name}`;
+            } else {
+                // Eski tarayıcı fallback
+                fallbackDownload(saveObj);
+                uiStatus.innerText = `✅ '${saveObj.projectName}.smcctv' indirildi.`;
+            }
+        } catch(err) {
+            if(err.name !== 'AbortError') uiStatus.innerText = `Kayıt hatası: ${err.message}`;
+        }
+    });
+
+    // FARKLI KAYDET — Her zaman yeni konum sor
+    document.getElementById('btn-saveas-project').addEventListener('click', async () => {
+        let saveObj = buildSaveObj();
+        try {
+            if (window.showSaveFilePicker) {
+                let handle = await window.showSaveFilePicker({
+                    suggestedName: `${saveObj.projectName}.smcctv`,
+                    types: [{ description: 'SolarMech Proje', accept: { 'application/json': ['.smcctv'] } }]
+                });
+                await writeToHandle(handle, saveObj);
+                currentFileHandle = handle; // Artık bu dosya "aktif"
+                uiStatus.innerText = `✅ Farklı Kaydedildi: ${handle.name}`;
+            } else {
+                fallbackDownload(saveObj);
+            }
+        } catch(err) {
+            if(err.name !== 'AbortError') uiStatus.innerText = `Kayıt hatası: ${err.message}`;
+        }
+    });
+
+    // YENİ PROJE — Temizle + dosya kolunu sıfırla
+    document.getElementById('btn-new-project').addEventListener('click', () => {
+        if(!confirm('Yeni proje açmak mevcut çizimi temizleyecek. Kaydetmek ister misiniz?')) return;
+        currentFileHandle = null;
+        state.entities = []; state.connections = []; state.boundaryPoints = []; state.reports = [];
+        state.selectedEntityId = null; state.draggingEntityId = null;
+        document.getElementById('project-name').value = '';
+        updateSummary(); render();
+        uiStatus.innerText = 'Durum: Yeni proje başlatıldı.';
+    });
+
+    // PROJE AÇ — Dosya seç, yükle ve dosya kolunu sakla
+    document.getElementById('btn-open-project').addEventListener('click', async () => {
+        try {
+            if (window.showOpenFilePicker) {
+                let [handle] = await window.showOpenFilePicker({
+                    types: [{ description: 'SolarMech Proje', accept: { 'application/json': ['.smcctv', '.json'] } }]
+                });
+                let file = await handle.getFile();
+                let text = await file.text();
+                let saved = JSON.parse(text);
+                applyLoadedProject(saved);
+                currentFileHandle = handle; // Artık bu dosya aktif → Kaydet bu dosyaya yazar
+                let d = saved.savedAt ? new Date(saved.savedAt).toLocaleDateString('tr-TR') : '?';
+                uiStatus.innerText = `✅ '${saved.projectName || file.name}' açıldı (${d}) — Kaydet aynı dosyaya yazar.`;
+            } else {
+                document.getElementById('project-file-input').click();
+            }
+        } catch(err) {
+            if(err.name !== 'AbortError') document.getElementById('project-file-input').click();
+        }
+    });
+
+    // Eski tarayıcı fallback açma
+    document.getElementById('project-file-input').addEventListener('change', (e) => {
+        let file = e.target.files[0];
+        if(!file) return;
+        let reader = new FileReader();
+        reader.onload = (ev) => {
+            try {
+                let saved = JSON.parse(ev.target.result);
+                applyLoadedProject(saved);
+                currentFileHandle = null; // Fallback modda dosya kolu yok
+                uiStatus.innerText = `'${saved.projectName || file.name}' yüklendi (Not: Kaydet yeni dosya oluşturur).`;
+            } catch(err) { alert('Dosya okuma hatası.'); }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+    });
+
+    // Ortak yükleme fonksiyonu
+    const applyLoadedProject = (saved) => {
+        if(saved.entities)       state.entities       = saved.entities;
+        if(saved.connections)    state.connections    = saved.connections;
+        if(saved.boundaryPoints) state.boundaryPoints = saved.boundaryPoints;
+        if(saved.offsetX !== undefined) state.offsetX = saved.offsetX;
+        if(saved.offsetY !== undefined) state.offsetY = saved.offsetY;
+        if(saved.scale   !== undefined) state.scale   = saved.scale;
+        if(saved.params) {
+            if(saved.params.voltage)     document.getElementById('param-voltage').value     = saved.params.voltage;
+            if(saved.params.maxVd)       document.getElementById('param-max-vd').value       = saved.params.maxVd;
+            if(saved.params.poleLoad)    document.getElementById('param-pole-load').value    = saved.params.poleLoad;
+            if(saved.params.poeLoad)     document.getElementById('param-poe-load').value     = saved.params.poeLoad;
+            if(saved.params.poleSpacing) document.getElementById('param-pole-spacing').value = saved.params.poleSpacing;
+            if(saved.params.cableType)   document.getElementById('param-cable-type').value   = saved.params.cableType;
+            if(saved.params.poeDist)     document.getElementById('param-poe-dist').value     = saved.params.poeDist;
+        }
+        if(saved.projectName) document.getElementById('project-name').value = saved.projectName;
+        updateSummary(); render();
+    };
+
+
+
+    // ============================================================
+    // KOORDİNAT EXCEL (CSV) EXPORT
+    // ============================================================
+    document.getElementById('btn-export-excel').addEventListener('click', () => {
+        if(state.entities.length === 0) {
+            alert('Sahnede koordinat alınabilecek varlık yok.');
+            return;
+        }
+        let rows = [['ID','Tip','Etiket','X (m)','Y (m)','Z (m)','PoE Var mı','Host Pole ID']];
+
+        state.entities.forEach(ent => {
+            rows.push([
+                ent.id,
+                ent.type,
+                ent.label || '',
+                ent.x !== undefined ? ent.x.toFixed(3) : '',
+                ent.y !== undefined ? ent.y.toFixed(3) : '',
+                ent.z !== undefined ? ent.z.toFixed(3) : '0',
+                ent.hasPoe ? 'EVET' : '',
+                ent.hostPoleId || ''
+            ]);
+        });
+
+        // Sınır noktalarını da ekle
+        if(state.boundaryPoints && state.boundaryPoints.length > 0) {
+            rows.push([]);
+            rows.push(['--- SINIR NOKTALARI ---','','','','','','','']);
+            rows.push(['#','Tip','Etiket','X (m)','Y (m)','Z (m)','','']);
+            state.boundaryPoints.forEach((bp, i) => {
+                rows.push([
+                    i+1, 'SINIR', `S${i+1}`,
+                    bp.x !== undefined ? bp.x.toFixed(3) : '',
+                    bp.y !== undefined ? bp.y.toFixed(3) : '',
+                    bp.z !== undefined ? bp.z.toFixed(3) : '0',
+                    '', ''
+                ]);
+            });
+        }
+
+        // BOM + CSV yaz (Türkçe Excel için ; ayraç, sep= ipucu satırı ile)
+        let csvContent = '\uFEFF' + 'sep=;\r\n' + rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(';')).join('\r\n');
+        let blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        let url  = URL.createObjectURL(blob);
+        let a    = document.createElement('a');
+        a.href   = url;
+        a.download = `SolarMech_Koordinatlar_${new Date().toISOString().slice(0,10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        uiStatus.innerText = 'Durum: Koordinat listesi Excel için indirildi (CSV).';
+    });
+
+    // Start
+    render();
+</script>
+</body>
+</html>
